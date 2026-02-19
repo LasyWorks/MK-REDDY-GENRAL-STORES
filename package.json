@@ -1,0 +1,15 @@
+{
+  "name": "mk-kirrana-stores",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "npm run start:backend",
+    "dev": "npm run dev:backend",
+    "test": "npm run test:backend",
+    "start:backend": "cd backend && npm start",
+    "dev:backend": "cd backend && npm run dev",
+    "test:backend": "cd backend && npm test",
+    "install:all": "cd backend && npm install",
+    "migrate:backend": "cd backend && npm run migrate",
+    "seed:backend": "cd backend && npm run seed"
+  }
+}
