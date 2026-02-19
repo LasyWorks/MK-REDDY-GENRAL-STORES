@@ -26,11 +26,11 @@ async function startServer() {
       logger.info(`
 ╔═══════════════════════════════════════════════════════════════╗
 ║                                                               ║
-║   🏪 MK Kirana Stores API Server                              ║
+║   🏪 MK Reddy General Stores API Server                       ║
 ║                                                               ║
 ║   Environment: ${(config.env || 'development').padEnd(44)}║
 ║   Port: ${PORT.toString().padEnd(51)}║
-║   Database: ${(config.database.name || 'mk_kirana_stores').padEnd(47)}║
+║   Database: ${(config.database.name || 'mk_reddy_genral_stores').padEnd(47)}║
 ║                                                               ║
 ║   API Base URL: http://localhost:${PORT}/api/v1                  ║
 ║   Health Check: http://localhost:${PORT}/api/v1/health           ║
