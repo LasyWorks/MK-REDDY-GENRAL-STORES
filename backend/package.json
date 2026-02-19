@@ -1,7 +1,7 @@
 {
-  "name": "mk-kirrana-stores-backend",
+  "name": "mk-reddy-genral-stores-backend",
   "version": "1.0.0",
-  "description": "Production-ready backend for MK Kirrana Stores grocery e-commerce",
+  "description": "Production-ready backend for MK Reddy General Stores grocery e-commerce",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
@@ -17,7 +17,7 @@
     "express",
     "mysql"
   ],
-  "author": "MK Kirrana Stores",
+  "author": "MK Reddy General Stores",
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^2.4.3",

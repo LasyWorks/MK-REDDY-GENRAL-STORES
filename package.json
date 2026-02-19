@@ -1,5 +1,5 @@
 {
-  "name": "mk-kirrana-stores",
+  "name": "mk-reddy-genral-stores",
   "version": "1.0.0",
   "scripts": {
     "start": "npm run start:backend",

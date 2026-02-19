@@ -1,13 +1,13 @@
-﻿# MK Kirana Stores
+﻿# MK Reddy General Stores
 
-A production-ready e-commerce platform with a backend API (Node.js/Express) and a frontend (React).
+A production-ready e-commerce platform for MK Reddy General Stores, featuring a Node.js Express backend and a React frontend.
 
 ---
 
 ## Project Structure
 
 ```
-MK Kirrana Stores/
+MK Reddy General Stores/
 ├── backend/                  # Node.js Express API
 │   ├── src/                  # Source code
 │   ├── tests/                # Unit & Integration tests
