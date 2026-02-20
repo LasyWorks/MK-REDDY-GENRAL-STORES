@@ -1,0 +1,1787 @@
+{
+  "timestamp": "2026-02-20T12:28:21.042Z",
+  "totalTests": 0,
+  "passed": 139,
+  "failed": 1,
+  "expectedFails": 0,
+  "testResults": [
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "table_count": 15,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "admin_logs",
+        "TABLE_COLLATION": "utf8mb4_unicode_ci",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "cart_items",
+        "TABLE_COLLATION": "utf8mb4_unicode_ci",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "carts",
+        "TABLE_COLLATION": "utf8mb4_unicode_ci",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "categories",
+        "TABLE_COLLATION": "utf8mb4_unicode_ci",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "email_queue",
+        "TABLE_COLLATION": "utf8mb4_unicode_ci",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "gst_config",
+        "TABLE_COLLATION": "utf8mb4_unicode_ci",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "TABLE_COLLATION": "utf8mb4_unicode_ci",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "order_items",
+        "TABLE_COLLATION": "utf8mb4_unicode_ci",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "orders",
+        "TABLE_COLLATION": "utf8mb4_unicode_ci",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "otps",
+        "TABLE_COLLATION": "utf8mb4_unicode_ci",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "products",
+        "TABLE_COLLATION": "utf8mb4_unicode_ci",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "refresh_tokens",
+        "TABLE_COLLATION": "utf8mb4_unicode_ci",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "roles",
+        "TABLE_COLLATION": "utf8mb4_unicode_ci",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "system_config",
+        "TABLE_COLLATION": "utf8mb4_unicode_ci",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "users",
+        "TABLE_COLLATION": "utf8mb4_unicode_ci",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "CONSTRAINT_NAME": "admin_logs_ibfk_1",
+        "TABLE_NAME": "admin_logs",
+        "REFERENCED_TABLE_NAME": "users",
+        "DELETE_RULE": "CASCADE",
+        "UPDATE_RULE": "NO ACTION",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "CONSTRAINT_NAME": "cart_items_ibfk_1",
+        "TABLE_NAME": "cart_items",
+        "REFERENCED_TABLE_NAME": "carts",
+        "DELETE_RULE": "CASCADE",
+        "UPDATE_RULE": "NO ACTION",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "CONSTRAINT_NAME": "cart_items_ibfk_2",
+        "TABLE_NAME": "cart_items",
+        "REFERENCED_TABLE_NAME": "products",
+        "DELETE_RULE": "CASCADE",
+        "UPDATE_RULE": "NO ACTION",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "CONSTRAINT_NAME": "carts_ibfk_1",
+        "TABLE_NAME": "carts",
+        "REFERENCED_TABLE_NAME": "users",
+        "DELETE_RULE": "CASCADE",
+        "UPDATE_RULE": "NO ACTION",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "CONSTRAINT_NAME": "invoices_ibfk_1",
+        "TABLE_NAME": "invoices",
+        "REFERENCED_TABLE_NAME": "orders",
+        "DELETE_RULE": "RESTRICT",
+        "UPDATE_RULE": "NO ACTION",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "CONSTRAINT_NAME": "order_items_ibfk_1",
+        "TABLE_NAME": "order_items",
+        "REFERENCED_TABLE_NAME": "orders",
+        "DELETE_RULE": "CASCADE",
+        "UPDATE_RULE": "NO ACTION",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "CONSTRAINT_NAME": "order_items_ibfk_2",
+        "TABLE_NAME": "order_items",
+        "REFERENCED_TABLE_NAME": "products",
+        "DELETE_RULE": "RESTRICT",
+        "UPDATE_RULE": "NO ACTION",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "CONSTRAINT_NAME": "orders_ibfk_1",
+        "TABLE_NAME": "orders",
+        "REFERENCED_TABLE_NAME": "users",
+        "DELETE_RULE": "RESTRICT",
+        "UPDATE_RULE": "NO ACTION",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "CONSTRAINT_NAME": "products_ibfk_1",
+        "TABLE_NAME": "products",
+        "REFERENCED_TABLE_NAME": "categories",
+        "DELETE_RULE": "RESTRICT",
+        "UPDATE_RULE": "NO ACTION",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "CONSTRAINT_NAME": "refresh_tokens_ibfk_1",
+        "TABLE_NAME": "refresh_tokens",
+        "REFERENCED_TABLE_NAME": "users",
+        "DELETE_RULE": "CASCADE",
+        "UPDATE_RULE": "NO ACTION",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "CONSTRAINT_NAME": "users_ibfk_1",
+        "TABLE_NAME": "users",
+        "REFERENCED_TABLE_NAME": "roles",
+        "DELETE_RULE": "RESTRICT",
+        "UPDATE_RULE": "NO ACTION",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "admin_logs",
+        "index_count": 5,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "cart_items",
+        "index_count": 4,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "carts",
+        "index_count": 3,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "categories",
+        "index_count": 3,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "email_queue",
+        "index_count": 3,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "gst_config",
+        "index_count": 2,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "index_count": 6,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "order_items",
+        "index_count": 3,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "orders",
+        "index_count": 6,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "otps",
+        "index_count": 3,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "products",
+        "index_count": 10,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "refresh_tokens",
+        "index_count": 4,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "roles",
+        "index_count": 2,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "system_config",
+        "index_count": 3,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "users",
+        "index_count": 8,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "COLUMN_NAME": "id",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "COLUMN_NAME": "order_id",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "COLUMN_NAME": "invoice_number",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "COLUMN_NAME": "store_name",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "COLUMN_NAME": "store_gst_number",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "COLUMN_NAME": "store_address",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "COLUMN_NAME": "store_phone",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "COLUMN_NAME": "customer_name",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "COLUMN_NAME": "customer_phone",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "COLUMN_NAME": "customer_address",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "COLUMN_NAME": "subtotal",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "COLUMN_NAME": "cgst",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "COLUMN_NAME": "sgst",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "COLUMN_NAME": "total_gst",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "COLUMN_NAME": "total_amount",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "COLUMN_NAME": "is_paid",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": "0",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "COLUMN_NAME": "paid_at",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "COLUMN_NAME": "payment_method",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "COLUMN_NAME": "email_sent",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": "0",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "COLUMN_NAME": "email_sent_at",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "COLUMN_NAME": "email_attempts",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": "0",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "COLUMN_NAME": "created_at",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "invoices",
+        "COLUMN_NAME": "updated_at",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "orders",
+        "COLUMN_NAME": "id",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "orders",
+        "COLUMN_NAME": "user_id",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "orders",
+        "COLUMN_NAME": "order_number",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "orders",
+        "COLUMN_NAME": "status",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "pending",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "orders",
+        "COLUMN_NAME": "subtotal",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "orders",
+        "COLUMN_NAME": "total_gst",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "orders",
+        "COLUMN_NAME": "total_amount",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "orders",
+        "COLUMN_NAME": "notes",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "orders",
+        "COLUMN_NAME": "pickup_time",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "orders",
+        "COLUMN_NAME": "confirmed_at",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "orders",
+        "COLUMN_NAME": "ready_at",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "orders",
+        "COLUMN_NAME": "picked_up_at",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "orders",
+        "COLUMN_NAME": "cancelled_at",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "orders",
+        "COLUMN_NAME": "cancellation_reason",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "orders",
+        "COLUMN_NAME": "created_at",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "orders",
+        "COLUMN_NAME": "updated_at",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "products",
+        "COLUMN_NAME": "id",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "products",
+        "COLUMN_NAME": "category_id",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "products",
+        "COLUMN_NAME": "sku",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "products",
+        "COLUMN_NAME": "name_en",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "products",
+        "COLUMN_NAME": "name_te",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "products",
+        "COLUMN_NAME": "description_en",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "products",
+        "COLUMN_NAME": "description_te",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "products",
+        "COLUMN_NAME": "unit_type",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "products",
+        "COLUMN_NAME": "price",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "products",
+        "COLUMN_NAME": "wholesale_price",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "products",
+        "COLUMN_NAME": "gst_percentage",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "18.00",
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "products",
+        "COLUMN_NAME": "stock_quantity",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "0",
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "products",
+        "COLUMN_NAME": "min_order_quantity",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": "1",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "products",
+        "COLUMN_NAME": "max_order_quantity",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "products",
+        "COLUMN_NAME": "image_url",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "products",
+        "COLUMN_NAME": "is_active",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": "1",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "products",
+        "COLUMN_NAME": "is_featured",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": "0",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "products",
+        "COLUMN_NAME": "created_at",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "products",
+        "COLUMN_NAME": "updated_at",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "users",
+        "COLUMN_NAME": "id",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "users",
+        "COLUMN_NAME": "role_id",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "users",
+        "COLUMN_NAME": "name",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "users",
+        "COLUMN_NAME": "phone",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null,
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "users",
+        "COLUMN_NAME": "email",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "users",
+        "COLUMN_NAME": "password_hash",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "TABLE_NAME": "users",
+        "COLUMN_NAME": "user_type",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "retail",
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "users",
+        "COLUMN_NAME": "address",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "users",
+        "COLUMN_NAME": "is_active",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": "1",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "users",
+        "COLUMN_NAME": "is_blocked",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": "0",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "users",
+        "COLUMN_NAME": "blocked_reason",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "users",
+        "COLUMN_NAME": "last_login_at",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "users",
+        "COLUMN_NAME": "created_at",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "TABLE_NAME": "users",
+        "COLUMN_NAME": "updated_at",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "id": 1,
+        "name": "Admin User",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "EXPECTED_FAIL (OTP users)",
+      "data": {
+        "id": 2,
+        "name": "Rahul Kumar",
+        "result": "EXPECTED_FAIL (OTP users)"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "EXPECTED_FAIL (OTP users)",
+      "data": {
+        "id": 3,
+        "name": "Priya Sharma",
+        "result": "EXPECTED_FAIL (OTP users)"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "EXPECTED_FAIL (OTP users)",
+      "data": {
+        "id": 4,
+        "name": "Wholesale Mart",
+        "result": "EXPECTED_FAIL (OTP users)"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "role_name": "admin",
+        "user_count": 1,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "role_name": "retail_customer",
+        "user_count": 2,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "role_name": "wholesale_customer",
+        "user_count": 1,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "total_otps": 0,
+        "expired_otps": null,
+        "verified_otps": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "EXPECTED_FAIL (no tokens yet)",
+      "data": {
+        "total_tokens": 0,
+        "revoked_tokens": null,
+        "expired_tokens": null,
+        "result": "EXPECTED_FAIL (no tokens yet)"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "total_users": 4,
+        "blocked_users": "0",
+        "inactive_users": "0",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "category_name": "Cooking Oils",
+        "product_count": 4,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "category_name": "Rice & Grains",
+        "product_count": 3,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "category_name": "Pulses & Lentils",
+        "product_count": 4,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "category_name": "Spices & Masalas",
+        "product_count": 5,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "category_name": "Flour & Atta",
+        "product_count": 3,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "category_name": "Sugar & Salt",
+        "product_count": 3,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "category_name": "Dry Fruits",
+        "product_count": 3,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "category_name": "Beverages",
+        "product_count": 2,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "category_name": "Dairy Products",
+        "product_count": 2,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "category_name": "Snacks",
+        "product_count": 2,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "name_en": "Sunflower Oil",
+        "name_te": "సన్‌ఫ్లవర్ ఆయిల్",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "name_en": "Groundnut Oil",
+        "name_te": "వేరుశనగ నూనె",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "name_en": "Coconut Oil",
+        "name_te": "కొబ్బరి నూనె",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "name_en": "Mustard Oil",
+        "name_te": "ఆవాల నూనె",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "name_en": "Basmati Rice",
+        "name_te": "బాస్మతి బియ్యం",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "name_en": "Sona Masoori Rice",
+        "name_te": "సోనా మసూరి బియ్యం",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "name_en": "Brown Rice",
+        "name_te": "బ్రౌన్ రైస్",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "name_en": "Toor Dal",
+        "name_te": "కంది పప్పు",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "name_en": "Moong Dal",
+        "name_te": "పెసర పప్పు",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "name_en": "Chana Dal",
+        "name_te": "శనగ పప్పు",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "sku": "OIL003",
+        "name_en": "Coconut Oil",
+        "price": "200.00",
+        "wholesale_price": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "sku": "OIL002",
+        "name_en": "Groundnut Oil",
+        "price": "180.00",
+        "wholesale_price": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "sku": "OIL004",
+        "name_en": "Mustard Oil",
+        "price": "170.00",
+        "wholesale_price": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "sku": "OIL001",
+        "name_en": "Sunflower Oil",
+        "price": "150.00",
+        "wholesale_price": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "sku": "DRY001",
+        "name_en": "Almonds",
+        "price": "150.00",
+        "wholesale_price": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "sku": "PUL004",
+        "name_en": "Urad Dal",
+        "price": "140.00",
+        "wholesale_price": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "sku": "PUL001",
+        "name_en": "Toor Dal",
+        "price": "130.00",
+        "wholesale_price": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "sku": "RIC001",
+        "name_en": "Basmati Rice",
+        "price": "120.00",
+        "wholesale_price": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "sku": "DRY002",
+        "name_en": "Cashews",
+        "price": "120.00",
+        "wholesale_price": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "sku": "PUL002",
+        "name_en": "Moong Dal",
+        "price": "120.00",
+        "wholesale_price": null,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "gst_percentage": "5.00",
+        "product_count": 25,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "gst_percentage": "12.00",
+        "product_count": 4,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "gst_percentage": "18.00",
+        "product_count": 2,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "total_products": 31,
+        "negative_stock": "0",
+        "out_of_stock": "0",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "search_results": 8,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "CONSTRAINT_NAME": "orders_ibfk_1",
+        "DELETE_RULE": "RESTRICT",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "CONSTRAINT_NAME": "cart_items_ibfk_1",
+        "DELETE_RULE": "CASCADE",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "CONSTRAINT_NAME": "order_items_ibfk_1",
+        "DELETE_RULE": "CASCADE",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "CONSTRAINT_NAME": "products_ibfk_1",
+        "DELETE_RULE": "RESTRICT",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "orphan_count": 0,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "orphan_count": 0,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "config_key": "max_customers",
+        "config_value": "50",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "config_key": "max_products",
+        "config_value": "500",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "config_key": "store_name",
+        "config_value": "MK Kirrana Stores",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "config_key": "store_gst_number",
+        "config_value": "29XXXXX1234X1ZX",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "config_key": "store_address",
+        "config_value": "123 Main Street, Hyderabad, Telangana - 500001",
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "config_key": "store_phone",
+        "config_value": "+91-9876543210",
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "config_key": "default_gst_percentage",
+        "config_value": "18",
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "CHECK",
+      "data": {
+        "config_key": "cooking_oil_gst",
+        "config_value": "5",
+        "result": "CHECK"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "log_count": 0,
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "PASS",
+      "data": {
+        "max_price": "200.00",
+        "result": "PASS"
+      }
+    },
+    {
+      "testName": "Unknown",
+      "result": "FAIL",
+      "data": {
+        "max_order": null,
+        "result": "FAIL"
+      }
+    }
+  ]
+}

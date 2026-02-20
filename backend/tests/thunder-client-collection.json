@@ -1,0 +1,866 @@
+{
+  "clientName": "Thunder Client",
+  "collectionName": "MK Kirrana Stores - Complete API Test Suite",
+  "collectionId": "mk-kirana-stores-test-suite",
+  "dateExported": "2026-02-20",
+  "version": "1.2",
+  "folders": [
+    {
+      "id": "auth-tests",
+      "name": "01 - Authentication Tests",
+      "containerId": "",
+      "created": "2026-02-20",
+      "sortNum": 10000
+    },
+    {
+      "id": "user-tests",
+      "name": "02 - User Management Tests",
+      "containerId": "",
+      "created": "2026-02-20",
+      "sortNum": 20000
+    },
+    {
+      "id": "category-tests",
+      "name": "03 - Category Management Tests",
+      "containerId": "",
+      "created": "2026-02-20",
+      "sortNum": 30000
+    },
+    {
+      "id": "product-tests",
+      "name": "04 - Product Management Tests",
+      "containerId": "",
+      "created": "2026-02-20",
+      "sortNum": 40000
+    },
+    {
+      "id": "cart-tests",
+      "name": "05 - Cart Operations Tests",
+      "containerId": "",
+      "created": "2026-02-20",
+      "sortNum": 50000
+    },
+    {
+      "id": "order-tests",
+      "name": "06 - Order Management Tests",
+      "containerId": "",
+      "created": "2026-02-20",
+      "sortNum": 60000
+    },
+    {
+      "id": "invoice-tests",
+      "name": "07 - Invoice & GST Tests",
+      "containerId": "",
+      "created": "2026-02-20",
+      "sortNum": 70000
+    },
+    {
+      "id": "admin-tests",
+      "name": "08 - Admin Operations Tests",
+      "containerId": "",
+      "created": "2026-02-20",
+      "sortNum": 80000
+    }
+  ],
+  "requests": [
+    {
+      "id": "req-001",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "auth-tests",
+      "name": "Health Check",
+      "url": "{{baseUrl}}/health",
+      "method": "GET",
+      "sortNum": 10,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [],
+      "params": [],
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "200"
+        },
+        {
+          "type": "json-path",
+          "path": "$.success",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "id": "req-002",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "auth-tests",
+      "name": "Request OTP - Register New User",
+      "url": "{{baseUrl}}/auth/request-otp",
+      "method": "POST",
+      "sortNum": 20,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"phone\": \"9876543210\",\n  \"purpose\": \"register\"\n}",
+        "form": []
+      },
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "200"
+        },
+        {
+          "type": "json-path",
+          "path": "$.success",
+          "value": "true"
+        },
+        {
+          "type": "json-path",
+          "path": "$.data.message",
+          "value": ".*OTP.*"
+        }
+      ]
+    },
+    {
+      "id": "req-003",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "auth-tests",
+      "name": "Verify OTP - Complete Registration",
+      "url": "{{baseUrl}}/auth/verify-otp",
+      "method": "POST",
+      "sortNum": 30,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"phone\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"name\": \"Test Customer\",\n  \"email\": \"test@example.com\",\n  \"userType\": \"retail\"\n}",
+        "form": []
+      },
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "200"
+        },
+        {
+          "type": "json-path",
+          "path": "$.success",
+          "value": "true"
+        },
+        {
+          "type": "set-env-var",
+          "path": "$.data.accessToken",
+          "value": "accessToken"
+        }
+      ]
+    },
+    {
+      "id": "req-004",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "auth-tests",
+      "name": "Admin Login",
+      "url": "{{baseUrl}}/auth/request-otp",
+      "method": "POST",
+      "sortNum": 40,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"phone\": \"6305486939\",\n  \"purpose\": \"login\"\n}",
+        "form": []
+      },
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "200"
+        }
+      ]
+    },
+    {
+      "id": "req-005",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "auth-tests",
+      "name": "Verify Admin OTP & Get Token",
+      "url": "{{baseUrl}}/auth/verify-otp",
+      "method": "POST",
+      "sortNum": 50,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"phone\": \"6305486939\",\n  \"otp\": \"CHECK_CONSOLE_FOR_OTP\"\n}",
+        "form": []
+      },
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "200"
+        },
+        {
+          "type": "set-env-var",
+          "path": "$.data.accessToken",
+          "value": "adminToken"
+        }
+      ]
+    },
+    {
+      "id": "req-006",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "category-tests",
+      "name": "Get All Categories (Public)",
+      "url": "{{baseUrl}}/categories",
+      "method": "GET",
+      "sortNum": 10,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [],
+      "params": [],
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "200"
+        },
+        {
+          "type": "json-path",
+          "path": "$.success",
+          "value": "true"
+        },
+        {
+          "type": "json-path",
+          "path": "$.data.length",
+          "value": ">0"
+        }
+      ]
+    },
+    {
+      "id": "req-007",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "category-tests",
+      "name": "Get Category by ID",
+      "url": "{{baseUrl}}/categories/1",
+      "method": "GET",
+      "sortNum": 20,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [],
+      "params": [],
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "200"
+        },
+        {
+          "type": "json-path",
+          "path": "$.data.id",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "id": "req-008",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "category-tests",
+      "name": "Create Category (Admin Only)",
+      "url": "{{baseUrl}}/categories",
+      "method": "POST",
+      "sortNum": 30,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{adminToken}}"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"name_en\": \"Test Category\",\n  \"name_te\": \"పరీక్ష వర్గం\",\n  \"description_en\": \"Test category for QA\",\n  \"display_order\": 99\n}",
+        "form": []
+      },
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "201"
+        },
+        {
+          "type": "json-path",
+          "path": "$.success",
+          "value": "true"
+        },
+        {
+          "type": "set-env-var",
+          "path": "$.data.id",
+          "value": "testCategoryId"
+        }
+      ]
+    },
+    {
+      "id": "req-009",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "product-tests",
+      "name": "Get All Products (Public)",
+      "url": "{{baseUrl}}/products",
+      "method": "GET",
+      "sortNum": 10,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [],
+      "params": [
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "limit",
+          "value": "20"
+        }
+      ],
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "200"
+        },
+        {
+          "type": "json-path",
+          "path": "$.success",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "id": "req-010",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "product-tests",
+      "name": "Search Products by Name",
+      "url": "{{baseUrl}}/products/search",
+      "method": "GET",
+      "sortNum": 20,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [],
+      "params": [
+        {
+          "name": "q",
+          "value": "Rice"
+        }
+      ],
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "200"
+        },
+        {
+          "type": "json-path",
+          "path": "$.data.length",
+          "value": ">0"
+        }
+      ]
+    },
+    {
+      "id": "req-011",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "product-tests",
+      "name": "Get Product by ID",
+      "url": "{{baseUrl}}/products/1",
+      "method": "GET",
+      "sortNum": 30,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [],
+      "params": [],
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "200"
+        },
+        {
+          "type": "json-path",
+          "path": "$.data.id",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "id": "req-012",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "product-tests",
+      "name": "Create Product (Admin Only)",
+      "url": "{{baseUrl}}/products",
+      "method": "POST",
+      "sortNum": 40,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{adminToken}}"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"category_id\": 1,\n  \"sku\": \"TEST001\",\n  \"name_en\": \"Test Product\",\n  \"name_te\": \"పరీక్ష ఉత్పత్తి\",\n  \"description_en\": \"Test product for QA\",\n  \"unit_type\": \"kg\",\n  \"price\": 99.99,\n  \"gst_percentage\": 5.00,\n  \"stock_quantity\": 100\n}",
+        "form": []
+      },
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "201"
+        },
+        {
+          "type": "set-env-var",
+          "path": "$.data.id",
+          "value": "testProductId"
+        }
+      ]
+    },
+    {
+      "id": "req-013",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "cart-tests",
+      "name": "Get My Cart",
+      "url": "{{baseUrl}}/cart",
+      "method": "GET",
+      "sortNum": 10,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{accessToken}}"
+        }
+      ],
+      "params": [],
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "200"
+        },
+        {
+          "type": "json-path",
+          "path": "$.success",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "id": "req-014",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "cart-tests",
+      "name": "Add Item to Cart",
+      "url": "{{baseUrl}}/cart/items",
+      "method": "POST",
+      "sortNum": 20,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{accessToken}}"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"product_id\": 1,\n  \"quantity\": 2\n}",
+        "form": []
+      },
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "200"
+        },
+        {
+          "type": "json-path",
+          "path": "$.success",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "id": "req-015",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "cart-tests",
+      "name": "Update Cart Item Quantity",
+      "url": "{{baseUrl}}/cart/items/1",
+      "method": "PUT",
+      "sortNum": 30,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{accessToken}}"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"quantity\": 5\n}",
+        "form": []
+      },
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "200"
+        }
+      ]
+    },
+    {
+      "id": "req-016",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "cart-tests",
+      "name": "Remove Item from Cart",
+      "url": "{{baseUrl}}/cart/items/1",
+      "method": "DELETE",
+      "sortNum": 40,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{accessToken}}"
+        }
+      ],
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "200"
+        }
+      ]
+    },
+    {
+      "id": "req-017",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "cart-tests",
+      "name": "Clear Cart",
+      "url": "{{baseUrl}}/cart",
+      "method": "DELETE",
+      "sortNum": 50,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{accessToken}}"
+        }
+      ],
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "200"
+        }
+      ]
+    },
+    {
+      "id": "req-018",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "order-tests",
+      "name": "Create Order from Cart",
+      "url": "{{baseUrl}}/orders",
+      "method": "POST",
+      "sortNum": 10,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{accessToken}}"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"notes\": \"Please pack carefully\"\n}",
+        "form": []
+      },
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "201"
+        },
+        {
+          "type": "set-env-var",
+          "path": "$.data.id",
+          "value": "testOrderId"
+        },
+        {
+          "type": "set-env-var",
+          "path": "$.data.order_number",
+          "value": "testOrderNumber"
+        }
+      ]
+    },
+    {
+      "id": "req-019",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "order-tests",
+      "name": "Get My Orders",
+      "url": "{{baseUrl}}/orders",
+      "method": "GET",
+      "sortNum": 20,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{accessToken}}"
+        }
+      ],
+      "params": [],
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "200"
+        }
+      ]
+    },
+    {
+      "id": "req-020",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "order-tests",
+      "name": "Get Order by ID",
+      "url": "{{baseUrl}}/orders/{{testOrderId}}",
+      "method": "GET",
+      "sortNum": 30,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{accessToken}}"
+        }
+      ],
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "200"
+        }
+      ]
+    },
+    {
+      "id": "req-021",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "order-tests",
+      "name": "Admin: Confirm Order",
+      "url": "{{baseUrl}}/admin/orders/{{testOrderId}}/confirm",
+      "method": "POST",
+      "sortNum": 40,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{adminToken}}"
+        }
+      ],
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "200"
+        }
+      ]
+    },
+    {
+      "id": "req-022",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "order-tests",
+      "name": "Admin: Mark Order Ready",
+      "url": "{{baseUrl}}/admin/orders/{{testOrderId}}/ready",
+      "method": "POST",
+      "sortNum": 50,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{adminToken}}"
+        }
+      ],
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "200"
+        }
+      ]
+    },
+    {
+      "id": "req-023",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "invoice-tests",
+      "name": "Get Invoice for Order",
+      "url": "{{baseUrl}}/invoices/order/{{testOrderId}}",
+      "method": "GET",
+      "sortNum": 10,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{accessToken}}"
+        }
+      ],
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "200"
+        },
+        {
+          "type": "json-path",
+          "path": "$.data.cgst",
+          "value": ">0"
+        },
+        {
+          "type": "json-path",
+          "path": "$.data.sgst",
+          "value": ">0"
+        }
+      ]
+    },
+    {
+      "id": "req-024",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "invoice-tests",
+      "name": "Download Invoice PDF",
+      "url": "{{baseUrl}}/invoices/{{testOrderId}}/pdf",
+      "method": "GET",
+      "sortNum": 20,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{accessToken}}"
+        }
+      ],
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "200"
+        }
+      ]
+    },
+    {
+      "id": "req-025",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "admin-tests",
+      "name": "Get All Users (Admin)",
+      "url": "{{baseUrl}}/admin/users",
+      "method": "GET",
+      "sortNum": 10,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{adminToken}}"
+        }
+      ],
+      "params": [],
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "200"
+        }
+      ]
+    },
+    {
+      "id": "req-026",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "admin-tests",
+      "name": "Block User (Admin)",
+      "url": "{{baseUrl}}/admin/users/2/block",
+      "method": "POST",
+      "sortNum": 20,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{adminToken}}"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"reason\": \"Suspicious activity\"\n}",
+        "form": []
+      },
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "200"
+        }
+      ]
+    },
+    {
+      "id": "req-027",
+      "colId": "mk-kirana-stores-test-suite",
+      "folderId": "admin-tests",
+      "name": "View Admin Logs",
+      "url": "{{baseUrl}}/admin/logs",
+      "method": "GET",
+      "sortNum": 30,
+      "created": "2026-02-20",
+      "modified": "2026-02-20",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{adminToken}}"
+        }
+      ],
+      "params": [
+        {
+          "name": "limit",
+          "value": "50"
+        }
+      ],
+      "tests": [
+        {
+          "type": "status-code",
+          "value": "200"
+        }
+      ]
+    }
+  ]
+}
