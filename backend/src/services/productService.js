@@ -289,6 +289,17 @@ class ProductService {
       remaining: config.limits.maxProducts - count,
     };
   }
+
+  /**
+   * Search products
+   */
+  static async search(query, options = {}) {
+    return Product.findAll({
+      ...options,
+      search: query,
+      isActive: true,
+    });
+  }
 }
 
 module.exports = ProductService;
