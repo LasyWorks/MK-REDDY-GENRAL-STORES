@@ -1,0 +1,324 @@
+<svg width="1400" height="1000" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1400" height="1000" fill="#f8f9fa"/>
+  
+  <!-- Title -->
+  <text x="700" y="40" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#333" text-anchor="middle">MK Stores Database Schema</text>
+  <text x="700" y="70" font-family="Arial, sans-serif" font-size="16" fill="#666" text-anchor="middle">PostgreSQL 15 • 17 Tables • Relational Model</text>
+  
+  <!-- Legend -->
+  <g transform="translate(50, 90)">
+    <rect width="200" height="80" fill="white" stroke="#ddd" stroke-width="1" rx="6"/>
+    <text x="100" y="20" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Legend</text>
+    <circle cx="20" cy="35" r="5" fill="#2196F3"/>
+    <text x="35" y="40" font-family="Arial, sans-serif" font-size="11" fill="#666">Primary Key</text>
+    <circle cx="20" cy="55" r="5" fill="#FF9800"/>
+    <text x="35" y="60" font-family="Arial, sans-serif" font-size="11" fill="#666">Foreign Key</text>
+    <line x1="120" y1="35" x2="180" y2="55" stroke="#4CAF50" stroke-width="2" marker-end="url(#arrowgreen)"/>
+    <text x="150" y="75" font-family="Arial, sans-serif" font-size="11" fill="#666" text-anchor="middle">Relationship</text>
+  </g>
+  
+  <!-- Arrow marker -->
+  <defs>
+    <marker id="arrowgreen" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#4CAF50"/>
+    </marker>
+  </defs>
+  
+  <!-- USERS TABLE (Central) -->
+  <g transform="translate(580, 200)">
+    <rect width="240" height="240" fill="white" stroke="#2196F3" stroke-width="3" rx="8"/>
+    <rect width="240" height="35" fill="#2196F3" rx="8"/>
+    <text x="120" y="23" font-family="Consolas, monospace" font-size="14" font-weight="bold" fill="white" text-anchor="middle">👤 users</text>
+    
+    <circle cx="15" cy="55" r="4" fill="#2196F3"/>
+    <text x="25" y="58" font-family="Consolas, monospace" font-size="11" fill="#333">id: SERIAL PK</text>
+    
+    <text x="25" y="78" font-family="Consolas, monospace" font-size="11" fill="#555">phone: VARCHAR(15) UK</text>
+    <text x="25" y="95" font-family="Consolas, monospace" font-size="11" fill="#555">email: VARCHAR(255)</text>
+    <text x="25" y="112" font-family="Consolas, monospace" font-size="11" fill="#555">name: VARCHAR(255)</text>
+    <text x="25" y="129" font-family="Consolas, monospace" font-size="11" fill="#555">password_hash: TEXT</text>
+    
+    <circle cx="15" cy="149" r="4" fill="#FF9800"/>
+    <text x="25" y="152" font-family="Consolas, monospace" font-size="11" fill="#555">role_id: INT FK</text>
+    
+    <text x="25" y="169" font-family="Consolas, monospace" font-size="11" fill="#555">user_type: VARCHAR(20)</text>
+    <text x="25" y="186" font-family="Consolas, monospace" font-size="11" fill="#666" font-style="italic">  retail/wholesale</text>
+    <text x="25" y="203" font-family="Consolas, monospace" font-size="11" fill="#555">status: VARCHAR(20)</text>
+    <text x="25" y="220" font-family="Consolas, monospace" font-size="11" fill="#555">created_at: TIMESTAMP</text>
+  </g>
+  
+  <!-- ROLES TABLE -->
+  <g transform="translate(320, 220)">
+    <rect width="200" height="120" fill="white" stroke="#9C27B0" stroke-width="2" rx="8"/>
+    <rect width="200" height="35" fill="#9C27B0" rx="8"/>
+    <text x="100" y="23" font-family="Consolas, monospace" font-size="14" font-weight="bold" fill="white" text-anchor="middle">🔐 roles</text>
+    
+    <circle cx="15" cy="55" r="4" fill="#2196F3"/>
+    <text x="25" y="58" font-family="Consolas, monospace" font-size="11" fill="#333">id: SERIAL PK</text>
+    <text x="25" y="78" font-family="Consolas, monospace" font-size="11" fill="#555">name: VARCHAR(50) UK</text>
+    <text x="25" y="95" font-family="Consolas, monospace" font-size="11" fill="#666" font-style="italic">  admin, customer</text>
+    <text x="25" y="112" font-family="Consolas, monospace" font-size="11" fill="#555">created_at: TIMESTAMP</text>
+  </g>
+  
+  <!-- OTPS TABLE -->
+  <g transform="translate(320, 380)">
+    <rect width="200" height="140" fill="white" stroke="#FF5722" stroke-width="2" rx="8"/>
+    <rect width="200" height="35" fill="#FF5722" rx="8"/>
+    <text x="100" y="23" font-family="Consolas, monospace" font-size="14" font-weight="bold" fill="white" text-anchor="middle">📱 otps</text>
+    
+    <circle cx="15" cy="55" r="4" fill="#2196F3"/>
+    <text x="25" y="58" font-family="Consolas, monospace" font-size="11" fill="#333">id: SERIAL PK</text>
+    
+    <circle cx="15" cy="75" r="4" fill="#FF9800"/>
+    <text x="25" y="78" font-family="Consolas, monospace" font-size="11" fill="#555">user_id: INT FK</text>
+    
+    <text x="25" y="95" font-family="Consolas, monospace" font-size="11" fill="#555">phone: VARCHAR(15)</text>
+    <text x="25" y="112" font-family="Consolas, monospace" font-size="11" fill="#555">otp_hash: TEXT</text>
+    <text x="25" y="129" font-family="Consolas, monospace" font-size="11" fill="#555">expires_at: TIMESTAMP</text>
+  </g>
+  
+  <!-- REFRESH_TOKENS TABLE -->
+  <g transform="translate(320, 560)">
+    <rect width="200" height="120" fill="white" stroke="#00BCD4" stroke-width="2" rx="8"/>
+    <rect width="200" height="35" fill="#00BCD4" rx="8"/>
+    <text x="100" y="23" font-family="Consolas, monospace" font-size="14" font-weight="bold" fill="white" text-anchor="middle">🔑 refresh_tokens</text>
+    
+    <circle cx="15" cy="55" r="4" fill="#2196F3"/>
+    <text x="25" y="58" font-family="Consolas, monospace" font-size="11" fill="#333">id: SERIAL PK</text>
+    
+    <circle cx="15" cy="75" r="4" fill="#FF9800"/>
+    <text x="25" y="78" font-family="Consolas, monospace" font-size="11" fill="#555">user_id: INT FK</text>
+    
+    <text x="25" y="95" font-family="Consolas, monospace" font-size="11" fill="#555">token: TEXT UK</text>
+    <text x="25" y="112" font-family="Consolas, monospace" font-size="11" fill="#555">expires_at: TIMESTAMP</text>
+  </g>
+  
+  <!-- PRODUCTS TABLE -->
+  <g transform="translate(900, 200)">
+    <rect width="240" height="240" fill="white" stroke="#4CAF50" stroke-width="3" rx="8"/>
+    <rect width="240" height="35" fill="#4CAF50" rx="8"/>
+    <text x="120" y="23" font-family="Consolas, monospace" font-size="14" font-weight="bold" fill="white" text-anchor="middle">📦 products</text>
+    
+    <circle cx="15" cy="55" r="4" fill="#2196F3"/>
+    <text x="25" y="58" font-family="Consolas, monospace" font-size="11" fill="#333">id: SERIAL PK</text>
+    
+    <circle cx="15" cy="75" r="4" fill="#FF9800"/>
+    <text x="25" y="78" font-family="Consolas, monospace" font-size="11" fill="#555">category_id: INT FK</text>
+    
+    <text x="25" y="95" font-family="Consolas, monospace" font-size="11" fill="#555">sku: VARCHAR(50) UK</text>
+    <text x="25" y="112" font-family="Consolas, monospace" font-size="11" fill="#555">price: DECIMAL(10,2)</text>
+    <text x="25" y="129" font-family="Consolas, monospace" font-size="11" fill="#555">stock_quantity: INT</text>
+    <text x="25" y="146" font-family="Consolas, monospace" font-size="11" fill="#555">unit: VARCHAR(20)</text>
+    <text x="25" y="163" font-family="Consolas, monospace" font-size="11" fill="#555">gst_percentage: DECIMAL</text>
+    <text x="25" y="180" font-family="Consolas, monospace" font-size="11" fill="#555">min_order_quantity: INT</text>
+    <text x="25" y="197" font-family="Consolas, monospace" font-size="11" fill="#555">is_active: BOOLEAN</text>
+    <text x="25" y="214" font-family="Consolas, monospace" font-size="11" fill="#555">image_url: TEXT</text>
+  </g>
+  
+  <!-- CATEGORIES TABLE -->
+  <g transform="translate(1180, 200)">
+    <rect width="190" height="140" fill="white" stroke="#FF9800" stroke-width="2" rx="8"/>
+    <rect width="190" height="35" fill="#FF9800" rx="8"/>
+    <text x="95" y="23" font-family="Consolas, monospace" font-size="14" font-weight="bold" fill="white" text-anchor="middle">📂 categories</text>
+    
+    <circle cx="15" cy="55" r="4" fill="#2196F3"/>
+    <text x="25" y="58" font-family="Consolas, monospace" font-size="11" fill="#333">id: SERIAL PK</text>
+    
+    <circle cx="15" cy="75" r="4" fill="#FF9800"/>
+    <text x="25" y="78" font-family="Consolas, monospace" font-size="11" fill="#555">parent_id: INT FK</text>
+    
+    <text x="25" y="95" font-family="Consolas, monospace" font-size="11" fill="#555">name_en: VARCHAR</text>
+    <text x="25" y="112" font-family="Consolas, monospace" font-size="11" fill="#555">name_te: VARCHAR</text>
+    <text x="25" y="129" font-family="Consolas, monospace" font-size="11" fill="#555">is_active: BOOLEAN</text>
+  </g>
+  
+  <!-- PRODUCT_TRANSLATIONS TABLE -->
+  <g transform="translate(1180, 370)">
+    <rect width="190" height="120" fill="white" stroke="#9C27B0" stroke-width="2" rx="8"/>
+    <rect width="190" height="35" fill="#9C27B0" rx="8"/>
+    <text x="95" y="23" font-family="Consolas, monospace" font-size="13" font-weight="bold" fill="white" text-anchor="middle">🌐 product_trans...</text>
+    
+    <circle cx="15" cy="55" r="4" fill="#2196F3"/>
+    <text x="25" y="58" font-family="Consolas, monospace" font-size="11" fill="#333">id: SERIAL PK</text>
+    
+    <circle cx="15" cy="75" r="4" fill="#FF9800"/>
+    <text x="25" y="78" font-family="Consolas, monospace" font-size="11" fill="#555">product_id: INT FK</text>
+    
+    <text x="25" y="95" font-family="Consolas, monospace" font-size="11" fill="#555">lang_code: VARCHAR</text>
+    <text x="25" y="112" font-family="Consolas, monospace" font-size="11" fill="#555">name: VARCHAR</text>
+  </g>
+  
+  <!-- CATEGORY_TRANSLATIONS TABLE -->
+  <g transform="translate(1180, 520)">
+    <rect width="190" height="120" fill="white" stroke="#9C27B0" stroke-width="2" rx="8"/>
+    <rect width="190" height="35" fill="#9C27B0" rx="8"/>
+    <text x="95" y="23" font-family="Consolas, monospace" font-size="13" font-weight="bold" fill="white" text-anchor="middle">🌐 category_tra...</text>
+    
+    <circle cx="15" cy="55" r="4" fill="#2196F3"/>
+    <text x="25" y="58" font-family="Consolas, monospace" font-size="11" fill="#333">id: SERIAL PK</text>
+    
+    <circle cx="15" cy="75" r="4" fill="#FF9800"/>
+    <text x="25" y="78" font-family="Consolas, monospace" font-size="11" fill="#555">category_id: INT FK</text>
+    
+    <text x="25" y="95" font-family="Consolas, monospace" font-size="11" fill="#555">lang_code: VARCHAR</text>
+    <text x="25" y="112" font-family="Consolas, monospace" font-size="11" fill="#555">name: VARCHAR</text>
+  </g>
+  
+  <!-- ORDERS TABLE -->
+  <g transform="translate(580, 500)">
+    <rect width="240" height="200" fill="white" stroke="#00BCD4" stroke-width="3" rx="8"/>
+    <rect width="240" height="35" fill="#00BCD4" rx="8"/>
+    <text x="120" y="23" font-family="Consolas, monospace" font-size="14" font-weight="bold" fill="white" text-anchor="middle">🛒 orders</text>
+    
+    <circle cx="15" cy="55" r="4" fill="#2196F3"/>
+    <text x="25" y="58" font-family="Consolas, monospace" font-size="11" fill="#333">id: SERIAL PK</text>
+    
+    <circle cx="15" cy="75" r="4" fill="#FF9800"/>
+    <text x="25" y="78" font-family="Consolas, monospace" font-size="11" fill="#555">user_id: INT FK</text>
+    
+    <text x="25" y="95" font-family="Consolas, monospace" font-size="11" fill="#555">order_number: VARCHAR UK</text>
+    <text x="25" y="112" font-family="Consolas, monospace" font-size="11" fill="#555">subtotal: DECIMAL(10,2)</text>
+    <text x="25" y="129" font-family="Consolas, monospace" font-size="11" fill="#555">tax_amount: DECIMAL(10,2)</text>
+    <text x="25" y="146" font-family="Consolas, monospace" font-size="11" fill="#555">total_amount: DECIMAL(10,2)</text>
+    <text x="25" y="163" font-family="Consolas, monospace" font-size="11" fill="#555">status: VARCHAR(20)</text>
+    <text x="25" y="180" font-family="Consolas, monospace" font-size="11" fill="#555">created_at: TIMESTAMP</text>
+  </g>
+  
+  <!-- ORDER_ITEMS TABLE -->
+  <g transform="translate(580, 740)">
+    <rect width="240" height="160" fill="white" stroke="#03A9F4" stroke-width="2" rx="8"/>
+    <rect width="240" height="35" fill="#03A9F4" rx="8"/>
+    <text x="120" y="23" font-family="Consolas, monospace" font-size="14" font-weight="bold" fill="white" text-anchor="middle">📋 order_items</text>
+    
+    <circle cx="15" cy="55" r="4" fill="#2196F3"/>
+    <text x="25" y="58" font-family="Consolas, monospace" font-size="11" fill="#333">id: SERIAL PK</text>
+    
+    <circle cx="15" cy="75" r="4" fill="#FF9800"/>
+    <text x="25" y="78" font-family="Consolas, monospace" font-size="11" fill="#555">order_id: INT FK</text>
+    
+    <circle cx="15" cy="95" r="4" fill="#FF9800"/>
+    <text x="25" y="98" font-family="Consolas, monospace" font-size="11" fill="#555">product_id: INT FK</text>
+    
+    <text x="25" y="115" font-family="Consolas, monospace" font-size="11" fill="#555">quantity: INT</text>
+    <text x="25" y="132" font-family="Consolas, monospace" font-size="11" fill="#555">price: DECIMAL(10,2)</text>
+    <text x="25" y="149" font-family="Consolas, monospace" font-size="11" fill="#555">subtotal: DECIMAL(10,2)</text>
+  </g>
+  
+  <!-- CART_ITEMS TABLE -->
+  <g transform="translate(900, 500)">
+    <rect width="240" height="140" fill="white" stroke="#FF5722" stroke-width="2" rx="8"/>
+    <rect width="240" height="35" fill="#FF5722" rx="8"/>
+    <text x="120" y="23" font-family="Consolas, monospace" font-size="14" font-weight="bold" fill="white" text-anchor="middle">🛍️ cart_items</text>
+    
+    <circle cx="15" cy="55" r="4" fill="#2196F3"/>
+    <text x="25" y="58" font-family="Consolas, monospace" font-size="11" fill="#333">id: SERIAL PK</text>
+    
+    <circle cx="15" cy="75" r="4" fill="#FF9800"/>
+    <text x="25" y="78" font-family="Consolas, monospace" font-size="11" fill="#555">user_id: INT FK</text>
+    
+    <circle cx="15" cy="95" r="4" fill="#FF9800"/>
+    <text x="25" y="98" font-family="Consolas, monospace" font-size="11" fill="#555">product_id: INT FK</text>
+    
+    <text x="25" y="115" font-family="Consolas, monospace" font-size="11" fill="#555">quantity: INT</text>
+    <text x="25" y="132" font-family="Consolas, monospace" font-size="11" fill="#555">created_at: TIMESTAMP</text>
+  </g>
+  
+  <!-- INVOICES TABLE -->
+  <g transform="translate(900, 680)">
+    <rect width="240" height="180" fill="white" stroke="#8BC34A" stroke-width="2" rx="8"/>
+    <rect width="240" height="35" fill="#8BC34A" rx="8"/>
+    <text x="120" y="23" font-family="Consolas, monospace" font-size="14" font-weight="bold" fill="white" text-anchor="middle">🧾 invoices</text>
+    
+    <circle cx="15" cy="55" r="4" fill="#2196F3"/>
+    <text x="25" y="58" font-family="Consolas, monospace" font-size="11" fill="#333">id: SERIAL PK</text>
+    
+    <circle cx="15" cy="75" r="4" fill="#FF9800"/>
+    <text x="25" y="78" font-family="Consolas, monospace" font-size="11" fill="#555">order_id: INT FK UK</text>
+    
+    <text x="25" y="95" font-family="Consolas, monospace" font-size="11" fill="#555">invoice_number: VARCHAR</text>
+    <text x="25" y="112" font-family="Consolas, monospace" font-size="11" fill="#555">cgst_amount: DECIMAL</text>
+    <text x="25" y="129" font-family="Consolas, monospace" font-size="11" fill="#555">sgst_amount: DECIMAL</text>
+    <text x="25" y="146" font-family="Consolas, monospace" font-size="11" fill="#555">total_gst: DECIMAL</text>
+    <text x="25" y="163" font-family="Consolas, monospace" font-size="11" fill="#555">generated_at: TIMESTAMP</text>
+  </g>
+  
+  <!-- ADMIN_LOGS TABLE -->
+  <g transform="translate(50, 200)">
+    <rect width="220" height="180" fill="white" stroke="#795548" stroke-width="2" rx="8"/>
+    <rect width="220" height="35" fill="#795548" rx="8"/>
+    <text x="110" y="23" font-family="Consolas, monospace" font-size="14" font-weight="bold" fill="white" text-anchor="middle">📝 admin_logs</text>
+    
+    <circle cx="15" cy="55" r="4" fill="#2196F3"/>
+    <text x="25" y="58" font-family="Consolas, monospace" font-size="11" fill="#333">id: SERIAL PK</text>
+    
+    <circle cx="15" cy="75" r="4" fill="#FF9800"/>
+    <text x="25" y="78" font-family="Consolas, monospace" font-size="11" fill="#555">admin_id: INT FK</text>
+    
+    <text x="25" y="95" font-family="Consolas, monospace" font-size="11" fill="#555">action: VARCHAR(100)</text>
+    <text x="25" y="112" font-family="Consolas, monospace" font-size="11" fill="#555">entity_type: VARCHAR</text>
+    <text x="25" y="129" font-family="Consolas, monospace" font-size="11" fill="#555">entity_id: INT</text>
+    <text x="25" y="146" font-family="Consolas, monospace" font-size="11" fill="#555">old_value: JSONB</text>
+    <text x="25" y="163" font-family="Consolas, monospace" font-size="11" fill="#555">new_value: JSONB</text>
+  </g>
+  
+  <!-- SYSTEM_CONFIG TABLE -->
+  <g transform="translate(50, 420)">
+    <rect width="220" height="140" fill="white" stroke="#607D8B" stroke-width="2" rx="8"/>
+    <rect width="220" height="35" fill="#607D8B" rx="8"/>
+    <text x="110" y="23" font-family="Consolas, monospace" font-size="14" font-weight="bold" fill="white" text-anchor="middle">⚙️ system_config</text>
+    
+    <circle cx="15" cy="55" r="4" fill="#2196F3"/>
+    <text x="25" y="58" font-family="Consolas, monospace" font-size="11" fill="#333">id: SERIAL PK</text>
+    
+    <text x="25" y="78" font-family="Consolas, monospace" font-size="11" fill="#555">key: VARCHAR(100) UK</text>
+    <text x="25" y="95" font-family="Consolas, monospace" font-size="11" fill="#555">value: TEXT</text>
+    <text x="25" y="112" font-family="Consolas, monospace" font-size="11" fill="#555">description: TEXT</text>
+    <text x="25" y="129" font-family="Consolas, monospace" font-size="11" fill="#555">category: VARCHAR(50)</text>
+  </g>
+  
+  <!-- Relationships (Lines) -->
+  <!-- roles to users -->
+  <line x1="520" y1="280" x2="580" y2="310" stroke="#4CAF50" stroke-width="2" marker-end="url(#arrowgreen)"/>
+  
+  <!-- users to otps -->
+  <line x1="580" y1="380" x2="520" y2="420" stroke="#4CAF50" stroke-width="2" marker-end="url(#arrowgreen)"/>
+  
+  <!-- users to refresh_tokens -->
+  <line x1="580" y1="410" x2="520" y2="600" stroke="#4CAF50" stroke-width="2" marker-end="url(#arrowgreen)"/>
+  
+  <!-- users to orders -->
+  <line x1="650" y1="440" x2="650" y2="500" stroke="#4CAF50" stroke-width="2" marker-end="url(#arrowgreen)"/>
+  
+  <!-- users to cart_items -->
+  <line x1="820" y1="350" x2="950" y2="520" stroke="#4CAF50" stroke-width="2" marker-end="url(#arrowgreen)"/>
+  
+  <!-- users to admin_logs -->
+  <line x1="580" y1="280" x2="270" y2="280" stroke="#4CAF50" stroke-width="2" marker-end="url(#arrowgreen)"/>
+  
+  <!-- categories to products -->
+  <line x1="1180" y1="270" x2="1140" y2="270" stroke="#4CAF50" stroke-width="2" marker-end="url(#arrowgreen)"/>
+  
+  <!-- products to product_translations -->
+  <line x1="1100" y1="440" x2="1180" y2="430" stroke="#4CAF50" stroke-width="2" marker-end="url(#arrowgreen)"/>
+  
+  <!-- categories to category_translations -->
+  <line x1="1275" y1="340" x2="1275" y2="520" stroke="#4CAF50" stroke-width="2" marker-end="url(#arrowgreen)"/>
+  
+  <!-- products to cart_items -->
+  <line x1="1020" y1="440" x2="1020" y2="500" stroke="#4CAF50" stroke-width="2" marker-end="url(#arrowgreen)"/>
+  
+  <!-- orders to order_items -->
+  <line x1="700" y1="700" x2="700" y2="740" stroke="#4CAF50" stroke-width="2" marker-end="url(#arrowgreen)"/>
+  
+  <!-- products to order_items -->
+  <line x1="900" y1="380" x2="820" y2="820" stroke="#4CAF50" stroke-width="2" marker-end="url(#arrowgreen)"/>
+  
+  <!-- orders to invoices -->
+  <line x1="820" y1="630" x2="900" y2="730" stroke="#4CAF50" stroke-width="2" marker-end="url(#arrowgreen)"/>
+  
+  <!-- Stats Footer -->
+  <rect x="400" y="930" width="600" height="50" fill="white" stroke="#ddd" stroke-width="1" rx="8"/>
+  <text x="700" y="955" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#333" text-anchor="middle">17 Tables • 32 Foreign Keys • Normalized Schema</text>
+  <text x="700" y="972" font-family="Arial, sans-serif" font-size="12" fill="#666" text-anchor="middle">Supports Transactions, ACID Compliance, and Referential Integrity</text>
+</svg>

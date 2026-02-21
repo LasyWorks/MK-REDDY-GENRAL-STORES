@@ -1,6 +1,6 @@
 # MK Reddy General Stores — API Testing Guide
 
-**Base URL:** `http://localhost:3000/api/v1`  
+**Base URL:** `http://localhost:5001/api/v1`  
 **Server Start:** `cd backend && npm start`
 
 ---
@@ -18,7 +18,7 @@ Authorization: Bearer <access_token>
 
 ### GET /health
 ```
-GET http://localhost:3000/api/v1/health
+GET http://localhost:5001/api/v1/health
 ```
 **Expected:** `200 OK` with DB status, memory, uptime, pool stats.
 
@@ -28,7 +28,7 @@ GET http://localhost:3000/api/v1/health
 
 ### Step 1 — Send OTP
 ```
-POST http://localhost:3000/api/v1/auth/otp/send
+POST http://localhost:5001/api/v1/auth/otp/send
 Content-Type: application/json
 
 {
@@ -38,7 +38,7 @@ Content-Type: application/json
 
 ### Step 2 — Verify OTP (login or auto-register)
 ```
-POST http://localhost:3000/api/v1/auth/otp/verify
+POST http://localhost:5001/api/v1/auth/otp/verify
 Content-Type: application/json
 
 {
@@ -50,7 +50,7 @@ Content-Type: application/json
 
 ### Step 3 — Resend OTP (30-second cooldown)
 ```
-POST http://localhost:3000/api/v1/auth/otp/resend
+POST http://localhost:5001/api/v1/auth/otp/resend
 Content-Type: application/json
 
 {
@@ -60,7 +60,7 @@ Content-Type: application/json
 
 ### Register (if new user — complete profile)
 ```
-POST http://localhost:3000/api/v1/auth/register
+POST http://localhost:5001/api/v1/auth/register
 Content-Type: application/json
 
 {
@@ -77,7 +77,7 @@ Content-Type: application/json
 
 ### Step 1 — Admin Login with Password
 ```
-POST http://localhost:3000/api/v1/auth/admin/login
+POST http://localhost:5001/api/v1/auth/admin/login
 Content-Type: application/json
 
 {
@@ -89,7 +89,7 @@ Content-Type: application/json
 
 ### Step 2 — Admin Verify OTP (2FA)
 ```
-POST http://localhost:3000/api/v1/auth/admin/verify-otp
+POST http://localhost:5001/api/v1/auth/admin/verify-otp
 Content-Type: application/json
 
 {
@@ -105,7 +105,7 @@ Content-Type: application/json
 
 ### Refresh Access Token
 ```
-POST http://localhost:3000/api/v1/auth/refresh
+POST http://localhost:5001/api/v1/auth/refresh
 Content-Type: application/json
 
 {
@@ -115,7 +115,7 @@ Content-Type: application/json
 
 ### Logout
 ```
-POST http://localhost:3000/api/v1/auth/logout
+POST http://localhost:5001/api/v1/auth/logout
 Authorization: Bearer <access_token>
 Content-Type: application/json
 
@@ -126,13 +126,13 @@ Content-Type: application/json
 
 ### Get My Profile
 ```
-GET http://localhost:3000/api/v1/auth/me
+GET http://localhost:5001/api/v1/auth/me
 Authorization: Bearer <access_token>
 ```
 
 ### Update My Profile
 ```
-PUT http://localhost:3000/api/v1/auth/me
+PUT http://localhost:5001/api/v1/auth/me
 Authorization: Bearer <access_token>
 Content-Type: application/json
 
@@ -149,32 +149,32 @@ Content-Type: application/json
 
 ### Get All Categories (Public)
 ```
-GET http://localhost:3000/api/v1/categories
+GET http://localhost:5001/api/v1/categories
 
 # Telugu language
-GET http://localhost:3000/api/v1/categories
+GET http://localhost:5001/api/v1/categories
 Accept-Language: te
 ```
 
 ### Get Category by ID
 ```
-GET http://localhost:3000/api/v1/categories/1
+GET http://localhost:5001/api/v1/categories/1
 ```
 
 ### Get Products in a Category
 ```
-GET http://localhost:3000/api/v1/categories/1/products
+GET http://localhost:5001/api/v1/categories/1/products
 ```
 
 ### [ADMIN] Get All Categories (including inactive)
 ```
-GET http://localhost:3000/api/v1/categories/admin/all
+GET http://localhost:5001/api/v1/categories/admin/all
 Authorization: Bearer <admin_token>
 ```
 
 ### [ADMIN] Create Category
 ```
-POST http://localhost:3000/api/v1/categories
+POST http://localhost:5001/api/v1/categories
 Authorization: Bearer <admin_token>
 Content-Type: application/json
 
@@ -189,7 +189,7 @@ Content-Type: application/json
 
 ### [ADMIN] Update Category
 ```
-PUT http://localhost:3000/api/v1/categories/1
+PUT http://localhost:5001/api/v1/categories/1
 Authorization: Bearer <admin_token>
 Content-Type: application/json
 
@@ -201,7 +201,7 @@ Content-Type: application/json
 
 ### [ADMIN] Delete Category (soft delete)
 ```
-DELETE http://localhost:3000/api/v1/categories/1
+DELETE http://localhost:5001/api/v1/categories/1
 Authorization: Bearer <admin_token>
 ```
 
@@ -211,41 +211,41 @@ Authorization: Bearer <admin_token>
 
 ### Get All Products (with pagination)
 ```
-GET http://localhost:3000/api/v1/products
-GET http://localhost:3000/api/v1/products?page=1&limit=10
-GET http://localhost:3000/api/v1/products?category_id=1
-GET http://localhost:3000/api/v1/products?min_price=50&max_price=200
-GET http://localhost:3000/api/v1/products?sort=price_asc
+GET http://localhost:5001/api/v1/products
+GET http://localhost:5001/api/v1/products?page=1&limit=10
+GET http://localhost:5001/api/v1/products?category_id=1
+GET http://localhost:5001/api/v1/products?min_price=50&max_price=200
+GET http://localhost:5001/api/v1/products?sort=price_asc
 Accept-Language: te
 ```
 
 ### Search Products
 ```
-GET http://localhost:3000/api/v1/products/search?q=rice
-GET http://localhost:3000/api/v1/products/search?q=బియ్యం
+GET http://localhost:5001/api/v1/products/search?q=rice
+GET http://localhost:5001/api/v1/products/search?q=బియ్యం
 ```
 
 ### Get Product by ID
 ```
-GET http://localhost:3000/api/v1/products/1
+GET http://localhost:5001/api/v1/products/1
 ```
 
 ### [ADMIN] Get All Products (including inactive)
 ```
-GET http://localhost:3000/api/v1/products/admin/all
+GET http://localhost:5001/api/v1/products/admin/all
 Authorization: Bearer <admin_token>
 ```
 
 ### [ADMIN] Get Low Stock Products
 ```
-GET http://localhost:3000/api/v1/products/admin/low-stock
-GET http://localhost:3000/api/v1/products/admin/low-stock?threshold=20
+GET http://localhost:5001/api/v1/products/admin/low-stock
+GET http://localhost:5001/api/v1/products/admin/low-stock?threshold=20
 Authorization: Bearer <admin_token>
 ```
 
 ### [ADMIN] Create Product
 ```
-POST http://localhost:3000/api/v1/products
+POST http://localhost:5001/api/v1/products
 Authorization: Bearer <admin_token>
 Content-Type: application/json
 
@@ -267,7 +267,7 @@ Content-Type: application/json
 
 ### [ADMIN] Update Product
 ```
-PUT http://localhost:3000/api/v1/products/1
+PUT http://localhost:5001/api/v1/products/1
 Authorization: Bearer <admin_token>
 Content-Type: application/json
 
@@ -280,7 +280,7 @@ Content-Type: application/json
 
 ### [ADMIN] Update Stock Only
 ```
-PATCH http://localhost:3000/api/v1/products/1/stock
+PATCH http://localhost:5001/api/v1/products/1/stock
 Authorization: Bearer <admin_token>
 Content-Type: application/json
 
@@ -292,7 +292,7 @@ Content-Type: application/json
 
 ### [ADMIN] Delete Product
 ```
-DELETE http://localhost:3000/api/v1/products/1
+DELETE http://localhost:5001/api/v1/products/1
 Authorization: Bearer <admin_token>
 ```
 
@@ -302,13 +302,13 @@ Authorization: Bearer <admin_token>
 
 ### Get My Cart
 ```
-GET http://localhost:3000/api/v1/cart
+GET http://localhost:5001/api/v1/cart
 Authorization: Bearer <customer_token>
 ```
 
 ### Add Item to Cart
 ```
-POST http://localhost:3000/api/v1/cart/items
+POST http://localhost:5001/api/v1/cart/items
 Authorization: Bearer <customer_token>
 Content-Type: application/json
 
@@ -320,7 +320,7 @@ Content-Type: application/json
 
 ### Update Cart Item Quantity
 ```
-PUT http://localhost:3000/api/v1/cart/items/1
+PUT http://localhost:5001/api/v1/cart/items/1
 Authorization: Bearer <customer_token>
 Content-Type: application/json
 
@@ -331,13 +331,13 @@ Content-Type: application/json
 
 ### Remove Item from Cart
 ```
-DELETE http://localhost:3000/api/v1/cart/items/1
+DELETE http://localhost:5001/api/v1/cart/items/1
 Authorization: Bearer <customer_token>
 ```
 
 ### Clear Entire Cart
 ```
-DELETE http://localhost:3000/api/v1/cart
+DELETE http://localhost:5001/api/v1/cart
 Authorization: Bearer <customer_token>
 ```
 
@@ -347,7 +347,7 @@ Authorization: Bearer <customer_token>
 
 ### Create Order from Cart
 ```
-POST http://localhost:3000/api/v1/orders
+POST http://localhost:5001/api/v1/orders
 Authorization: Bearer <customer_token>
 Content-Type: application/json
 
@@ -359,26 +359,26 @@ Content-Type: application/json
 
 ### Get My Orders
 ```
-GET http://localhost:3000/api/v1/orders/my-orders
+GET http://localhost:5001/api/v1/orders/my-orders
 Authorization: Bearer <customer_token>
-GET http://localhost:3000/api/v1/orders/my-orders?page=1&limit=5
+GET http://localhost:5001/api/v1/orders/my-orders?page=1&limit=5
 ```
 
 ### Get Order by Order Number
 ```
-GET http://localhost:3000/api/v1/orders/number/ORD-20260221-0001
+GET http://localhost:5001/api/v1/orders/number/ORD-20260221-0001
 Authorization: Bearer <customer_token>
 ```
 
 ### Get Order by ID
 ```
-GET http://localhost:3000/api/v1/orders/1
+GET http://localhost:5001/api/v1/orders/1
 Authorization: Bearer <customer_token>
 ```
 
 ### Cancel Order (Customer)
 ```
-PUT http://localhost:3000/api/v1/orders/1/cancel
+PUT http://localhost:5001/api/v1/orders/1/cancel
 Authorization: Bearer <customer_token>
 Content-Type: application/json
 
@@ -389,15 +389,15 @@ Content-Type: application/json
 
 ### [ADMIN] Get All Orders
 ```
-GET http://localhost:3000/api/v1/orders
+GET http://localhost:5001/api/v1/orders
 Authorization: Bearer <admin_token>
-GET http://localhost:3000/api/v1/orders?status=pending
-GET http://localhost:3000/api/v1/orders?page=1&limit=20
+GET http://localhost:5001/api/v1/orders?status=pending
+GET http://localhost:5001/api/v1/orders?page=1&limit=20
 ```
 
 ### [ADMIN] Update Order Status
 ```
-PUT http://localhost:3000/api/v1/orders/1/status
+PUT http://localhost:5001/api/v1/orders/1/status
 Authorization: Bearer <admin_token>
 Content-Type: application/json
 
@@ -409,7 +409,7 @@ Content-Type: application/json
 
 ### [ADMIN] Order Statistics
 ```
-GET http://localhost:3000/api/v1/orders/statistics
+GET http://localhost:5001/api/v1/orders/statistics
 Authorization: Bearer <admin_token>
 ```
 
@@ -419,31 +419,31 @@ Authorization: Bearer <admin_token>
 
 ### Get My Invoice (Customer)
 ```
-GET http://localhost:3000/api/v1/invoices/order/1
+GET http://localhost:5001/api/v1/invoices/order/1
 Authorization: Bearer <customer_token>
 ```
 
 ### [ADMIN] Generate Invoice for Order
 ```
-POST http://localhost:3000/api/v1/invoices/order/1
+POST http://localhost:5001/api/v1/invoices/order/1
 Authorization: Bearer <admin_token>
 ```
 
 ### [ADMIN] Get All Invoices
 ```
-GET http://localhost:3000/api/v1/invoices
+GET http://localhost:5001/api/v1/invoices
 Authorization: Bearer <admin_token>
 ```
 
 ### [ADMIN] Get Invoice by Number
 ```
-GET http://localhost:3000/api/v1/invoices/number/INV-20260221-0001
+GET http://localhost:5001/api/v1/invoices/number/INV-20260221-0001
 Authorization: Bearer <admin_token>
 ```
 
 ### [ADMIN] Resend Invoice Email
 ```
-POST http://localhost:3000/api/v1/invoices/1/resend-email
+POST http://localhost:5001/api/v1/invoices/1/resend-email
 Authorization: Bearer <admin_token>
 ```
 
@@ -453,27 +453,27 @@ Authorization: Bearer <admin_token>
 
 ### Get All Users
 ```
-GET http://localhost:3000/api/v1/users
+GET http://localhost:5001/api/v1/users
 Authorization: Bearer <admin_token>
-GET http://localhost:3000/api/v1/users?user_type=wholesale
-GET http://localhost:3000/api/v1/users?page=1&limit=10
+GET http://localhost:5001/api/v1/users?user_type=wholesale
+GET http://localhost:5001/api/v1/users?page=1&limit=10
 ```
 
 ### Get User Statistics
 ```
-GET http://localhost:3000/api/v1/users/stats
+GET http://localhost:5001/api/v1/users/stats
 Authorization: Bearer <admin_token>
 ```
 
 ### Get User by ID
 ```
-GET http://localhost:3000/api/v1/users/1
+GET http://localhost:5001/api/v1/users/1
 Authorization: Bearer <admin_token>
 ```
 
 ### Create User
 ```
-POST http://localhost:3000/api/v1/users
+POST http://localhost:5001/api/v1/users
 Authorization: Bearer <admin_token>
 Content-Type: application/json
 
@@ -488,7 +488,7 @@ Content-Type: application/json
 
 ### Update User
 ```
-PUT http://localhost:3000/api/v1/users/2
+PUT http://localhost:5001/api/v1/users/2
 Authorization: Bearer <admin_token>
 Content-Type: application/json
 
@@ -500,7 +500,7 @@ Content-Type: application/json
 
 ### Block User
 ```
-PUT http://localhost:3000/api/v1/users/2/block
+PUT http://localhost:5001/api/v1/users/2/block
 Authorization: Bearer <admin_token>
 Content-Type: application/json
 
@@ -511,13 +511,13 @@ Content-Type: application/json
 
 ### Unblock User
 ```
-PUT http://localhost:3000/api/v1/users/2/unblock
+PUT http://localhost:5001/api/v1/users/2/unblock
 Authorization: Bearer <admin_token>
 ```
 
 ### Delete User (soft delete)
 ```
-DELETE http://localhost:3000/api/v1/users/2
+DELETE http://localhost:5001/api/v1/users/2
 Authorization: Bearer <admin_token>
 ```
 
@@ -527,26 +527,26 @@ Authorization: Bearer <admin_token>
 
 ### Get Dashboard Stats
 ```
-GET http://localhost:3000/api/v1/admin/dashboard
+GET http://localhost:5001/api/v1/admin/dashboard
 Authorization: Bearer <admin_token>
 ```
 
 ### Get Admin Logs
 ```
-GET http://localhost:3000/api/v1/admin/logs
+GET http://localhost:5001/api/v1/admin/logs
 Authorization: Bearer <admin_token>
-GET http://localhost:3000/api/v1/admin/logs?page=1&limit=50
+GET http://localhost:5001/api/v1/admin/logs?page=1&limit=50
 ```
 
 ### Get System Configuration
 ```
-GET http://localhost:3000/api/v1/admin/config
+GET http://localhost:5001/api/v1/admin/config
 Authorization: Bearer <admin_token>
 ```
 
 ### Update System Configuration
 ```
-PUT http://localhost:3000/api/v1/admin/config/max_customers
+PUT http://localhost:5001/api/v1/admin/config/max_customers
 Authorization: Bearer <admin_token>
 Content-Type: application/json
 

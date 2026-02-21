@@ -1,0 +1,24 @@
+<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="95" fill="#4CAF50" stroke="#2E7D32" stroke-width="3"/>
+  
+  <!-- Shopping cart icon -->
+  <g transform="translate(100, 85)">
+    <!-- Cart body -->
+    <rect x="-25" y="-15" width="50" height="30" rx="3" fill="white" opacity="0.9"/>
+    <rect x="-25" y="-25" width="50" height="10" rx="2" fill="white" opacity="0.9"/>
+    
+    <!-- Cart wheels -->
+    <circle cx="-15" cy="20" r="5" fill="white"/>
+    <circle cx="15" cy="20" r="5" fill="white"/>
+    
+    <!-- Cart handle -->
+    <path d="M -30 -25 L -35 -35 L -25 -35" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Store initials -->
+  <text x="100" y="155" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="white" text-anchor="middle">MK</text>
+  
+  <!-- Subtitle -->
+  <text x="100" y="175" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle" opacity="0.9">GENERAL STORES</text>
+</svg>

@@ -2,12 +2,15 @@ const rateLimit = require('express-rate-limit');
 const config = require('../config');
 const ApiError = require('../utils/ApiError');
 
+// In development, bypass rate limiting to allow testing
+const isDev = process.env.NODE_ENV === 'development';
+
 /**
  * General API rate limiter
  */
 const apiLimiter = rateLimit({
   windowMs: config.rateLimit.windowMs, // 15 minutes
-  max: config.rateLimit.maxRequests, // 100 requests per window
+  max: isDev ? 10000 : config.rateLimit.maxRequests, // unlimited in dev
   message: {
     success: false,
     status: 'fail',
@@ -26,7 +29,7 @@ const apiLimiter = rateLimit({
  */
 const otpLimiter = rateLimit({
   windowMs: config.rateLimit.otpWindowMs, // 1 minute
-  max: config.rateLimit.otpMaxRequests, // 3 requests per minute
+  max: isDev ? 10000 : config.rateLimit.otpMaxRequests, // unlimited in dev
   message: {
     success: false,
     status: 'fail',

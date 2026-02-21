@@ -25,6 +25,17 @@ class ProductService {
   }
 
   /**
+   * Get products by category
+   */
+  static async getByCategory(categoryId, options = {}) {
+    return Product.findAll({
+      ...options,
+      categoryId: parseInt(categoryId, 10),
+      isActive: true,
+    });
+  }
+
+  /**
    * Create product
    */
   static async create(productData, adminId) {
@@ -129,13 +140,19 @@ class ProductService {
   /**
    * Update product stock
    */
-  static async updateStock(id, quantity, adminId) {
+  static async updateStock(id, quantity, adminId, operation = 'add') {
     const product = await Product.findById(id);
     if (!product) {
       throw ApiError.notFound('Product not found');
     }
 
-    const newStock = product.stock_quantity + quantity;
+    // 'set' replaces stock; 'add'/'subtract' adjusts it
+    let newStock;
+    if (operation === 'set') {
+      newStock = parseInt(quantity);
+    } else {
+      newStock = product.stock_quantity + quantity;
+    }
     if (newStock < 0) {
       throw ApiError.badRequest('Insufficient stock');
     }
@@ -299,6 +316,44 @@ class ProductService {
       search: query,
       isActive: true,
     });
+  }
+
+  /**
+   * Get low stock products
+   */
+  static async getLowStock(threshold = 15) {
+    const result = await Product.findAll({
+      stockThreshold: threshold,
+      isActive: null,
+      limit: 500,
+      sortBy: 'stock_quantity',
+      sortOrder: 'ASC',
+    });
+    return {
+      products: result.products,
+      total: result.total,
+      threshold,
+    };
+  }
+
+  /**
+   * Toggle product active status
+   */
+  static async toggleActive(id, adminId) {
+    const product = await this.getById(id);
+    if (!product) throw ApiError.notFound('Product not found');
+
+    const newStatus = !product.is_active;
+    await Product.update(id, { is_active: newStatus });
+
+    await AdminLog.create({
+      adminId,
+      action: newStatus ? 'ACTIVATE_PRODUCT' : 'DEACTIVATE_PRODUCT',
+      entityType: 'product',
+      entityId: parseInt(id),
+    });
+
+    return { ...product, is_active: newStatus };
   }
 }
 

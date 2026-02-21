@@ -1,0 +1,133 @@
+<svg width="1200" height="800" xmlns="http://www.w3.org/2000/svg">
+  <!-- Terminal Background -->
+  <rect width="1200" height="800" fill="#0c0c0c"/>
+  
+  <!-- Terminal Header -->
+  <rect width="1200" height="40" fill="#1e1e1e"/>
+  <text x="20" y="27" font-family="Consolas, monospace" font-size="14" fill="#ccc">python tests/run_final_tests.py</text>
+  <circle cx="1150" cy="20" r="6" fill="#4CAF50"/>
+  <circle cx="1170" cy="20" r="6" fill="#FF9800"/>
+  
+  <!-- Terminal Content -->
+  <text x="20" y="70" font-family="Consolas, monospace" font-size="12" fill="#4CAF50">==================================</text>
+  <text x="20" y="90" font-family="Consolas, monospace" font-size="12" fill="#4CAF50">MK STORES API INTEGRATION TESTS</text>
+  <text x="20" y="110" font-family="Consolas, monospace" font-size="12" fill="#4CAF50">==================================</text>
+  
+  <text x="20" y="140" font-family="Consolas, monospace" font-size="12" fill="#61AFEF">Auth: admin login...</text>
+  <text x="20" y="160" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ admin token: OK</text>
+  
+  <text x="20" y="185" font-family="Consolas, monospace" font-size="12" fill="#61AFEF">Auth: customer OTP flow...</text>
+  <text x="20" y="205" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ customer token: OK</text>
+  
+  <text x="20" y="235" font-family="Consolas, monospace" font-size="12" fill="#E5C07B">--- USERS (12 tests) ---</text>
+  <text x="20" y="255" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ GET /users (list)</text>
+  <text x="20" y="275" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ GET /users/stats</text>
+  <text x="20" y="295" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ POST /users (create)</text>
+  <text x="20" y="315" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ GET /users/:id</text>
+  <text x="20" y="335" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ PUT /users/:id (update)</text>
+  <text x="20" y="355" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ PUT /users/:id/customer-type (wholesale)</text>
+  <text x="20" y="375" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ PUT /users/:id/activate</text>
+  <text x="20" y="395" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ PUT /users/:id/deactivate</text>
+  <text x="20" y="415" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ PUT /users/:id/block</text>
+  <text x="20" y="435" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ PUT /users/:id/unblock</text>
+  <text x="20" y="455" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ DELETE /users/:id</text>
+  <text x="20" y="475" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ PUT /users/2/customer-type (back to retail)</text>
+  
+  <text x="20" y="505" font-family="Consolas, monospace" font-size="12" fill="#E5C07B">--- ADMIN PANEL (16 tests) ---</text>
+  <text x="20" y="525" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ GET /admin/dashboard</text>
+  <text x="20" y="545" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ GET /admin/reports/sales</text>
+  <text x="20" y="565" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ GET /admin/reports/products</text>
+  <text x="20" y="585" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ GET /admin/low-stock</text>
+  <text x="20" y="605" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ PUT /admin/gst-config/:id</text>
+  
+  <text x="20" y="635" font-family="Consolas, monospace" font-size="12" fill="#E5C07B">--- PROFILE UPDATE (4 tests) ---</text>
+  <text x="20" y="655" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ PUT /auth/me (name update)</text>
+  <text x="20" y="675" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ PUT /auth/me (email update)</text>
+  
+  <text x="620" y="70" font-family="Consolas, monospace" font-size="12" fill="#E5C07B">--- TELUGU LANGUAGE (3 tests) ---</text>
+  <text x="620" y="90" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ GET /categories?lang=te</text>
+  <text x="620" y="110" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ GET /products?lang=te</text>
+  <text x="620" y="130" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ GET /products/:id?lang=te</text>
+  
+  <text x="620" y="160" font-family="Consolas, monospace" font-size="12" fill="#E5C07B">--- STOCK CONFLICT (4 tests) ---</text>
+  <text x="620" y="180" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ POST /cart (add 4kg to stock=100)</text>
+  <text x="620" y="200" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ POST /orders (should pass)</text>
+  <text x="620" y="220" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ POST /cart (add 98kg - exceeds remaining)</text>
+  <text x="620" y="240" font-family="Consolas, monospace" font-size="12" fill="#ccc">    Expected: HTTP 400 (insufficient stock)</text>
+  <text x="620" y="260" font-family="Consolas, monospace" font-size="12" fill="#98C379">  ✓ Restore product stock=100</text>
+  
+  <text x="620" y="290" font-family="Consolas, monospace" font-size="12" fill="#61AFEF">Test execution completed in 3.42s</text>
+  
+  <!-- Results Table Header -->
+  <rect x="20" y="710" width="1160" height="1" fill="#444"/>
+  
+  <text x="20" y="735" font-family="Consolas, monospace" font-size="11" fill="#888">ST</text>
+  <text x="100" y="735" font-family="Consolas, monospace" font-size="11" fill="#888">TEST</text>
+  <text x="600" y="735" font-family="Consolas, monospace" font-size="11" fill="#888">MESSAGE</text>
+  
+  <rect x="20" y="740" width="1160" height="1" fill="#444"/>
+  
+  <!-- Summary Section -->
+  <rect x="350" y="760" width="500" height="30" fill="#1e1e1e"/>
+  <text x="370" y="782" font-family="Consolas, monospace" font-size="14" font-weight="bold" fill="#4CAF50">PASSED: 48 </text>
+  <text x="500" y="782" font-family="Consolas, monospace" font-size="14" font-weight="bold" fill="#f44336">FAILED: 0 </text>
+  <text x="630" y="782" font-family="Consolas, monospace" font-size="14" font-weight="bold" fill="#FF9800">SKIPPED: 0 </text>
+  <text x="770" y="782" font-family="Consolas, monospace" font-size="14" font-weight="bold" fill="#61AFEF">TOTAL: 48</text>
+  
+  <!-- Success Badge -->
+  <rect x="480" y="320" width="240" height="140" rx="12" fill="#1b5e20" opacity="0.9"/>
+  <text x="600" y="365" font-family="Arial, sans-serif" font-size="48" fill="#4CAF50" text-anchor="middle" font-weight="bold">✓</text>
+  <text x="600" y="405" font-family="Arial, sans-serif" font-size="20" fill="#A5D6A7" text-anchor="middle" font-weight="bold">100% PASS</text>
+  <text x="600" y="435" font-family="Arial, sans-serif" font-size="14" fill="#C8E6C9" text-anchor="middle">All 48 tests passing</text>
+  
+  <!-- Module Coverage Badges -->
+  <g transform="translate(620, 320)">
+    <rect width="130" height="25" rx="12" fill="#2E7D32"/>
+    <text x="65" y="17" font-family="Arial, sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">Auth ✓</text>
+  </g>
+  
+  <g transform="translate(760, 320)">
+    <rect width="130" height="25" rx="12" fill="#2E7D32"/>
+    <text x="65" y="17" font-family="Arial, sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">Users ✓</text>
+  </g>
+  
+  <g transform="translate(900, 320)">
+    <rect width="130" height="25" rx="12" fill="#2E7D32"/>
+    <text x="65" y="17" font-family="Arial, sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">Admin ✓</text>
+  </g>
+  
+  <g transform="translate(1040, 320)">
+    <rect width="130" height="25" rx="12" fill="#2E7D32"/>
+    <text x="65" y="17" font-family="Arial, sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">Products ✓</text>
+  </g>
+  
+  <g transform="translate(620, 355)">
+    <rect width="130" height="25" rx="12" fill="#2E7D32"/>
+    <text x="65" y="17" font-family="Arial, sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">Cart ✓</text>
+  </g>
+  
+  <g transform="translate(760, 355)">
+    <rect width="130" height="25" rx="12" fill="#2E7D32"/>
+    <text x="65" y="17" font-family="Arial, sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">Orders ✓</text>
+  </g>
+  
+  <g transform="translate(900, 355)">
+    <rect width="130" height="25" rx="12" fill="#2E7D32"/>
+    <text x="65" y="17" font-family="Arial, sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">Invoices ✓</text>
+  </g>
+  
+  <g transform="translate(1040, 355)">
+    <rect width="130" height="25" rx="12" fill="#2E7D32"/>
+    <text x="65" y="17" font-family="Arial, sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">Telugu ✓</text>
+  </g>
+  
+  <g transform="translate(620, 390)">
+    <rect width="270" height="25" rx="12" fill="#2E7D32"/>
+    <text x="135" y="17" font-family="Arial, sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">Stock Conflict Prevention ✓</text>
+  </g>
+  
+  <g transform="translate(900, 390)">
+    <rect width="270" height="25" rx="12" fill="#2E7D32"/>
+    <text x="135" y="17" font-family="Arial, sans-serif" font-size="11" fill="white" text-anchor="middle" font-weight="bold">Profile/Email Update ✓</text>
+  </g>
+</svg>

@@ -1,0 +1,106 @@
+<svg width="1200" height="800" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1200" height="800" fill="#f8f9fa"/>
+  
+  <!-- Title -->
+  <text x="600" y="50" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#333" text-anchor="middle">Bilingual Product Support</text>
+  <text x="600" y="85" font-family="Arial, sans-serif" font-size="16" fill="#666" text-anchor="middle">English • తెలుగు (Telugu)</text>
+  
+  <!-- Divider line -->
+  <line x1="600" y1="120" x2="600" y2="750" stroke="#ddd" stroke-width="2"/>
+  
+  <!-- Left Side - English -->
+  <g transform="translate(50, 140)">
+    <rect width="480" height="60" fill="#2196F3" rx="8"/>
+    <text x="240" y="40" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle">🇬🇧 English (EN)</text>
+  </g>
+  
+  <!-- Right Side - Telugu -->
+  <g transform="translate(670, 140)">
+    <rect width="480" height="60" fill="#FF9800" rx="8"/>
+    <text x="240" y="40" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle">🇮🇳 తెలుగు (TE)</text>
+  </g>
+  
+  <!-- URL Examples -->
+  <g transform="translate(50, 230)">
+    <rect width="480" height="50" fill="#E3F2FD" rx="6"/>
+    <text x="15" y="30" font-family="Consolas, monospace" font-size="13" fill="#1976D2" font-weight="bold">GET /api/v1/products</text>
+  </g>
+  
+  <g transform="translate(670, 230)">
+    <rect width="480" height="50" fill="#FFF3E0" rx="6"/>
+    <text x="15" y="30" font-family="Consolas, monospace" font-size="13" fill="#F57C00" font-weight="bold">GET /api/v1/products?lang=te</text>
+  </g>
+  
+  <!-- Product 1 - Almonds -->
+  <g transform="translate(50, 310)">
+    <rect width="480" height="90" fill="white" stroke="#e0e0e0" stroke-width="1" rx="8"/>
+    <text x="20" y="35" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#333">Almonds</text>
+    <text x="20" y="58" font-family="Arial, sans-serif" font-size="14" fill="#666">Category: Dry Fruits</text>
+    <text x="20" y="78" font-family="Arial, sans-serif" font-size="15" fill="#4CAF50" font-weight="bold">₹850.00 per kg</text>
+    <text x="440" y="55" font-family="Arial, sans-serif" font-size="36" text-anchor="end">🥜</text>
+  </g>
+  
+  <g transform="translate(670, 310)">
+    <rect width="480" height="90" fill="white" stroke="#e0e0e0" stroke-width="1" rx="8"/>
+    <text x="20" y="35" font-family="Noto Sans Telugu, Arial" font-size="20" font-weight="bold" fill="#333">బాదం</text>
+    <text x="20" y="58" font-family="Noto Sans Telugu, Arial" font-size="14" fill="#666">వర్గం: డ్రై ఫ్రూట్స్</text>
+    <text x="20" y="78" font-family="Arial, sans-serif" font-size="15" fill="#4CAF50" font-weight="bold">₹850.00 కిలోకు</text>
+    <text x="440" y="55" font-family="Arial, sans-serif" font-size="36" text-anchor="end">🥜</text>
+  </g>
+  
+  <!-- Product 2 - Basmati Rice -->
+  <g transform="translate(50, 420)">
+    <rect width="480" height="90" fill="white" stroke="#e0e0e0" stroke-width="1" rx="8"/>
+    <text x="20" y="35" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#333">Basmati Rice</text>
+    <text x="20" y="58" font-family="Arial, sans-serif" font-size="14" fill="#666">Category: Rice & Pulses</text>
+    <text x="20" y="78" font-family="Arial, sans-serif" font-size="15" fill="#4CAF50" font-weight="bold">₹140.00 per kg</text>
+    <text x="440" y="55" font-family="Arial, sans-serif" font-size="36" text-anchor="end">🌾</text>
+  </g>
+  
+  <g transform="translate(670, 420)">
+    <rect width="480" height="90" fill="white" stroke="#e0e0e0" stroke-width="1" rx="8"/>
+    <text x="20" y="35" font-family="Noto Sans Telugu, Arial" font-size="20" font-weight="bold" fill="#333">బాస్మతీ బియ్యం</text>
+    <text x="20" y="58" font-family="Noto Sans Telugu, Arial" font-size="14" fill="#666">వర్గం: బియ్యం మరియు పప్పులు</text>
+    <text x="20" y="78" font-family="Arial, sans-serif" font-size="15" fill="#4CAF50" font-weight="bold">₹140.00 కిలోకు</text>
+    <text x="440" y="55" font-family="Arial, sans-serif" font-size="36" text-anchor="end">🌾</text>
+  </g>
+  
+  <!-- Product 3 - Toor Dal -->
+  <g transform="translate(50, 530)">
+    <rect width="480" height="90" fill="white" stroke="#e0e0e0" stroke-width="1" rx="8"/>
+    <text x="20" y="35" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#333">Toor Dal</text>
+    <text x="20" y="58" font-family="Arial, sans-serif" font-size="14" fill="#666">Category: Rice & Pulses</text>
+    <text x="20" y="78" font-family="Arial, sans-serif" font-size="15" fill="#4CAF50" font-weight="bold">₹135.00 per kg</text>
+    <text x="440" y="55" font-family="Arial, sans-serif" font-size="36" text-anchor="end">🫘</text>
+  </g>
+  
+  <g transform="translate(670, 530)">
+    <rect width="480" height="90" fill="white" stroke="#e0e0e0" stroke-width="1" rx="8"/>
+    <text x="20" y="35" font-family="Noto Sans Telugu, Arial" font-size="20" font-weight="bold" fill="#333">కందిపప్పు</text>
+    <text x="20" y="58" font-family="Noto Sans Telugu, Arial" font-size="14" fill="#666">వర్గం: బియ్యం మరియు పప్పులు</text>
+    <text x="20" y="78" font-family="Arial, sans-serif" font-size="15" fill="#4CAF50" font-weight="bold">₹135.00 కిలోకు</text>
+    <text x="440" y="55" font-family="Arial, sans-serif" font-size="36" text-anchor="end">🫘</text>
+  </g>
+  
+  <!-- Product 4 - Sugar -->
+  <g transform="translate(50, 640)">
+    <rect width="480" height="90" fill="white" stroke="#e0e0e0" stroke-width="1" rx="8"/>
+    <text x="20" y="35" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#333">Sugar</text>
+    <text x="20" y="58" font-family="Arial, sans-serif" font-size="14" fill="#666">Category: Staples</text>
+    <text x="20" y="78" font-family="Arial, sans-serif" font-size="15" fill="#4CAF50" font-weight="bold">₹45.00 per kg</text>
+    <text x="440" y="55" font-family="Arial, sans-serif" font-size="36" text-anchor="end">🧂</text>
+  </g>
+  
+  <g transform="translate(670, 640)">
+    <rect width="480" height="90" fill="white" stroke="#e0e0e0" stroke-width="1" rx="8"/>
+    <text x="20" y="35" font-family="Noto Sans Telugu, Arial" font-size="20" font-weight="bold" fill="#333">చక్కెర</text>
+    <text x="20" y="58" font-family="Noto Sans Telugu, Arial" font-size="14" fill="#666">వర్గం: ప్రధాన వస్తువులు</text>
+    <text x="20" y="78" font-family="Arial, sans-serif" font-size="15" fill="#4CAF50" font-weight="bold">₹45.00 కిలోకు</text>
+    <text x="440" y="55" font-family="Arial, sans-serif" font-size="36" text-anchor="end">🧂</text>
+  </g>
+  
+  <!-- Footer note -->
+  <rect x="300" y="750" width="600" height="35" fill="#E8F5E9" rx="6"/>
+  <text x="600" y="773" font-family="Arial, sans-serif" font-size="13" fill="#2E7D32" text-anchor="middle">✅ Same API endpoint • Different query parameter (?lang=te) • Instant translation</text>
+</svg>

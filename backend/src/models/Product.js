@@ -37,6 +37,7 @@ class Product {
       page = 1, limit = 20,
       categoryId = null, isActive = null, isFeatured = null,
       search = null, minPrice = null, maxPrice = null, inStock = null,
+      stockThreshold = null,
       sortBy = 'name', sortOrder = 'ASC', lang = 'en',
     } = options;
     const offset = (page - 1) * limit;
@@ -45,17 +46,18 @@ class Product {
     const params = [lang];   // $1 = lang
     let   idx    = 2;
 
-    if (categoryId)       { conds.push(`p.category_id = $${idx++}`);       params.push(categoryId); }
-    if (isActive !== null){ conds.push(`p.is_active = $${idx++}`);         params.push(isActive ? true : false); }
-    if (isFeatured !== null){ conds.push(`p.is_featured = $${idx++}`);     params.push(isFeatured ? true : false); }
+    if (categoryId)           { conds.push(`p.category_id = $${idx++}`);       params.push(categoryId); }
+    if (isActive !== null)    { conds.push(`p.is_active = $${idx++}`);         params.push(isActive ? true : false); }
+    if (isFeatured !== null)  { conds.push(`p.is_featured = $${idx++}`);     params.push(isFeatured ? true : false); }
     if (search) {
       conds.push(`(pt_en.name ILIKE $${idx} OR p.sku ILIKE $${idx + 1})`);
       params.push(`%${search}%`, `%${search}%`);
       idx += 2;
     }
-    if (minPrice !== null){ conds.push(`p.price >= $${idx++}`);            params.push(minPrice); }
-    if (maxPrice !== null){ conds.push(`p.price <= $${idx++}`);            params.push(maxPrice); }
-    if (inStock)          { conds.push('p.stock_quantity > 0'); }
+    if (minPrice !== null)    { conds.push(`p.price >= $${idx++}`);            params.push(minPrice); }
+    if (maxPrice !== null)    { conds.push(`p.price <= $${idx++}`);            params.push(maxPrice); }
+    if (inStock)              { conds.push('p.stock_quantity > 0'); }
+    if (stockThreshold !== null) { conds.push(`p.stock_quantity <= $${idx++}`); params.push(stockThreshold); }
 
     const where = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
 

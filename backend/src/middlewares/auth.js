@@ -25,7 +25,7 @@ const authenticate = async (req, res, next) => {
       `SELECT u.*, r.name as role_name 
        FROM users u 
        JOIN roles r ON u.role_id = r.id 
-       WHERE u.id = ? AND u.is_active = 1`,
+       WHERE u.id = $1 AND u.is_active = TRUE`,
       [decoded.userId]
     );
 
@@ -76,7 +76,7 @@ const optionalAuth = async (req, res, next) => {
       `SELECT u.*, r.name as role_name 
        FROM users u 
        JOIN roles r ON u.role_id = r.id 
-       WHERE u.id = ? AND u.is_active = 1`,
+       WHERE u.id = $1 AND u.is_active = TRUE`,
       [decoded.userId]
     );
 
@@ -143,7 +143,7 @@ const verifyRefreshToken = async (req, res, next) => {
     // Check if refresh token exists in database
     const tokenRecord = await query(
       `SELECT * FROM refresh_tokens 
-       WHERE token = ? AND user_id = ? AND expires_at > NOW() AND revoked = 0`,
+       WHERE token = $1 AND user_id = $2 AND expires_at > NOW() AND revoked = FALSE`,
       [refreshToken, decoded.userId]
     );
 

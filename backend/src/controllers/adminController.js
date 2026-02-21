@@ -1,4 +1,5 @@
 const { AdminService } = require('../services');
+const AdminLog = require('../models/AdminLog');
 const { asyncHandler } = require('../middlewares');
 const ApiResponse = require('../utils/ApiResponse');
 const { getPaginationParams } = require('../utils/helpers');
@@ -153,13 +154,13 @@ const updateGSTConfig = asyncHandler(async (req, res) => {
     is_active,
   });
 
-  await AdminService.logActivity(
-    req.user.id,
-    'UPDATE_GST_CONFIG',
-    'gst_config',
-    req.params.id,
-    { category_name, cgst_rate, sgst_rate }
-  );
+  await AdminLog.create({
+    adminId: req.user.id,
+    action: 'UPDATE_GST_CONFIG',
+    entityType: 'gst_config',
+    entityId: req.params.id,
+    newValue: { category_name, cgst_rate, sgst_rate },
+  });
 
   ApiResponse.success(res, config, 'GST configuration updated');
 });

@@ -82,8 +82,8 @@ const deleteProduct = asyncHandler(async (req, res) => {
  * @access  Admin
  */
 const updateStock = asyncHandler(async (req, res) => {
-  const { quantity } = req.body;
-  const result = await ProductService.updateStock(req.params.id, quantity, req.user.id);
+  const { quantity, operation } = req.body;
+  const result = await ProductService.updateStock(req.params.id, quantity, req.user.id, operation || 'add');
   ApiResponse.success(res, result, 'Stock updated successfully');
 });
 
@@ -166,7 +166,7 @@ const getAllProductsAdmin = asyncHandler(async (req, res) => {
  */
 const getLowStockProducts = asyncHandler(async (req, res) => {
   const { threshold } = req.query;
-  const result = await ProductService.getLowStock(parseInt(threshold) || 10);
+  const result = await ProductService.getLowStock(parseInt(threshold) || 15);
   ApiResponse.success(res, result);
 });
 

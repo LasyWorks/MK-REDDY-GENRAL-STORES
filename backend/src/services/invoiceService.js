@@ -78,9 +78,72 @@ class InvoiceService {
   }
 
   /**
+   * Generate invoice HTML for download
+   */
+  static async generateInvoiceHtml(invoice) {
+    const items = invoice.items || [];
+    const itemRows = items.map(item => `
+      <tr>
+        <td>${item.product_name || item.name || '-'}</td>
+        <td>${item.unit_type || '-'}</td>
+        <td style="text-align:right">${item.quantity}</td>
+        <td style="text-align:right">₹${parseFloat(item.unit_price || item.price || 0).toFixed(2)}</td>
+        <td style="text-align:right">${item.gst_percentage || 0}%</td>
+        <td style="text-align:right">₹${parseFloat(item.gst_amount || 0).toFixed(2)}</td>
+        <td style="text-align:right">₹${parseFloat(item.total_price || item.subtotal || 0).toFixed(2)}</td>
+      </tr>`).join('');
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Invoice ${invoice.invoice_number}</title>
+<style>
+  body { font-family: Arial, sans-serif; font-size: 13px; color: #222; margin: 40px; }
+  h1 { color: #1F3A8A; }
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+  th { background: #1F3A8A; color: #fff; padding: 6px 10px; text-align: left; }
+  td { padding: 5px 10px; border-bottom: 1px solid #eee; }
+  .total-row td { font-weight: bold; border-top: 2px solid #1F3A8A; }
+  .meta { margin-bottom: 20px; }
+  .meta td { padding: 3px 8px; }
+</style>
+</head>
+<body>
+<h1>MK Reddy General Stores</h1>
+<h2>Invoice</h2>
+<table class="meta">
+  <tr><td><b>Invoice #:</b></td><td>${invoice.invoice_number}</td><td><b>Date:</b></td><td>${new Date(invoice.created_at).toLocaleDateString('en-IN')}</td></tr>
+  <tr><td><b>Order #:</b></td><td>${invoice.order_number || '-'}</td><td><b>Payment:</b></td><td>${invoice.is_paid ? 'Paid' : 'Pending'}</td></tr>
+</table>
+<table>
+  <thead><tr><th>Product</th><th>Unit</th><th>Qty</th><th>Price</th><th>GST%</th><th>GST Amt</th><th>Total</th></tr></thead>
+  <tbody>${itemRows}</tbody>
+  <tfoot>
+    <tr class="total-row"><td colspan="6" style="text-align:right">Subtotal:</td><td style="text-align:right">₹${parseFloat(invoice.subtotal || 0).toFixed(2)}</td></tr>
+    <tr class="total-row"><td colspan="6" style="text-align:right">Total GST:</td><td style="text-align:right">₹${parseFloat(invoice.total_gst || 0).toFixed(2)}</td></tr>
+    <tr class="total-row"><td colspan="6" style="text-align:right"><b>Grand Total:</b></td><td style="text-align:right"><b>₹${parseFloat(invoice.total_amount || 0).toFixed(2)}</b></td></tr>
+  </tfoot>
+</table>
+</body></html>`;
+  }
+
+  /**
+   * Get revenue report (alias for revenue/sales report used by controller)
+   */
+  static async getRevenueReport(startDate, endDate, groupBy = 'day') {
+    return this.getSalesReport(startDate, endDate, groupBy);
+  }
+
+  /**
+   * Get pending payments
+   */
+  static async getPendingPayments(options = {}) {
+    return this.getAll({ ...options, paymentStatus: 'pending' });
+  }
+
+  /**
    * Get sales report
    */
-  static async getSalesReport(startDate, endDate) {
+  static async getSalesReport(startDate, endDate, groupBy = 'day') {
     const invoices = await Invoice.findAll({
       startDate,
       endDate,

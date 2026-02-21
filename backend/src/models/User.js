@@ -29,11 +29,11 @@ class User {
   }
 
   static async create(userData) {
-    const { name, phone, email, user_type, role_id, address } = userData;
+    const { name, phone, email, user_type, role_id, address, password_hash } = userData;
     return insert(
-      `INSERT INTO users (name, phone, email, user_type, role_id, address)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-      [name, phone, email || null, user_type, role_id, address || null]
+      `INSERT INTO users (name, phone, email, user_type, role_id, address, password_hash)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      [name, phone, email || null, user_type, role_id, address || null, password_hash || null]
     );
   }
 

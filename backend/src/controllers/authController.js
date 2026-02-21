@@ -68,7 +68,7 @@ const adminVerifyOTP = asyncHandler(async (req, res) => {
  * @access  Public
  */
 const refreshToken = asyncHandler(async (req, res) => {
-  const { refreshToken } = req.body;
+  const { refresh_token: refreshToken } = req.body;
   const result = await AuthService.refreshTokens(refreshToken);
   ApiResponse.success(res, result, 'Token refreshed successfully');
 });
@@ -79,7 +79,7 @@ const refreshToken = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const logout = asyncHandler(async (req, res) => {
-  const { refreshToken } = req.body;
+  const { refresh_token: refreshToken } = req.body;
   await AuthService.logout(req.user.id, refreshToken);
   ApiResponse.success(res, null, 'Logged out successfully');
 });
@@ -120,9 +120,9 @@ const resendOTP = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const updateMe = asyncHandler(async (req, res) => {
-  const { name, address } = req.body;
+  const { name, email, address } = req.body;
   const { UserService } = require('../services');
-  const user = await UserService.update(req.user.id, { name, address });
+  const user = await UserService.update(req.user.id, { name, email, address });
   ApiResponse.success(res, user, 'Profile updated successfully');
 });
 

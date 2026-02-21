@@ -210,6 +210,70 @@ class UserService {
   }
 
   /**
+   * Get user statistics
+   */
+  static async getStatistics() {
+    const result = await User.findAll({ limit: 10000 });
+    const users = result.users;
+    const roles = {};
+    const types = {};
+    let active = 0, blocked = 0;
+    users.forEach(u => {
+      const role = u.role_name || 'unknown';
+      roles[role] = (roles[role] || 0) + 1;
+      const type = u.user_type || 'unknown';
+      types[type] = (types[type] || 0) + 1;
+      if (u.is_active) active++;
+      if (u.is_blocked) blocked++;
+    });
+    return {
+      total: result.total,
+      active,
+      blocked,
+      inactive: result.total - active,
+      by_role: roles,
+      by_type: types,
+    };
+  }
+
+  /**
+   * Create user
+   */
+  static async create({ name, phone, email, user_type = 'retail', address, role_id = 2, password }) {
+    const bcrypt = require('bcryptjs');
+    const existing = await User.findByPhone(phone);
+    if (existing) {
+      throw ApiError.conflict('Phone number already registered');
+    }
+    const password_hash = password ? await bcrypt.hash(password, 10) : null;
+    const newId = await User.create({ name, phone, email, user_type, address, role_id, password_hash });
+    const fullUser = await User.findById(newId);
+    return this.sanitizeUser(fullUser);
+  }
+
+  /**
+   * Update customer type
+   */
+  static async updateCustomerType(id, customerType, adminId) {
+    const user = await User.findById(id);
+    if (!user) throw ApiError.notFound('User not found');
+    const validTypes = ['retail', 'wholesale'];
+    if (!validTypes.includes(customerType)) {
+      throw ApiError.badRequest(`customer_type must be one of: ${validTypes.join(', ')}`);
+    }
+    await User.update(id, { user_type: customerType });
+    await AdminLog.create({
+      adminId,
+      action: 'UPDATE_CUSTOMER_TYPE',
+      entityType: 'user',
+      entityId: parseInt(id),
+      newValue: { user_type: customerType },
+    });
+    const updated = await User.findById(id);
+    return this.sanitizeUser(updated);
+  }
+
+  /**
    * Sanitize user object
    */
   static sanitizeUser(user) {

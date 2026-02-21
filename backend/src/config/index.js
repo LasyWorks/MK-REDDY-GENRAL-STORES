@@ -3,7 +3,7 @@ require('dotenv').config();
 const config = {
   // Application
   env: process.env.NODE_ENV || 'development',
-  port: parseInt(process.env.PORT, 10) || 3000,
+  port: parseInt(process.env.PORT, 10) || 5001,
   apiVersion: process.env.API_VERSION || 'v1',
 
   // Database  (PostgreSQL)
@@ -76,11 +76,12 @@ const config = {
     default: 18,
   },
 
-  // Fast2SMS (OTP/SMS)
+  // Fast2SMS (OTP/SMS) — DLT route
   fast2sms: {
-    apiKey:   process.env.FAST2SMS_API_KEY   || '',
-    senderId: process.env.FAST2SMS_SENDER_ID  || 'MKKIRA',
-    route:    process.env.FAST2SMS_ROUTE      || 'otp',
+    apiKey:    process.env.FAST2SMS_API_KEY    || '',
+    senderId:  process.env.FAST2SMS_SENDER_ID  || '',
+    route:     process.env.FAST2SMS_ROUTE      || 'dlt',
+    messageId: process.env.FAST2SMS_MESSAGE_ID || '',
   },
 
   // WhatsApp (e.g. 360dialog / Twilio)
