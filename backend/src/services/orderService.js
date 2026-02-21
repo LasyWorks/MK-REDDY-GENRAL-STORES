@@ -1,5 +1,6 @@
 const { Order, Cart, User, Invoice, AdminLog } = require('../models');
 const EmailService = require('./emailService');
+const NotificationService = require('./notificationService');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
 
@@ -40,6 +41,13 @@ class OrderService {
     await Invoice.create(order, user);
 
     logger.info(`Order created: ${orderNumber} by user ${userId}`);
+
+    // WhatsApp order confirmation
+    try {
+      await NotificationService.sendWhatsAppConfirmation(user, order);
+    } catch (err) {
+      logger.error('WhatsApp confirmation failed:', err);
+    }
 
     return order;
   }
@@ -125,16 +133,17 @@ class OrderService {
 
     const updatedOrder = await Order.findById(orderId);
 
-    // Send email notification on confirmation
-    if (status === 'confirmed') {
-      try {
-        const user = await User.findById(order.user_id);
-        if (user.email) {
-          await EmailService.sendOrderConfirmation(updatedOrder, user);
-        }
-      } catch (error) {
-        logger.error('Failed to send order confirmation email:', error);
+    // SMS status update (all transitions)
+    try {
+      const user = await User.findById(order.user_id);
+      await NotificationService.sendOrderStatusSms(user, updatedOrder);
+
+      // Also send email on confirmation
+      if (status === 'confirmed' && user.email) {
+        await EmailService.sendOrderConfirmation(updatedOrder, user);
       }
+    } catch (error) {
+      logger.error('Failed to send order notification:', error);
     }
 
     return updatedOrder;

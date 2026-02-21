@@ -1,73 +1,51 @@
-const mysql = require('mysql2/promise');
-const fs = require('fs');
+const { Client } = require('pg');
+const fs2 = require('fs');
 const path = require('path');
 require('dotenv').config();
 
-const config = {
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT, 10) || 3306,
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  multipleStatements: true,
-};
+const DB_NAME = process.env.DB_NAME || 'mk_kirana_stores';
 
 const runMigration = async () => {
-  let connection;
-
+  let adminClient;
+  let dbClient;
   try {
-    console.log('🔄 Starting database migration...');
-    console.log(`📍 Connecting to MySQL at ${config.host}:${config.port}`);
+    console.log('Starting database migration...');
+    const connBase = {
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT, 10) || 5432,
+      user: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD || '',
+    };
 
-    // Connect to MySQL without database
-    connection = await mysql.createConnection(config);
-    console.log('✅ Connected to MySQL server');
+    adminClient = new Client({ ...connBase, database: 'postgres' });
+    await adminClient.connect();
+    console.log('Connected to PostgreSQL server');
 
-    // Read schema file
-    const schemaPath = path.join(__dirname, 'schema.sql');
-    const schema = fs.readFileSync(schemaPath, 'utf8');
-    console.log('📄 Schema file loaded');
+    await adminClient.query('DROP DATABASE IF EXISTS "' + DB_NAME + '"');
+    await adminClient.query(`CREATE DATABASE "${DB_NAME}" ENCODING 'UTF8'`);
+    console.log('Database "' + DB_NAME + '" created');
+    await adminClient.end();
 
-    // Execute schema
-    console.log('🔄 Executing schema...');
-    await connection.query(schema);
-    console.log('✅ Schema executed successfully');
+    dbClient = new Client({ ...connBase, database: DB_NAME });
+    await dbClient.connect();
 
-    // Verify tables created
-    const [tables] = await connection.query(`
-      SELECT TABLE_NAME 
-      FROM information_schema.TABLES 
-      WHERE TABLE_SCHEMA = 'mk_kirrana_stores'
-      ORDER BY TABLE_NAME
-    `);
+    const schema = fs2.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
+    await dbClient.query(schema);
+    console.log('Schema executed successfully');
 
-    console.log('\n📋 Tables created:');
-    tables.forEach((table) => {
-      console.log(`   - ${table.TABLE_NAME}`);
-    });
+    const result = await dbClient.query(
+      `SELECT tablename AS table_name FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename`
+    );
+    console.log('Tables created:');
+    result.rows.forEach(r => console.log('  -', r.table_name));
 
-    console.log('\n✅ Migration completed successfully!');
-    console.log('📌 Database: mk_kirrana_stores');
-    console.log('📌 Default admin user created:');
-    console.log('   - Phone: 9999999999');
-    console.log('   - Email: admin@mkkirrana.com');
-
+    console.log('Migration completed! DB:', DB_NAME);
+    await dbClient.end();
   } catch (error) {
-    console.error('❌ Migration failed:', error.message);
-    if (error.sqlMessage) {
-      console.error('SQL Error:', error.sqlMessage);
-    }
+    console.error('Migration failed:', error.message);
     process.exit(1);
-  } finally {
-    if (connection) {
-      await connection.end();
-      console.log('\n👋 Database connection closed');
-    }
   }
 };
 
-// Run migration if executed directly
-if (require.main === module) {
-  runMigration();
-}
-
+if (require.main === module) runMigration();
 module.exports = runMigration;

@@ -6,16 +6,17 @@ const config = {
   port: parseInt(process.env.PORT, 10) || 3000,
   apiVersion: process.env.API_VERSION || 'v1',
 
-  // Database
+  // Database  (PostgreSQL)
   database: {
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT, 10) || 3306,
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    name: process.env.DB_NAME || 'mk_kirrana_stores',
+    host:            process.env.DB_HOST     || 'localhost',
+    port:            parseInt(process.env.DB_PORT, 10) || 5432,
+    user:            process.env.DB_USER     || 'postgres',
+    password:        process.env.DB_PASSWORD || '',
+    name:            process.env.DB_NAME     || 'mk_kirana_stores',
     connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT, 10) || 10,
-    waitForConnections: true,
-    queueLimit: 0,
+    ssl: process.env.DB_SSL === 'true'
+      ? { rejectUnauthorized: false }
+      : false,
   },
 
   // JWT
@@ -75,6 +76,23 @@ const config = {
     default: 18,
   },
 
+  // Fast2SMS (OTP/SMS)
+  fast2sms: {
+    apiKey:   process.env.FAST2SMS_API_KEY   || '',
+    senderId: process.env.FAST2SMS_SENDER_ID  || 'MKKIRA',
+    route:    process.env.FAST2SMS_ROUTE      || 'otp',
+  },
+
+  // WhatsApp (e.g. 360dialog / Twilio)
+  whatsapp: {
+    provider:    process.env.WA_PROVIDER     || 'twilio', // 'twilio' | '360dialog'
+    accountSid:  process.env.TWILIO_ACCOUNT_SID  || '',
+    authToken:   process.env.TWILIO_AUTH_TOKEN    || '',
+    fromNumber:  process.env.WA_FROM_NUMBER       || '',  // whatsapp:+14155238886
+    apiKey:      process.env.WA_360_API_KEY        || '',
+    namespace:   process.env.WA_360_NAMESPACE      || '',
+  },
+
   // CORS
   cors: {
     origin: process.env.CORS_ORIGIN || '*',
@@ -91,6 +109,7 @@ if (config.env === 'production') {
     'SMTP_USER',
     'SMTP_PASSWORD',
     'STORE_GST_NUMBER',
+    'FAST2SMS_API_KEY',
   ];
 
   requiredEnvVars.forEach((envVar) => {

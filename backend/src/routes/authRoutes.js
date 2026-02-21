@@ -41,6 +41,13 @@ router.post('/register', validateRegister, authController.register);
 router.post('/admin/login', loginLimiter, validateAdminLogin, authController.adminLogin);
 
 /**
+ * @route   POST /api/v1/auth/admin/verify-otp
+ * @desc    Verify OTP for admin 2FA login
+ * @access  Public
+ */
+router.post('/admin/verify-otp', loginLimiter, authController.adminVerifyOTP);
+
+/**
  * @route   POST /api/v1/auth/refresh
  * @desc    Refresh access token
  * @access  Public

@@ -1,55 +1,59 @@
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 const config = require('../config');
 const logger = require('../utils/logger');
 
 // Create connection pool
-const pool = mysql.createPool({
-  host: config.database.host,
-  port: config.database.port,
-  user: config.database.user,
+const pool = new Pool({
+  host:     config.database.host,
+  port:     config.database.port,
+  user:     config.database.user,
   password: config.database.password,
   database: config.database.name,
-  waitForConnections: config.database.waitForConnections,
-  connectionLimit: config.database.connectionLimit,
-  queueLimit: config.database.queueLimit,
-  enableKeepAlive: true,
-  keepAliveInitialDelay: 0,
+  max:      config.database.connectionLimit,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+  ssl: config.database.ssl,
+});
+
+pool.on('error', (err) => {
+  logger.error('Unexpected PG pool error', err);
 });
 
 // Test connection
 const testConnection = async () => {
+  const client = await pool.connect();
   try {
-    const connection = await pool.getConnection();
+    await client.query('SELECT 1');
     logger.info('Database connection established successfully');
-    connection.release();
     return true;
   } catch (error) {
     logger.error('Database connection failed:', error.message);
     throw error;
+  } finally {
+    client.release();
   }
 };
 
 // Transaction helper
 const withTransaction = async (callback) => {
-  const connection = await pool.getConnection();
-  await connection.beginTransaction();
-
+  const client = await pool.connect();
   try {
-    const result = await callback(connection);
-    await connection.commit();
+    await client.query('BEGIN');
+    const result = await callback(client);
+    await client.query('COMMIT');
     return result;
   } catch (error) {
-    await connection.rollback();
+    await client.query('ROLLBACK');
     throw error;
   } finally {
-    connection.release();
+    client.release();
   }
 };
 
-// Query helper with automatic connection release
+// Query helper — returns rows array
 const query = async (sql, params = []) => {
-  const [rows] = await pool.execute(sql, params);
-  return rows;
+  const result = await pool.query(sql, params);
+  return result.rows;
 };
 
 // Get single row
@@ -58,16 +62,17 @@ const queryOne = async (sql, params = []) => {
   return rows[0] || null;
 };
 
-// Insert and return inserted ID
+// Insert with RETURNING id
 const insert = async (sql, params = []) => {
-  const [result] = await pool.execute(sql, params);
-  return result.insertId;
+  // Caller must include RETURNING id in the SQL
+  const result = await pool.query(sql, params);
+  return result.rows[0]?.id ?? result.rows[0];
 };
 
-// Update/Delete and return affected rows
+// Update/Delete — returns rowCount
 const modify = async (sql, params = []) => {
-  const [result] = await pool.execute(sql, params);
-  return result.affectedRows;
+  const result = await pool.query(sql, params);
+  return result.rowCount;
 };
 
 module.exports = {

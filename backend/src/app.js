@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const path = require('path');
+const xssClean = require('xss-clean');
 
 const config = require('./config');
 const routes = require('./routes');
@@ -14,6 +15,16 @@ const app = express();
 
 // Trust proxy (for rate limiting behind reverse proxy)
 app.set('trust proxy', 1);
+
+// HTTPS-only enforcement (production)
+if (config.env === 'production') {
+  app.use((req, res, next) => {
+    if (req.headers['x-forwarded-proto'] && req.headers['x-forwarded-proto'] !== 'https') {
+      return res.redirect(301, `https://${req.headers.host}${req.url}`);
+    }
+    next();
+  });
+}
 
 // Security middleware
 app.use(helmet({
@@ -40,6 +51,9 @@ app.use(cors({
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Sanitize request data against XSS
+app.use(xssClean());
 
 // Request logging
 if (config.env === 'development') {

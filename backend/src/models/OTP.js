@@ -2,40 +2,40 @@ const { query, queryOne, insert, modify } = require('../config/database');
 
 class OTP {
   /**
-   * Create new OTP
+   * Create (or replace) OTP for a phone+purpose
    */
   static async create(phone, otpHash, purpose = 'login', expiryMinutes = 5) {
-    // First, invalidate any existing OTPs for this phone
+    // Invalidate existing OTPs for same phone+purpose
     await modify(
-      'DELETE FROM otps WHERE phone = ? AND purpose = ?',
+      'DELETE FROM otps WHERE phone = $1 AND purpose = $2',
       [phone, purpose]
     );
 
-    // Create new OTP
     const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
     return insert(
-      'INSERT INTO otps (phone, otp_hash, purpose, expires_at) VALUES (?, ?, ?, ?)',
+      'INSERT INTO otps (phone, otp_hash, purpose, expires_at) VALUES ($1, $2, $3, $4) RETURNING id',
       [phone, otpHash, purpose, expiresAt]
     );
   }
 
   /**
-   * Find valid OTP by phone
+   * Find a valid (non-expired, not verified) OTP
    */
   static async findValid(phone, purpose = 'login') {
     return queryOne(
-      `SELECT * FROM otps 
-       WHERE phone = ? AND purpose = ? AND expires_at > NOW() AND is_verified = FALSE`,
+      `SELECT * FROM otps
+       WHERE phone = $1 AND purpose = $2 AND expires_at > NOW() AND is_verified = FALSE
+       ORDER BY created_at DESC LIMIT 1`,
       [phone, purpose]
     );
   }
 
   /**
-   * Increment attempts
+   * Increment verification attempts
    */
   static async incrementAttempts(id) {
     return modify(
-      'UPDATE otps SET attempts = attempts + 1 WHERE id = ?',
+      'UPDATE otps SET attempts = attempts + 1 WHERE id = $1',
       [id]
     );
   }
@@ -45,36 +45,37 @@ class OTP {
    */
   static async markVerified(id) {
     return modify(
-      'UPDATE otps SET is_verified = TRUE WHERE id = ?',
+      'UPDATE otps SET is_verified = TRUE WHERE id = $1',
       [id]
     );
   }
 
   /**
-   * Delete OTP
+   * Delete by ID
    */
   static async delete(id) {
-    return modify('DELETE FROM otps WHERE id = ?', [id]);
+    return modify('DELETE FROM otps WHERE id = $1', [id]);
   }
 
   /**
-   * Delete expired OTPs
+   * Delete expired OTPs (maintenance)
    */
   static async deleteExpired() {
     return modify('DELETE FROM otps WHERE expires_at < NOW()');
   }
 
   /**
-   * Check rate limit
+   * Count OTPs sent for a phone in the last N seconds (resend cooldown)
    */
-  static async checkRateLimit(phone, windowMinutes = 1) {
+  static async countRecent(phone, windowSeconds = 30) {
     const result = await queryOne(
-      `SELECT COUNT(*) as count FROM otps 
-       WHERE phone = ? AND created_at > DATE_SUB(NOW(), INTERVAL ? MINUTE)`,
-      [phone, windowMinutes]
+      `SELECT COUNT(*) AS count FROM otps
+       WHERE phone = $1 AND created_at > NOW() - ($2 * INTERVAL '1 second')`,
+      [phone, windowSeconds]
     );
-    return result.count;
+    return parseInt(result.count, 10);
   }
 }
 
 module.exports = OTP;
+

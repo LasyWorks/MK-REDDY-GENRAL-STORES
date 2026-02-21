@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const os = require('os');
+const { pool } = require('../config/database');
 
 const authRoutes = require('./authRoutes');
 const userRoutes = require('./userRoutes');
@@ -10,13 +12,46 @@ const orderRoutes = require('./orderRoutes');
 const invoiceRoutes = require('./invoiceRoutes');
 const adminRoutes = require('./adminRoutes');
 
-// Health check endpoint
-router.get('/health', (req, res) => {
-  res.json({
-    success: true,
-    message: 'MK Kirana Stores API is running',
+// Health check endpoint — comprehensive
+router.get('/health', async (req, res) => {
+  const startAt = process.hrtime.bigint();
+  const checks = { database: 'unknown' };
+
+  // DB ping
+  try {
+    const client = await pool.connect();
+    await client.query('SELECT 1');
+    client.release();
+    checks.database = 'ok';
+  } catch {
+    checks.database = 'error';
+  }
+
+  const latencyMs = Number(process.hrtime.bigint() - startAt) / 1e6;
+  const allOk = Object.values(checks).every(v => v === 'ok');
+
+  res.status(allOk ? 200 : 503).json({
+    success: allOk,
+    status: allOk ? 'healthy' : 'degraded',
     timestamp: new Date().toISOString(),
-    version: '1.0.0',
+    version: '2.0.0',
+    uptime: {
+      processSeconds: Math.floor(process.uptime()),
+      systemSeconds: Math.floor(os.uptime()),
+    },
+    latencyMs: parseFloat(latencyMs.toFixed(2)),
+    checks,
+    memory: {
+      heapUsedMB: (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(1),
+      heapTotalMB: (process.memoryUsage().heapTotal / 1024 / 1024).toFixed(1),
+      rssMB: (process.memoryUsage().rss / 1024 / 1024).toFixed(1),
+    },
+    database: {
+      totalConnections: pool.totalCount,
+      idleConnections: pool.idleCount,
+      waitingClients: pool.waitingCount,
+    },
+    node: process.version,
   });
 });
 

@@ -7,6 +7,8 @@ const OrderService = require('./orderService');
 const InvoiceService = require('./invoiceService');
 const EmailService = require('./emailService');
 const AdminService = require('./adminService');
+const SmsService = require('./smsService');
+const NotificationService = require('./notificationService');
 
 module.exports = {
   AuthService,
@@ -18,4 +20,6 @@ module.exports = {
   InvoiceService,
   EmailService,
   AdminService,
+  SmsService,
+  NotificationService,
 };

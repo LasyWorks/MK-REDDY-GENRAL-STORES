@@ -1,131 +1,108 @@
 const { query, queryOne, insert, modify } = require('../config/database');
-const { getLocalizedField } = require('../utils/helpers');
+
+// SQL fragment: join translations with English fallback
+const TRANS_JOIN = `
+  LEFT JOIN category_translations t_req ON c.id = t_req.category_id AND t_req.lang_code = $1
+  LEFT JOIN category_translations t_en  ON c.id = t_en.category_id  AND t_en.lang_code  = 'en'
+`;
+const TRANS_COLS = `
+  COALESCE(t_req.name,        t_en.name)        AS name,
+  COALESCE(t_req.description, t_en.description) AS description,
+  t_en.name        AS name_en,
+  t_en.description AS description_en
+`;
 
 class Category {
-  /**
-   * Find category by ID
-   */
   static async findById(id, lang = 'en') {
-    const category = await queryOne('SELECT * FROM categories WHERE id = ?', [id]);
-    if (category) {
-      return this.formatCategory(category, lang);
-    }
-    return null;
+    const row = await queryOne(
+      `SELECT c.*, ${TRANS_COLS} FROM categories c ${TRANS_JOIN} WHERE c.id = $2`,
+      [lang, id]
+    );
+    return row || null;
   }
 
-  /**
-   * Get all categories
-   */
   static async findAll(options = {}) {
     const { page = 1, limit = 50, isActive = null, search = null, lang = 'en' } = options;
     const offset = (page - 1) * limit;
 
-    let whereConditions = [];
-    let params = [];
+    const conds  = [];
+    const params = [lang];   // $1 = lang
+    let   idx    = 2;
 
-    if (isActive !== null && isActive !== undefined) {
-      whereConditions.push('is_active = ?');
-      params.push(isActive ? 1 : 0);
+    if (isActive !== null) { conds.push(`c.is_active = $${idx++}`);         params.push(isActive ? true : false); }
+    if (search)            { conds.push(`t_en.name ILIKE $${idx++}`);       params.push(`%${search}%`); }
+
+    const where = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
+
+    const countRow = await queryOne(
+      `SELECT COUNT(*) AS total FROM categories c ${TRANS_JOIN} ${where}`,
+      params
+    );
+
+    const listParams = [...params, limit, offset];
+    const rows = await query(
+      `SELECT c.*, ${TRANS_COLS}
+       FROM categories c ${TRANS_JOIN}
+       ${where}
+       ORDER BY c.display_order ASC, t_en.name ASC
+       LIMIT $${idx++} OFFSET $${idx++}`,
+      listParams
+    );
+
+    return { categories: rows, total: parseInt(countRow.total, 10) };
+  }
+
+  static async create(data) {
+    const { name_en, name_te, description_en, description_te, image_url, display_order, is_active } = data;
+    const catId = await insert(
+      `INSERT INTO categories (image_url, display_order, is_active)
+       VALUES ($1, $2, $3) RETURNING id`,
+      [image_url || null, display_order || 0, is_active !== false]
+    );
+    await modify(
+      `INSERT INTO category_translations (category_id, lang_code, name, description) VALUES ($1, 'en', $2, $3)`,
+      [catId, name_en, description_en || null]
+    );
+    if (name_te) {
+      await modify(
+        `INSERT INTO category_translations (category_id, lang_code, name, description) VALUES ($1, 'te', $2, $3)`,
+        [catId, name_te, description_te || null]
+      );
     }
+    return catId;
+  }
 
-    if (search) {
-      whereConditions.push('(name_en LIKE ? OR name_te LIKE ?)');
-      params.push(`%${search}%`, `%${search}%`);
+  static async update(id, data) {
+    // Update base columns
+    const baseAllowed = ['image_url', 'display_order', 'is_active'];
+    const fields = []; const vals = []; let idx = 1;
+    for (const [k, v] of Object.entries(data)) {
+      if (baseAllowed.includes(k) && v !== undefined) { fields.push(`${k} = $${idx++}`); vals.push(v); }
     }
+    if (fields.length) { vals.push(id); await modify(`UPDATE categories SET ${fields.join(', ')} WHERE id = $${idx}`, vals); }
 
-    const whereClause = whereConditions.length > 0 
-      ? 'WHERE ' + whereConditions.join(' AND ')
-      : '';
-
-    // Get total count
-    const countSql = `SELECT COUNT(*) as total FROM categories ${whereClause}`;
-    const countResult = await queryOne(countSql, params);
-
-    // Get categories with pagination
-    const selectSql = `SELECT * FROM categories ${whereClause}
-       ORDER BY display_order ASC, name_en ASC
-       LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}`;
-    const categories = await query(selectSql, params);
-
-    return {
-      categories: categories.map(cat => this.formatCategory(cat, lang)),
-      total: countResult ? countResult.total : 0,
+    // Upsert translations
+    const upsertTrans = async (lang, name, desc) => {
+      if (!name) return;
+      await modify(
+        `INSERT INTO category_translations (category_id, lang_code, name, description)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (category_id, lang_code) DO UPDATE SET name = EXCLUDED.name, description = EXCLUDED.description`,
+        [id, lang, name, desc || null]
+      );
     };
+    await upsertTrans('en', data.name_en, data.description_en);
+    await upsertTrans('te', data.name_te, data.description_te);
+    return this.findById(id);
   }
 
-  /**
-   * Create category
-   */
-  static async create(categoryData) {
-    const { name_en, name_te, description_en, description_te, image_url, display_order, is_active } = categoryData;
-    return insert(
-      `INSERT INTO categories (name_en, name_te, description_en, description_te, image_url, display_order, is_active) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [name_en, name_te || null, description_en || null, description_te || null, image_url || null, display_order || 0, is_active !== false]
-    );
-  }
-
-  /**
-   * Update category
-   */
-  static async update(id, categoryData) {
-    const fields = [];
-    const values = [];
-
-    const allowedFields = ['name_en', 'name_te', 'description_en', 'description_te', 'image_url', 'display_order', 'is_active'];
-
-    for (const [key, value] of Object.entries(categoryData)) {
-      if (allowedFields.includes(key) && value !== undefined) {
-        fields.push(`${key} = ?`);
-        values.push(value);
-      }
-    }
-
-    if (fields.length === 0) return 0;
-
-    values.push(id);
-    return modify(
-      `UPDATE categories SET ${fields.join(', ')} WHERE id = ?`,
-      values
-    );
-  }
-
-  /**
-   * Delete category
-   */
   static async delete(id) {
-    return modify('DELETE FROM categories WHERE id = ?', [id]);
+    return modify('DELETE FROM categories WHERE id = $1', [id]);
   }
 
-  /**
-   * Check if category has products
-   */
   static async hasProducts(id) {
-    const result = await queryOne(
-      'SELECT COUNT(*) as count FROM products WHERE category_id = ?',
-      [id]
-    );
-    return result.count > 0;
-  }
-
-  /**
-   * Format category with localized fields
-   */
-  static formatCategory(category, lang = 'en') {
-    return {
-      id: category.id,
-      name: getLocalizedField(category, 'name', lang),
-      name_en: category.name_en,
-      name_te: category.name_te,
-      description: getLocalizedField(category, 'description', lang),
-      description_en: category.description_en,
-      description_te: category.description_te,
-      image_url: category.image_url,
-      display_order: category.display_order,
-      is_active: category.is_active,
-      created_at: category.created_at,
-      updated_at: category.updated_at,
-    };
+    const r = await queryOne('SELECT COUNT(*) AS count FROM products WHERE category_id = $1', [id]);
+    return parseInt(r.count, 10) > 0;
   }
 }
 

@@ -3,35 +3,36 @@ const bcrypt = require('bcryptjs');
 const config = require('../config');
 const { User, OTP, RefreshToken } = require('../models');
 const { generateOTP, hashOTP } = require('../utils/helpers');
+const SmsService = require('./smsService');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
 
+const OTP_RESEND_COOLDOWN_SECS = 30; // seconds between resend requests
+
 class AuthService {
-  /**
-   * Send OTP to phone number
-   */
   static async sendOTP(phone, purpose = 'login') {
-    // Generate OTP
+    // ── Resend cooldown: max 1 OTP per 30 seconds ──────────────
+    const recentCount = await OTP.countRecent(phone, OTP_RESEND_COOLDOWN_SECS);
+    if (recentCount > 0) {
+      throw ApiError.tooManyRequests(
+        `Please wait ${OTP_RESEND_COOLDOWN_SECS} seconds before requesting a new OTP.`
+      );
+    }
+
+    // ── Generate & store hashed OTP ────────────────────────────
     const otp = generateOTP(6);
     const hashedOTP = hashOTP(otp);
-
-    // Store OTP
     await OTP.create(phone, hashedOTP, purpose, config.otp.expiryMinutes);
 
-    // In production, send OTP via SMS
-    // For development, log the OTP
-    if (config.env === 'development') {
-      logger.info(`OTP for ${phone}: ${otp}`);
-    } else {
-      // TODO: Integrate SMS service
-      // await SMSService.send(phone, `Your OTP is: ${otp}`);
-      logger.info(`OTP sent to ${phone}`);
+    // ── Send via Fast2SMS ──────────────────────────────────────
+    const smsResult = await SmsService.sendOtp(phone, otp);
+    if (config.env !== 'development' && !smsResult.success) {
+      logger.warn(`OTP SMS delivery failure for ${phone}: ${smsResult.error}`);
     }
 
     return {
       message: 'OTP sent successfully',
-      expiresIn: config.otp.expiryMinutes * 60, // seconds
-      // Only include OTP in development
+      expiresIn: config.otp.expiryMinutes * 60,
       ...(config.env === 'development' && { otp }),
     };
   }
