@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import {
-  MapPin,
   ChevronDown,
   ClipboardList,
   User,
@@ -11,9 +10,10 @@ import {
 } from "lucide-react";
 import Searchbar from "../common/Searchbar";
 import { useState, useEffect, useRef } from "react";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function Navbar() {
-  const [selectedLanguage, setSelectedLanguage] = useState("en");
+  const { lang, setLang } = useLanguage();
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const languageMenuRef = useRef(null);
 
@@ -22,11 +22,8 @@ export default function Navbar() {
     { code: "te", label: "Telugu", nativeLabel: "తెలుగు" },
   ];
 
-  const currentLanguage = languages.find(
-    (lang) => lang.code === selectedLanguage,
-  );
+  const currentLanguage = languages.find((l) => l.code === lang);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -36,14 +33,10 @@ export default function Navbar() {
         setShowLanguageMenu(false);
       }
     };
-
     if (showLanguageMenu) {
       document.addEventListener("mousedown", handleClickOutside);
     }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showLanguageMenu]);
 
   return (
@@ -92,24 +85,22 @@ export default function Navbar() {
               {/* Language Dropdown */}
               {showLanguageMenu && (
                 <div className="absolute top-full right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50">
-                  {languages.map((lang) => (
+                  {languages.map((l) => (
                     <button
-                      key={lang.code}
+                      key={l.code}
                       onClick={() => {
-                        setSelectedLanguage(lang.code);
+                        setLang(l.code);
                         setShowLanguageMenu(false);
                       }}
                       className={`w-full px-4 py-2.5 text-left hover:bg-gray-50 transition-colors ${
-                        selectedLanguage === lang.code
+                        lang === l.code
                           ? "bg-blue-50 text-blue-600 font-medium"
                           : "text-gray-700"
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-sm">{lang.label}</span>
-                        <span className="text-xs text-gray-500">
-                          {lang.nativeLabel}
-                        </span>
+                        <span className="text-sm">{l.label}</span>
+                        <span className="text-xs text-gray-500">{l.nativeLabel}</span>
                       </div>
                     </button>
                   ))}

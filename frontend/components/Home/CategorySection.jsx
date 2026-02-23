@@ -1,36 +1,42 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import categoryService from "../../services/categoryService";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import ImageWithFallback from "../common/ImageWithFallback";
+import { useLanguage } from "@/context/LanguageContext";
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
 
 export default function CategorySection() {
+  const { lang } = useLanguage();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await categoryService.getAll({ limit: 100 });
-      // Show only main categories (no parent_id)
-      const mainCategories = (response.data || []).filter(
-        (cat) => !cat.parent_id,
+      const res = await fetch(
+        `${API_URL}/categories?limit=100&is_active=true&lang=${lang}`,
+        { cache: "no-store" },
       );
-      setCategories(mainCategories);
+      if (!res.ok) throw new Error("Failed");
+      const json = await res.json();
+      const all = json.data || [];
+      setCategories(all.filter((c) => !c.parent_id));
       setError(null);
-    } catch (err) {
-      console.error("Failed to fetch categories:", err);
+    } catch {
       setError("Failed to load categories");
     } finally {
       setLoading(false);
     }
-  };
+  }, [lang]);
+
+  // Re-fetch whenever language changes
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   return (
     <section className="py-10 bg-white">

@@ -4,69 +4,117 @@ import { useState, useEffect, useCallback, memo } from "react";
 import Link from "next/link";
 import SubcategorySidebar from "./SubcategorySidebar";
 import ProductGrid from "./ProductGrid";
+import { useLanguage } from "@/context/LanguageContext";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
 
-// Module-level cache — persists for the browser session.
-// Switching back to a previously visited subcategory returns from memory (~0ms).
+// Cache keyed by "categoryId-lang" so EN and TE are stored independently
 const productCache = new Map();
 
-async function fetchProducts(categoryId) {
-  if (productCache.has(categoryId)) {
-    return productCache.get(categoryId);
-  }
+async function fetchProducts(categoryId, lang) {
+  const key = `${categoryId}-${lang}`;
+  if (productCache.has(key)) return productCache.get(key);
   const res = await fetch(
-    `${API_URL}/products?category_id=${categoryId}&limit=50&is_active=true`,
+    `${API_URL}/products?category_id=${categoryId}&limit=50&is_active=true&lang=${lang}`,
     { cache: "no-store" },
   );
   if (!res.ok) return [];
   const json = await res.json();
   const data = json.data || [];
-  productCache.set(categoryId, data);
+  productCache.set(key, data);
   return data;
 }
 
-/**
- * CategoryClientView
- * Receives server-pre-fetched mainCategory + subcategories as props.
- * Only product data is fetched client-side, on demand (lazy).
- */
+// Cache for localised category lists
+const categoryCache = new Map();
+
+async function fetchCategoriesLang(lang) {
+  if (categoryCache.has(lang)) return categoryCache.get(lang);
+  const res = await fetch(
+    `${API_URL}/categories?limit=200&is_active=true&lang=${lang}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) return null;
+  const json = await res.json();
+  const data = json.data || [];
+  categoryCache.set(lang, data);
+  return data;
+}
+
 function CategoryClientView({
   mainCategory,
   subcategories,
   initialActiveSubcategory,
 }) {
+  const { lang } = useLanguage();
+
+  // Display versions of categories — start with server-fetched (en),
+  // swap to localised data when lang changes
+  const [displayMain, setDisplayMain] = useState(mainCategory);
+  const [displaySubs, setDisplaySubs] = useState(subcategories);
   const [activeSubcategory, setActiveSubcategory] = useState(
     initialActiveSubcategory || subcategories[0] || null,
   );
+
   const [products, setProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(true);
 
-  const loadProducts = useCallback(async (categoryId) => {
-    setProductsLoading(true);
-    try {
-      const data = await fetchProducts(categoryId);
-      setProducts(data);
-    } catch (err) {
-      console.error("Failed to load products:", err);
-      setProducts([]);
-    } finally {
-      setProductsLoading(false);
-    }
-  }, []);
+  const loadProducts = useCallback(
+    async (categoryId) => {
+      setProductsLoading(true);
+      try {
+        const data = await fetchProducts(categoryId, lang);
+        setProducts(data);
+      } catch (err) {
+        console.error("Failed to load products:", err);
+        setProducts([]);
+      } finally {
+        setProductsLoading(false);
+      }
+    },
+    [lang],
+  );
 
-  // Lazy-load products only for the active subcategory on mount
+  // Re-localise category names + reload products when lang changes
+  useEffect(() => {
+    let cancelled = false;
+    async function localise() {
+      // For English the server props are already correct
+      if (lang === "en") {
+        setDisplayMain(mainCategory);
+        setDisplaySubs(subcategories);
+        setActiveSubcategory((prev) => {
+          const match = subcategories.find((s) => s.id === prev?.id);
+          return match || subcategories[0] || null;
+        });
+      } else {
+        const all = await fetchCategoriesLang(lang);
+        if (cancelled || !all) return;
+        const newMain = all.find((c) => c.id === mainCategory.id) || mainCategory;
+        const newSubs = all.filter((c) => c.parent_id === mainCategory.id);
+        setDisplayMain(newMain);
+        setDisplaySubs(newSubs);
+        setActiveSubcategory((prev) => {
+          const match = newSubs.find((s) => s.id === prev?.id);
+          return match || newSubs[0] || null;
+        });
+      }
+    }
+    localise();
+    return () => { cancelled = true; };
+  }, [lang, mainCategory, subcategories]);
+
+  // Reload products when active subcategory OR lang changes
   useEffect(() => {
     const targetId = activeSubcategory?.id || mainCategory?.id;
     if (targetId) loadProducts(targetId);
-  }, []); // runs once on mount — intentional, not on every re-render
+  }, [activeSubcategory?.id, lang]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubcategoryClick = useCallback(
     (subcat) => {
       setActiveSubcategory(subcat);
       loadProducts(subcat.id);
-      // Shallow URL update — no page reload
       window.history.pushState(null, "", `/categories/${subcat.id}`);
     },
     [loadProducts],
@@ -81,10 +129,8 @@ function CategoryClientView({
             Home
           </Link>
           <span>/</span>
-          <span className="text-gray-900 font-medium">
-            {mainCategory?.name}
-          </span>
-          {activeSubcategory && activeSubcategory.id !== mainCategory?.id && (
+          <span className="text-gray-900 font-medium">{displayMain?.name}</span>
+          {activeSubcategory && activeSubcategory.id !== displayMain?.id && (
             <>
               <span>/</span>
               <span className="text-gray-900 font-medium">
@@ -95,21 +141,18 @@ function CategoryClientView({
         </nav>
 
         <div className="flex flex-col md:flex-row gap-6">
-          {/* Sidebar — rendered immediately from server-fetched data, no loading needed */}
           <SubcategorySidebar
-            mainCategory={mainCategory}
-            subcategories={subcategories}
+            mainCategory={displayMain}
+            subcategories={displaySubs}
             activeSubcategory={activeSubcategory}
             onSubcategoryClick={handleSubcategoryClick}
           />
-
-          {/* Product Grid — lazy-loaded client-side on demand */}
           <div className="flex-1">
             <ProductGrid
               products={products}
               loading={productsLoading}
               activeSubcategoryName={activeSubcategory?.name}
-              mainCategoryName={mainCategory?.name}
+              mainCategoryName={displayMain?.name}
             />
           </div>
         </div>
