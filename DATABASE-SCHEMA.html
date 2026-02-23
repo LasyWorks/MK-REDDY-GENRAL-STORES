@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Database Schema - MK Reddy General Stores</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 40px 20px;
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        text-align: center;
+        color: white;
+        margin-bottom: 10px;
+        font-size: 2.5em;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .subtitle {
+        text-align: center;
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 40px;
+        font-size: 1.1em;
+      }
+
+      .schema-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 20px;
+        margin-bottom: 40px;
+      }
+
+      .table-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+        transition:
+          transform 0.3s ease,
+          box-shadow 0.3s ease;
+      }
+
+      .table-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+      }
+
+      .table-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-bottom: 4px solid #5a67d8;
+      }
+
+      .table-name {
+        font-size: 1.5em;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+
+      .table-desc {
+        font-size: 0.9em;
+        opacity: 0.9;
+      }
+
+      .table-body {
+        padding: 0;
+      }
+
+      .field-row {
+        padding: 12px 20px;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .field-row:last-child {
+        border-bottom: none;
+      }
+
+      .field-name {
+        font-weight: 600;
+        color: #333;
+        font-family: "Courier New", monospace;
+        flex: 1;
+      }
+
+      .field-type {
+        background: #f0f0f0;
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 0.85em;
+        color: #666;
+        font-family: "Courier New", monospace;
+        margin-left: 10px;
+      }
+
+      .field-attr {
+        font-size: 0.75em;
+        color: #999;
+        margin-left: 5px;
+      }
+
+      .relationship {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 15px 20px;
+        margin: 20px;
+        border-radius: 4px;
+      }
+
+      .relationship strong {
+        color: #856404;
+      }
+
+      .relationships-section {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        margin-bottom: 40px;
+      }
+
+      .relationships-section h2 {
+        color: #667eea;
+        margin-bottom: 20px;
+        font-size: 1.8em;
+      }
+
+      .relationship-diagram {
+        background: #f9f9f9;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        border-left: 4px solid #667eea;
+      }
+
+      .relationship-diagram strong {
+        color: #764ba2;
+      }
+
+      .translation-badge {
+        background: #dbeafe;
+        color: #0369a1;
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-size: 0.75em;
+        margin-left: 5px;
+      }
+
+      .primary-key {
+        background: #dcfce7;
+        color: #166534;
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-size: 0.75em;
+      }
+
+      .foreign-key {
+        background: #fce7f3;
+        color: #be185d;
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-size: 0.75em;
+      }
+
+      .flow-diagram {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        margin-bottom: 40px;
+      }
+
+      .flow-diagram h2 {
+        color: #667eea;
+        margin-bottom: 20px;
+        font-size: 1.8em;
+      }
+
+      .flow-step {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+      }
+
+      .flow-step::before {
+        content: "";
+        display: inline-block;
+        width: 30px;
+        height: 30px;
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        margin-right: 15px;
+        flex-shrink: 0;
+        text-align: center;
+        line-height: 30px;
+      }
+
+      .translation-table {
+        background: #f0f4ff;
+        border-left: 4px solid #667eea;
+        padding: 15px;
+        border-radius: 4px;
+        margin-top: 10px;
+        font-size: 0.9em;
+      }
+
+      .footer {
+        text-align: center;
+        color: white;
+        margin-top: 40px;
+        font-size: 0.9em;
+      }
+
+      @media (max-width: 768px) {
+        .schema-grid {
+          grid-template-columns: 1fr;
+        }
+
+        h1 {
+          font-size: 2em;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🏪 Database Schema</h1>
+      <p class="subtitle">MK-REDDY General Stores - Complete Data Structure</p>
+
+      <!-- Main Tables Grid -->
+      <div class="schema-grid">
+        <!-- USERS Table -->
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-name">👤 Users</div>
+            <div class="table-desc">Customer & Admin accounts</div>
+          </div>
+          <div class="table-body">
+            <div class="field-row">
+              <div class="field-name">
+                id<span class="primary-key">PK</span>
+              </div>
+              <div class="field-type">INTEGER</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">name</div>
+              <div class="field-type">VARCHAR</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">phone</div>
+              <div class="field-type">VARCHAR</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">email</div>
+              <div class="field-type">VARCHAR</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">user_type</div>
+              <div class="field-type">VARCHAR</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">
+                role_id<span class="foreign-key">FK</span>
+              </div>
+              <div class="field-type">INTEGER</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">address</div>
+              <div class="field-type">TEXT</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">is_active</div>
+              <div class="field-type">BOOLEAN</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">is_blocked</div>
+              <div class="field-type">BOOLEAN</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">last_login_at</div>
+              <div class="field-type">TIMESTAMP</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">created_at</div>
+              <div class="field-type">TIMESTAMP</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CATEGORIES Table -->
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-name">📁 Categories</div>
+            <div class="table-desc">
+              Product categories
+              <span class="translation-badge">Multi-lingual</span>
+            </div>
+          </div>
+          <div class="table-body">
+            <div class="field-row">
+              <div class="field-name">
+                id<span class="primary-key">PK</span>
+              </div>
+              <div class="field-type">INTEGER</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">image_url</div>
+              <div class="field-type">VARCHAR</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">display_order</div>
+              <div class="field-type">INTEGER</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">is_active</div>
+              <div class="field-type">BOOLEAN</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">created_at</div>
+              <div class="field-type">TIMESTAMP</div>
+            </div>
+            <div class="translation-table">
+              <strong>📝 category_translations:</strong><br />
+              • lang_code (en, te, hi)<br />
+              • name<br />
+              • description
+            </div>
+          </div>
+        </div>
+
+        <!-- PRODUCTS Table -->
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-name">🛍️ Products</div>
+            <div class="table-desc">
+              Product inventory
+              <span class="translation-badge">Multi-lingual</span>
+            </div>
+          </div>
+          <div class="table-body">
+            <div class="field-row">
+              <div class="field-name">
+                id<span class="primary-key">PK</span>
+              </div>
+              <div class="field-type">INTEGER</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">
+                category_id<span class="foreign-key">FK</span>
+              </div>
+              <div class="field-type">INTEGER</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">sku</div>
+              <div class="field-type">VARCHAR</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">price</div>
+              <div class="field-type">DECIMAL</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">wholesale_price</div>
+              <div class="field-type">DECIMAL</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">gst_percentage</div>
+              <div class="field-type">DECIMAL</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">stock_quantity</div>
+              <div class="field-type">INTEGER</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">unit_type</div>
+              <div class="field-type">VARCHAR</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">is_active</div>
+              <div class="field-type">BOOLEAN</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">is_featured</div>
+              <div class="field-type">BOOLEAN</div>
+            </div>
+            <div class="translation-table">
+              <strong>📝 product_translations:</strong><br />
+              • lang_code (en, te, hi)<br />
+              • name<br />
+              • description
+            </div>
+          </div>
+        </div>
+
+        <!-- CARTS Table -->
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-name">🛒 Shopping Cart</div>
+            <div class="table-desc">User shopping carts & items</div>
+          </div>
+          <div class="table-body">
+            <div class="field-row">
+              <div class="field-name">
+                id<span class="primary-key">PK</span>
+              </div>
+              <div class="field-type">INTEGER</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">
+                user_id<span class="foreign-key">FK</span>
+              </div>
+              <div class="field-type">INTEGER</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">created_at</div>
+              <div class="field-type">TIMESTAMP</div>
+            </div>
+            <div class="translation-table">
+              <strong>📝 cart_items (Line Items):</strong><br />
+              • id<br />
+              • cart_id (FK)<br />
+              • product_id (FK)<br />
+              • quantity<br />
+              • unit_price<br />
+              • created_at
+            </div>
+          </div>
+        </div>
+
+        <!-- ORDERS Table -->
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-name">📦 Orders</div>
+            <div class="table-desc">Customer orders & order items</div>
+          </div>
+          <div class="table-body">
+            <div class="field-row">
+              <div class="field-name">
+                id<span class="primary-key">PK</span>
+              </div>
+              <div class="field-type">INTEGER</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">
+                user_id<span class="foreign-key">FK</span>
+              </div>
+              <div class="field-type">INTEGER</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">order_number</div>
+              <div class="field-type">VARCHAR</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">status</div>
+              <div class="field-type">VARCHAR</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">subtotal</div>
+              <div class="field-type">DECIMAL</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">total_gst</div>
+              <div class="field-type">DECIMAL</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">total_amount</div>
+              <div class="field-type">DECIMAL</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">notes</div>
+              <div class="field-type">TEXT</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">created_at</div>
+              <div class="field-type">TIMESTAMP</div>
+            </div>
+            <div class="translation-table">
+              <strong>📝 order_items (Line Items):</strong><br />
+              • id, order_id (FK)<br />
+              • product_id (FK)<br />
+              • quantity, unit_type<br />
+              • unit_price, gst_percentage<br />
+              • subtotal, total
+            </div>
+          </div>
+        </div>
+
+        <!-- INVOICES Table -->
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-name">📄 Invoices</div>
+            <div class="table-desc">Invoice records & billing</div>
+          </div>
+          <div class="table-body">
+            <div class="field-row">
+              <div class="field-name">
+                id<span class="primary-key">PK</span>
+              </div>
+              <div class="field-type">INTEGER</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">
+                order_id<span class="foreign-key">FK</span>
+              </div>
+              <div class="field-type">INTEGER</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">invoice_number</div>
+              <div class="field-type">VARCHAR</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">store_name</div>
+              <div class="field-type">VARCHAR</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">store_gst_number</div>
+              <div class="field-type">VARCHAR</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">customer_name</div>
+              <div class="field-type">VARCHAR</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">customer_phone</div>
+              <div class="field-type">VARCHAR</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">subtotal</div>
+              <div class="field-type">DECIMAL</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">cgst / sgst</div>
+              <div class="field-type">DECIMAL</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">is_paid</div>
+              <div class="field-type">BOOLEAN</div>
+            </div>
+            <div class="field-row">
+              <div class="field-name">created_at</div>
+              <div class="field-type">TIMESTAMP</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Relationships Section -->
+      <div class="relationships-section">
+        <h2>🔗 Data Relationships</h2>
+
+        <div class="relationship-diagram">
+          <strong>Users → Orders</strong><br />
+          One user can have multiple orders. When an order is created, it stores
+          the user_id and customer details.
+        </div>
+
+        <div class="relationship-diagram">
+          <strong>Categories → Products</strong><br />
+          Each product belongs to exactly one category. Categories support
+          multi-language names (English, Telugu, Hindi).
+        </div>
+
+        <div class="relationship-diagram">
+          <strong>Products → Cart Items → Carts</strong><br />
+          A product can be added to multiple carts. Each cart belongs to one
+          user. Cart items store product id, quantity, and price at time of
+          addition.
+        </div>
+
+        <div class="relationship-diagram">
+          <strong>Orders → Order Items → Products</strong><br />
+          When checkout happens, cart items are converted to order items. Order
+          items store snapshot of product info (name, price, GST) to maintain
+          historical accuracy.
+        </div>
+
+        <div class="relationship-diagram">
+          <strong>Orders → Invoices</strong><br />
+          One order generates one invoice. Invoice stores billing details
+          including customer info from order and GST breakdown (CGST/SGST).
+        </div>
+      </div>
+
+      <!-- Data Flow Section -->
+      <div class="flow-diagram">
+        <h2>📊 Order Processing Flow</h2>
+
+        <div class="flow-step">
+          <span style="margin-right: 15px">1️⃣</span>
+          <span
+            ><strong>User Registration</strong> → Data stored in Users table
+            with role_id</span
+          >
+        </div>
+
+        <div class="flow-step">
+          <span style="margin-right: 15px">2️⃣</span>
+          <span
+            ><strong>Browse Categories & Products</strong> → Retrieved from
+            Categories and Products tables with translations</span
+          >
+        </div>
+
+        <div class="flow-step">
+          <span style="margin-right: 15px">3️⃣</span>
+          <span
+            ><strong>Add to Cart</strong> → Creates/Updates cart and adds items
+            to cart_items table</span
+          >
+        </div>
+
+        <div class="flow-step">
+          <span style="margin-right: 15px">4️⃣</span>
+          <span
+            ><strong>Checkout</strong> → Transaction: Create order, convert cart
+            items to order items, deduct stock, clear cart</span
+          >
+        </div>
+
+        <div class="flow-step">
+          <span style="margin-right: 15px">5️⃣</span>
+          <span
+            ><strong>Generate Invoice</strong> → Creates invoice record with
+            order and customer details, GST calculation (CGST+SGST)</span
+          >
+        </div>
+
+        <div class="flow-step">
+          <span style="margin-right: 15px">6️⃣</span>
+          <span
+            ><strong>Order Fulfillment</strong> → Order status updates (pending
+            → processing → shipped → delivered)</span
+          >
+        </div>
+      </div>
+
+      <!-- Key Features -->
+      <div class="relationships-section">
+        <h2>✨ Key Features</h2>
+
+        <div class="relationship">
+          <strong>🌍 Multi-Language Support:</strong> Categories and Products
+          have translation tables supporting English (en), Telugu (te), and
+          Hindi (hi). System fetches translations based on user language
+          preference.
+        </div>
+
+        <div class="relationship">
+          <strong>💰 GST Handling:</strong> Products store GST percentage. At
+          cart checkout, GST is calculated per item, and at invoice level, it's
+          split into CGST (Central) and SGST (State).
+        </div>
+
+        <div class="relationship">
+          <strong>📦 Stock Management:</strong> Product stock_quantity tracks
+          inventory. When order is placed, stock is automatically deducted.
+          Minimum order quantity and maximum order quantity are enforced.
+        </div>
+
+        <div class="relationship">
+          <strong>💳 Price Snapshots:</strong> Cart and order items store the
+          price at the time of transaction. This preserves historical accuracy
+          even if product prices change later.
+        </div>
+
+        <div class="relationship">
+          <strong>👥 User Roles:</strong> Users are linked to roles table.
+          Different roles (admin, customer) determine permissions and what data
+          they can access.
+        </div>
+      </div>
+
+      <div class="footer">
+        <p>
+          Database Schema Documentation | MK-REDDY General Stores | Generated on
+          February 23, 2026
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

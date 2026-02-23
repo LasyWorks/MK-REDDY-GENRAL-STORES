@@ -68,11 +68,7 @@ export default function Navbar() {
             </Link>
 
             {/* Location Selector */}
-            <button className="hidden md:flex items-center gap-1.5 text-gray-700 hover:text-blue-600 transition-colors">
-              <MapPin className="w-5 h-5 text-blue-600" />
-              <span className="font-medium text-[15px]">HSR Layout</span>
-              <ChevronDown className="w-4 h-4 text-gray-500" />
-            </button>
+           
           </div>
 
           {/* Middle Section: Search Bar */}
