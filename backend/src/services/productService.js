@@ -2,6 +2,7 @@ const { Product, Category, AdminLog } = require('../models');
 const config = require('../config');
 const ApiError = require('../utils/ApiError');
 const { generateSku } = require('../utils/helpers');
+const { revalidatePages } = require('../utils/revalidate');
 const xlsx = require('xlsx');
 const path = require('path');
 const fs = require('fs');
@@ -74,6 +75,12 @@ class ProductService {
       newValue: productData,
     });
 
+    // New product appears immediately on its category page
+    await revalidatePages({
+      tags: ['products', `category-${productData.category_id}`],
+      paths: [`/categories/${productData.category_id}`],
+    });
+
     return this.getById(productId);
   }
 
@@ -115,6 +122,13 @@ class ProductService {
       newValue: productData,
     });
 
+    // Revalidate the product's category page so updated price/stock is live
+    const categoryId = productData.category_id || oldData.category_id;
+    await revalidatePages({
+      tags: ['products', `product-${id}`, `category-${categoryId}`],
+      paths: [`/categories/${categoryId}`],
+    });
+
     return this.getById(id);
   }
 
@@ -136,6 +150,12 @@ class ProductService {
       entityType: 'product',
       entityId: id,
       oldValue: product,
+    });
+
+    // Remove deleted product from its category page cache
+    await revalidatePages({
+      tags: ['products', `product-${id}`, `category-${product.category_id}`],
+      paths: [`/categories/${product.category_id}`],
     });
 
     return { message: 'Product deleted successfully' };
@@ -356,6 +376,12 @@ class ProductService {
       action: newStatus ? 'ACTIVATE_PRODUCT' : 'DEACTIVATE_PRODUCT',
       entityType: 'product',
       entityId: id,
+    });
+
+    // Reflect visibility change on the category page immediately
+    await revalidatePages({
+      tags: ['products', `product-${id}`, `category-${product.category_id}`],
+      paths: [`/categories/${product.category_id}`],
     });
 
     return { ...product, is_active: newStatus };

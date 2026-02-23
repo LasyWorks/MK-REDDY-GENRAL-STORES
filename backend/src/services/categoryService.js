@@ -1,5 +1,6 @@
 const { Category, AdminLog } = require('../models');
 const ApiError = require('../utils/ApiError');
+const { revalidatePages } = require('../utils/revalidate');
 
 class CategoryService {
   /**
@@ -35,6 +36,12 @@ class CategoryService {
       newValue: categoryData,
     });
 
+    // Invalidate the categories listing so the new category appears immediately
+    await revalidatePages({
+      tags: ['categories'],
+      paths: ['/categories'],
+    });
+
     return this.getById(categoryId);
   }
 
@@ -58,6 +65,12 @@ class CategoryService {
       entityId: id,
       oldValue: oldData,
       newValue: categoryData,
+    });
+
+    // Revalidate the specific category page and the listing
+    await revalidatePages({
+      tags: ['categories', `category-${id}`],
+      paths: ['/categories', `/categories/${id}`],
     });
 
     return this.getById(id);
@@ -89,6 +102,12 @@ class CategoryService {
       oldValue: category,
     });
 
+    // Remove deleted category from the cached listing
+    await revalidatePages({
+      tags: ['categories', `category-${id}`],
+      paths: ['/categories'],
+    });
+
     return { message: 'Category deleted successfully' };
   }
 
@@ -110,6 +129,12 @@ class CategoryService {
       action: newStatus ? 'ACTIVATE_CATEGORY' : 'DEACTIVATE_CATEGORY',
       entityType: 'category',
       entityId: id,
+    });
+
+    // Revalidate so the category appears/disappears on the storefront immediately
+    await revalidatePages({
+      tags: ['categories', `category-${id}`],
+      paths: ['/categories', `/categories/${id}`],
     });
 
     return {

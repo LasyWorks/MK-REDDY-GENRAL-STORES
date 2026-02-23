@@ -9,7 +9,7 @@ const API_URL =
 async function getAllCategories() {
   try {
     const res = await fetch(`${API_URL}/categories?limit=200&is_active=true`, {
-      next: { revalidate: 3600 },
+      next: { tags: ['categories'], revalidate: 3600 },
     });
     if (!res.ok) return [];
     const json = await res.json();
@@ -22,7 +22,7 @@ async function getAllCategories() {
 async function getCategoryById(id) {
   try {
     const res = await fetch(`${API_URL}/categories/${id}`, {
-      next: { revalidate: 3600 },
+      next: { tags: ['categories', `category-${id}`], revalidate: 3600 },
     });
     if (!res.ok) return null;
     const json = await res.json();
