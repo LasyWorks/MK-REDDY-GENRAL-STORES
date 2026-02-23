@@ -62,10 +62,6 @@ CREATE TABLE product_translations (id UUID PRIMARY KEY DEFAULT uuid_generate_v7(
 CREATE INDEX idx_prod_trans_product ON product_translations(product_id); CREATE INDEX idx_prod_trans_lang ON product_translations(lang_code);
 CREATE INDEX idx_prod_trans_name ON product_translations USING gin(name gin_trgm_ops);
 
--- GST CONFIG
-CREATE TABLE gst_config (id UUID PRIMARY KEY DEFAULT uuid_generate_v7(), category_name VARCHAR(100) NOT NULL, gst_percentage DECIMAL(5,2) NOT NULL, description VARCHAR(255), is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW());
-INSERT INTO gst_config (category_name, gst_percentage, description) VALUES ('cooking_oils',5.00,'GST for cooking oils'),('groceries',5.00,'GST for general groceries'),('packaged_foods',12.00,'GST for packaged foods'),('beverages',18.00,'GST for beverages'),('default',18.00,'Default GST rate');
-
 -- CARTS
 CREATE TABLE carts (id UUID PRIMARY KEY DEFAULT uuid_generate_v7(), user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW());
 CREATE TRIGGER set_updated_at_carts BEFORE UPDATE ON carts FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();
@@ -97,8 +93,3 @@ CREATE INDEX idx_admin_logs_admin ON admin_logs(admin_id); CREATE INDEX idx_admi
 CREATE TABLE system_config (id UUID PRIMARY KEY DEFAULT uuid_generate_v7(), config_key VARCHAR(100) NOT NULL UNIQUE, config_value TEXT NOT NULL, description VARCHAR(255), is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW());
 INSERT INTO system_config (config_key,config_value,description) VALUES ('max_customers','50','Max customers'),('max_products','500','Max products'),('default_gst_percentage','18','Default GST %'),('cooking_oil_gst','5','GST % for cooking oils');
 CREATE TRIGGER set_updated_at_system_config BEFORE UPDATE ON system_config FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();
-
--- EMAIL QUEUE
-CREATE TABLE email_queue (id UUID PRIMARY KEY DEFAULT uuid_generate_v7(), to_email VARCHAR(255) NOT NULL, subject VARCHAR(255) NOT NULL, body TEXT NOT NULL, template VARCHAR(50), template_data JSONB, status VARCHAR(10) DEFAULT 'pending' CHECK (status IN ('pending','sent','failed')), attempts INT DEFAULT 0, last_error TEXT, sent_at TIMESTAMPTZ, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW());
-CREATE INDEX idx_email_queue_status ON email_queue(status); CREATE INDEX idx_email_queue_created ON email_queue(created_at);
-CREATE TRIGGER set_updated_at_email_queue BEFORE UPDATE ON email_queue FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();

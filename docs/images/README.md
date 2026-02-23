@@ -9,7 +9,7 @@ All images have been created as scalable vector graphics (SVG):
 1. ✅ **logo.svg** - Store logo with shopping cart icon and "MK" branding
 2. ✅ **admin-dashboard.svg** - Professional dashboard mockup with stats cards, charts, and recent orders
 3. ✅ **api-reference.svg** - Dark-themed API documentation with JSON response examples
-4. ✅ **database-schema.svg** - Complete ERD showing all 17 tables with relationships and keys
+4. ✅ **database-schema.svg** - Complete ERD showing all 15 tables with relationships and keys
 5. ✅ **bilingual-products.svg** - Side-by-side English/Telugu product comparison
 6. ✅ **test-results.svg** - Terminal-style test output showing 48/48 passing tests
 
