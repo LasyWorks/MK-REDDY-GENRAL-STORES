@@ -1,48 +1,18 @@
 import { notFound } from "next/navigation";
 import CategoryClientView from "../../../components/category/CategoryClientView";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
-
-// ─── Server-side data helpers ──────────────────────────────────────────────
-
-async function getAllCategories() {
-  try {
-    const res = await fetch(`${API_URL}/categories?limit=200&is_active=true`, {
-      next: { tags: ['categories'], revalidate: 3600 },
-    });
-    if (!res.ok) return [];
-    const json = await res.json();
-    return json.data || [];
-  } catch {
-    return [];
-  }
-}
-
-async function getCategoryById(id) {
-  try {
-    const res = await fetch(`${API_URL}/categories/${id}`, {
-      next: { tags: ['categories', `category-${id}`], revalidate: 3600 },
-    });
-    if (!res.ok) return null;
-    const json = await res.json();
-    return json.data || json;
-  } catch {
-    return null;
-  }
-}
+import { getAllCategories, getCategoryById } from "../../data/categories";
 
 // ─── Static generation ─────────────────────────────────────────────────────
 
 /**
- * Pre-build a page for every MAIN category at build time.
- * Subcategory IDs are NOT listed here — they are rendered on-demand
- * (dynamicParams = true below).
+ * Pre-build pages for ALL categories (main + subcategories) at build time.
+ * Every ID gets a static HTML file — 0ms render on every request.
+ * New categories added after build are handled on first visit (dynamicParams=true)
+ * then immediately rebuilt via on-demand ISR when the backend pings /api/revalidate.
  */
 export async function generateStaticParams() {
   const categories = await getAllCategories();
-  const mainCategories = categories.filter((c) => !c.parent_id);
-  return mainCategories.map((c) => ({ id: c.id }));
+  return categories.map((c) => ({ id: c.id }));
 }
 
 /**

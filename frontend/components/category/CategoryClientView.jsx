@@ -8,14 +8,23 @@ import ProductGrid from "./ProductGrid";
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
 
+// Module-level cache — persists for the browser session.
+// Switching back to a previously visited subcategory returns from memory (~0ms).
+const productCache = new Map();
+
 async function fetchProducts(categoryId) {
+  if (productCache.has(categoryId)) {
+    return productCache.get(categoryId);
+  }
   const res = await fetch(
     `${API_URL}/products?category_id=${categoryId}&limit=50&is_active=true`,
     { cache: "no-store" },
   );
   if (!res.ok) return [];
   const json = await res.json();
-  return json.data || [];
+  const data = json.data || [];
+  productCache.set(categoryId, data);
+  return data;
 }
 
 /**
