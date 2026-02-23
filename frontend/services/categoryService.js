@@ -45,6 +45,19 @@ class CategoryService {
     };
     return api.get(`/categories/${id}/products`, queryParams);
   }
+
+  /**
+   * Get subcategories of a category (by parent_id)
+   * @param {string} parentId - Parent category ID
+   * @returns {Promise} Subcategories
+   */
+  async getSubcategories(parentId) {
+    return api.get("/categories", {
+      parent_id: parentId,
+      limit: 100,
+      is_active: true,
+    });
+  }
 }
 
 export default new CategoryService();
