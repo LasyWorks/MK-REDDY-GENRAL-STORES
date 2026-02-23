@@ -1,4 +1,5 @@
 const { query, queryOne, insert, modify } = require('../config/database');
+const { translateProductFields } = require('../utils/translate');
 
 // SQL fragment: join translations with English fallback
 const TRANS_JOIN = `
@@ -53,20 +54,29 @@ class Category {
   }
 
   static async create(data) {
-    const { name_en, name_te, description_en, description_te, image_url, display_order, is_active } = data;
+    const { name_en, name_te, description_en, description_te, image_url, display_order, is_active, parent_id } = data;
     const catId = await insert(
-      `INSERT INTO categories (image_url, display_order, is_active)
-       VALUES ($1, $2, $3) RETURNING id`,
-      [image_url || null, display_order || 0, is_active !== false]
+      `INSERT INTO categories (parent_id, image_url, display_order, is_active)
+       VALUES ($1, $2, $3, $4) RETURNING id`,
+      [parent_id || null, image_url || null, display_order || 0, is_active !== false]
     );
     await modify(
       `INSERT INTO category_translations (category_id, lang_code, name, description) VALUES ($1, 'en', $2, $3)`,
       [catId, name_en, description_en || null]
     );
-    if (name_te) {
+
+    // Auto-translate to Telugu if not provided
+    let teluguName = name_te;
+    let teluguDesc = description_te;
+    if (!teluguName) {
+      const translated = await translateProductFields(name_en, description_en);
+      teluguName = translated.name_te;
+      teluguDesc = teluguDesc || translated.description_te;
+    }
+    if (teluguName) {
       await modify(
         `INSERT INTO category_translations (category_id, lang_code, name, description) VALUES ($1, 'te', $2, $3)`,
-        [catId, name_te, description_te || null]
+        [catId, teluguName, teluguDesc || null]
       );
     }
     return catId;
@@ -74,7 +84,7 @@ class Category {
 
   static async update(id, data) {
     // Update base columns
-    const baseAllowed = ['image_url', 'display_order', 'is_active'];
+    const baseAllowed = ['image_url', 'display_order', 'is_active', 'parent_id'];
     const fields = []; const vals = []; let idx = 1;
     for (const [k, v] of Object.entries(data)) {
       if (baseAllowed.includes(k) && v !== undefined) { fields.push(`${k} = $${idx++}`); vals.push(v); }
@@ -92,7 +102,16 @@ class Category {
       );
     };
     await upsertTrans('en', data.name_en, data.description_en);
-    await upsertTrans('te', data.name_te, data.description_te);
+
+    // Auto-translate to Telugu if English is provided but Telugu is not
+    let teluguName = data.name_te;
+    let teluguDesc = data.description_te;
+    if (data.name_en && !teluguName) {
+      const translated = await translateProductFields(data.name_en, data.description_en);
+      teluguName = translated.name_te;
+      teluguDesc = teluguDesc || translated.description_te;
+    }
+    await upsertTrans('te', teluguName, teluguDesc);
     return this.findById(id);
   }
 

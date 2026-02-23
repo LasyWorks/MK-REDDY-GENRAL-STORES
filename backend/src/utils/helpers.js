@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { v4: uuidv4 } = require('uuid');
+const { v7: uuidv7 } = require('uuid');
 
 /**
  * Generate a random OTP
@@ -49,11 +49,11 @@ const generateOrderNumber = () => {
 };
 
 /**
- * Generate UUID
- * @returns {string} UUID
+ * Generate UUID v7 (time-sortable)
+ * @returns {string} UUID v7
  */
 const generateUUID = () => {
-  return uuidv4();
+  return uuidv7();
 };
 
 /**
@@ -161,6 +161,64 @@ const getLocalizedField = (obj, field, lang = 'en') => {
   return obj[langField] || obj[defaultField] || obj[field] || '';
 };
 
+/**
+ * Auto-generate a SKU from product attributes.
+ * Format: {BRAND}-{NAME}-{VARIANT}-{SEQ}  (slugified, upper-case, max ~50 chars)
+ * If brand/variant are absent the segments are skipped.
+ * @param {{ name_en?: string, brand?: string, variant?: string }} data
+ * @param {number} [seq] - optional sequence / counter to append
+ * @returns {string} Generated SKU
+ */
+const generateSku = (data = {}, seq) => {
+  const parts = [data.brand, data.name_en, data.variant].filter(Boolean);
+  let slug = parts
+    .join('-')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .substring(0, 45);
+
+  // Append a short random suffix to guarantee uniqueness
+  const suffix = seq != null
+    ? String(seq)
+    : crypto.randomInt(10000, 99999).toString();
+  return `${slug}-${suffix}`;
+};
+
+// ── Role resolver (cached) ──────────────────────────────────────────
+let _roleCache = null;
+
+/**
+ * Get role UUID by role name. Caches all roles on first call.
+ * @param {string} roleName - e.g. 'admin', 'retail_customer', 'wholesale_customer'
+ * @returns {Promise<string>} UUID of the role
+ */
+const getRoleId = async (roleName) => {
+  if (!_roleCache) {
+    const { query } = require('../config/database');
+    const rows = await query('SELECT id, name FROM roles');
+    _roleCache = {};
+    for (const row of rows) _roleCache[row.name] = row.id;
+  }
+  const id = _roleCache[roleName];
+  if (!id) throw new Error(`Role '${roleName}' not found`);
+  return id;
+};
+
+/**
+ * Map user_type to role name, then resolve UUID.
+ * @param {string} userType - 'admin' | 'retail' | 'wholesale'
+ * @returns {Promise<string>} UUID of the corresponding role
+ */
+const getRoleIdByUserType = async (userType) => {
+  const map = { admin: 'admin', retail: 'retail_customer', wholesale: 'wholesale_customer' };
+  return getRoleId(map[userType] || 'retail_customer');
+};
+
+/** Reset cached roles (useful after migration / tests) */
+const resetRoleCache = () => { _roleCache = null; };
+
 module.exports = {
   generateOTP,
   hashOTP,
@@ -174,4 +232,8 @@ module.exports = {
   escapeHtml,
   truncate,
   getLocalizedField,
+  generateSku,
+  getRoleId,
+  getRoleIdByUserType,
+  resetRoleCache,
 };

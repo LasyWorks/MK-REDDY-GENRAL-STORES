@@ -1,4 +1,5 @@
 const { query, queryOne, insert, modify, withTransaction } = require('../config/database');
+const { translateProductFields } = require('../utils/translate');
 
 // Translation JOIN helper (lang = $1 parameter position)
 const buildTransJoins = (langParam) => `
@@ -92,22 +93,27 @@ class Product {
   static async create(data) {
     const {
       category_id, sku, name_en, name_te, description_en, description_te,
-      unit_type, price, wholesale_price, gst_percentage,
+      brand, variant, unit_type, unit_pack_size, hsn_code,
+      mrp, purchase_price, price, wholesale_price, gst_percentage,
+      discount, margin,
       stock_quantity, min_order_quantity, max_order_quantity,
       image_url, is_active, is_featured,
     } = data;
 
     const prodId = await insert(
       `INSERT INTO products
-         (category_id, sku, unit_type, price, wholesale_price, gst_percentage, stock_quantity,
-          min_order_quantity, max_order_quantity, image_url, is_active, is_featured)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+         (category_id, sku, brand, variant, unit_type, unit_pack_size, hsn_code,
+          mrp, purchase_price, price, wholesale_price, gst_percentage, discount, margin,
+          stock_quantity, min_order_quantity, max_order_quantity, image_url, is_active, is_featured)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
        RETURNING id`,
       [
-        category_id, sku || null, unit_type, price,
-        wholesale_price || null, gst_percentage || 18, stock_quantity || 0,
-        min_order_quantity || 1, max_order_quantity || null, image_url || null,
-        is_active !== false, is_featured || false,
+        category_id, sku || null, brand || null, variant || null,
+        unit_type || null, unit_pack_size || null, hsn_code || null,
+        mrp || null, purchase_price || null, price,
+        wholesale_price || null, gst_percentage || 18, discount || null, margin || null,
+        stock_quantity || 0, min_order_quantity || 1, max_order_quantity || null,
+        image_url || null, is_active !== false, is_featured || false,
       ]
     );
 
@@ -115,10 +121,19 @@ class Product {
       `INSERT INTO product_translations (product_id, lang_code, name, description) VALUES ($1,'en',$2,$3)`,
       [prodId, name_en, description_en || null]
     );
-    if (name_te) {
+
+    // Auto-translate to Telugu if not provided
+    let teluguName = name_te;
+    let teluguDesc = description_te;
+    if (!teluguName) {
+      const translated = await translateProductFields(name_en, description_en);
+      teluguName = translated.name_te;
+      teluguDesc = teluguDesc || translated.description_te;
+    }
+    if (teluguName) {
       await modify(
         `INSERT INTO product_translations (product_id, lang_code, name, description) VALUES ($1,'te',$2,$3)`,
-        [prodId, name_te, description_te || null]
+        [prodId, teluguName, teluguDesc || null]
       );
     }
     return prodId;
@@ -126,7 +141,8 @@ class Product {
 
   static async update(id, data) {
     // Base columns
-    const base = ['category_id','sku','unit_type','price','wholesale_price','gst_percentage',
+    const base = ['category_id','sku','brand','variant','unit_type','unit_pack_size','hsn_code',
+                  'mrp','purchase_price','price','wholesale_price','gst_percentage','discount','margin',
                   'stock_quantity','min_order_quantity','max_order_quantity','image_url','is_active','is_featured'];
     const fields = []; const vals = []; let idx = 1;
     for (const [k, v] of Object.entries(data)) {
@@ -145,7 +161,16 @@ class Product {
       );
     };
     await upsert('en', data.name_en, data.description_en);
-    await upsert('te', data.name_te, data.description_te);
+
+    // Auto-translate to Telugu if English is provided but Telugu is not
+    let teluguName = data.name_te;
+    let teluguDesc = data.description_te;
+    if (data.name_en && !teluguName) {
+      const translated = await translateProductFields(data.name_en, data.description_en);
+      teluguName = translated.name_te;
+      teluguDesc = teluguDesc || translated.description_te;
+    }
+    await upsert('te', teluguName, teluguDesc);
     return this.findById(id);
   }
 
@@ -183,20 +208,31 @@ class Product {
       for (const product of products) {
         try {
           const r = await client.query(
-            `INSERT INTO products (category_id, sku, unit_type, price, gst_percentage, stock_quantity, is_active)
-             VALUES ($1,$2,$3,$4,$5,$6,TRUE) RETURNING id`,
-            [product.category_id, product.sku, product.unit_type, product.price,
-             product.gst_percentage || 18, product.stock_quantity || 0]
+            `INSERT INTO products (category_id, sku, brand, variant, unit_type, unit_pack_size, hsn_code,
+             mrp, purchase_price, price, gst_percentage, discount, margin, stock_quantity, image_url, is_active)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,TRUE) RETURNING id`,
+            [product.category_id, product.sku, product.brand || null, product.variant || null,
+             product.unit_type || null, product.unit_pack_size || null, product.hsn_code || null,
+             product.mrp || null, product.purchase_price || null, product.price,
+             product.gst_percentage || 18, product.discount || null, product.margin || null,
+             product.stock_quantity || 0, product.image_url || null]
           );
           const pid = r.rows[0].id;
           await client.query(
             `INSERT INTO product_translations (product_id, lang_code, name) VALUES ($1,'en',$2)`,
             [pid, product.name_en]
           );
-          if (product.name_te) {
+
+          // Auto-translate to Telugu if not provided
+          let teluguName = product.name_te;
+          if (!teluguName) {
+            const { name_te } = await translateProductFields(product.name_en, null);
+            teluguName = name_te;
+          }
+          if (teluguName) {
             await client.query(
               `INSERT INTO product_translations (product_id, lang_code, name) VALUES ($1,'te',$2)`,
-              [pid, product.name_te]
+              [pid, teluguName]
             );
           }
           results.success++;

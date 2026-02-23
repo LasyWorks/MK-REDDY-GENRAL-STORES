@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const config = require('../config');
 const { User, OTP, RefreshToken } = require('../models');
-const { generateOTP, hashOTP } = require('../utils/helpers');
+const { generateOTP, hashOTP, getRoleIdByUserType } = require('../utils/helpers');
 const SmsService = require('./smsService');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
@@ -118,7 +118,7 @@ class AuthService {
     }
 
     // Determine role based on user type
-    const roleId = user_type === 'wholesale' ? 3 : 2; // 2: retail_customer, 3: wholesale_customer
+    const roleId = await getRoleIdByUserType(user_type);
 
     // Create user
     const userId = await User.create({

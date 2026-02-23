@@ -49,7 +49,7 @@ const updateUser = asyncHandler(async (req, res) => {
 
   // Check if user is updating themselves or admin is updating
   const isAdmin = req.user.role === 'admin';
-  const isSelf = req.user.id === parseInt(userId);
+  const isSelf = req.user.id === userId;
 
   if (!isAdmin && !isSelf) {
     return ApiResponse.error(res, 'Not authorized', 403);
@@ -148,7 +148,7 @@ const createUser = asyncHandler(async (req, res) => {
     email,
     user_type: user_type || 'retail',
     address,
-    role_id: role_id || 2, // Default to retail customer
+    role_id: role_id || undefined, // Will be resolved by service
     password,
   });
   ApiResponse.created(res, user, 'User created successfully');

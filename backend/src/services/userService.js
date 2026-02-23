@@ -239,14 +239,16 @@ class UserService {
   /**
    * Create user
    */
-  static async create({ name, phone, email, user_type = 'retail', address, role_id = 2, password }) {
+  static async create({ name, phone, email, user_type = 'retail', address, role_id, password }) {
     const bcrypt = require('bcryptjs');
+    const { getRoleIdByUserType } = require('../utils/helpers');
     const existing = await User.findByPhone(phone);
     if (existing) {
       throw ApiError.conflict('Phone number already registered');
     }
+    const resolvedRoleId = role_id || await getRoleIdByUserType(user_type);
     const password_hash = password ? await bcrypt.hash(password, 10) : null;
-    const newId = await User.create({ name, phone, email, user_type, address, role_id, password_hash });
+    const newId = await User.create({ name, phone, email, user_type, address, role_id: resolvedRoleId, password_hash });
     const fullUser = await User.findById(newId);
     return this.sanitizeUser(fullUser);
   }
@@ -266,7 +268,7 @@ class UserService {
       adminId,
       action: 'UPDATE_CUSTOMER_TYPE',
       entityType: 'user',
-      entityId: parseInt(id),
+      entityId: id,
       newValue: { user_type: customerType },
     });
     const updated = await User.findById(id);

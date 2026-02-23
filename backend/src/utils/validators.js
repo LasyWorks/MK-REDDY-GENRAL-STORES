@@ -18,16 +18,22 @@ const validate = (req, res, next) => {
 
 // Common validation rules
 const commonRules = {
-  // ID validation
+  // ID validation (UUID)
   id: (field = 'id') =>
     param(field)
-      .isInt({ min: 1 })
-      .withMessage(`${field} must be a positive integer`),
+      .isUUID()
+      .withMessage(`${field} must be a valid UUID`),
 
-  // UUID validation
+  // UUID validation (alias)
   uuid: (field = 'id') =>
     param(field)
-      .isUUID(4)
+      .isUUID()
+      .withMessage(`${field} must be a valid UUID`),
+
+  // UUID validation for body fields
+  bodyUuid: (field) =>
+    body(field)
+      .isUUID()
       .withMessage(`${field} must be a valid UUID`),
 
   // Phone number validation (Indian)
@@ -213,8 +219,8 @@ const userValidation = {
       .withMessage('Password must be at least 6 characters'),
     body('role_id')
       .optional()
-      .isInt({ min: 1, max: 3 })
-      .withMessage('Role ID must be 1, 2, or 3'),
+      .isUUID()
+      .withMessage('Role ID must be a valid UUID'),
     validate,
   ],
 
@@ -265,6 +271,10 @@ const categoryValidation = {
   create: [
     commonRules.string('name_en', 2, 100),
     commonRules.nameTelugu('name_te'),
+    body('parent_id')
+      .optional()
+      .isUUID()
+      .withMessage('parent_id must be a valid UUID'),
     body('description_en')
       .optional()
       .trim()
@@ -282,6 +292,10 @@ const categoryValidation = {
   update: [
     commonRules.string('name_en', 2, 100).optional(),
     commonRules.nameTelugu('name_te'),
+    body('parent_id')
+      .optional()
+      .isUUID()
+      .withMessage('parent_id must be a valid UUID'),
     body('description_en')
       .optional()
       .trim()
@@ -302,7 +316,7 @@ const productValidation = {
   create: [
     commonRules.string('name_en', 2, 200),
     commonRules.nameTelugu('name_te'),
-    commonRules.integer('category_id', 1),
+    commonRules.bodyUuid('category_id'),
     commonRules.unitType('unit_type'),
     commonRules.price('price'),
     commonRules.gstPercentage('gst_percentage'),
@@ -328,7 +342,7 @@ const productValidation = {
   update: [
     commonRules.string('name_en', 2, 200).optional(),
     commonRules.nameTelugu('name_te'),
-    commonRules.integer('category_id', 1).optional(),
+    commonRules.bodyUuid('category_id').optional(),
     commonRules.unitType('unit_type').optional(),
     commonRules.price('price').optional(),
     commonRules.gstPercentage('gst_percentage').optional(),
@@ -351,7 +365,7 @@ const productValidation = {
 // Cart validation schemas
 const cartValidation = {
   addItem: [
-    commonRules.integer('product_id', 1),
+    commonRules.bodyUuid('product_id'),
     commonRules.quantity('quantity'),
     validate,
   ],

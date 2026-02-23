@@ -1,6 +1,7 @@
 const { Product, Category, AdminLog } = require('../models');
 const config = require('../config');
 const ApiError = require('../utils/ApiError');
+const { generateSku } = require('../utils/helpers');
 const xlsx = require('xlsx');
 const path = require('path');
 const fs = require('fs');
@@ -30,7 +31,7 @@ class ProductService {
   static async getByCategory(categoryId, options = {}) {
     return Product.findAll({
       ...options,
-      categoryId: parseInt(categoryId, 10),
+      categoryId: categoryId,
       isActive: true,
     });
   }
@@ -51,12 +52,15 @@ class ProductService {
       throw ApiError.badRequest('Invalid category');
     }
 
-    // Check SKU uniqueness if provided
-    if (productData.sku) {
-      const existingSku = await Product.findBySku(productData.sku);
-      if (existingSku) {
-        throw ApiError.conflict('SKU already exists');
-      }
+    // Auto-generate SKU if not provided
+    if (!productData.sku) {
+      productData.sku = generateSku(productData);
+    }
+
+    // Check SKU uniqueness
+    const existingSku = await Product.findBySku(productData.sku);
+    if (existingSku) {
+      throw ApiError.conflict('SKU already exists');
     }
 
     const productId = await Product.create(productData);
@@ -231,18 +235,19 @@ class ProductService {
           throw new Error('Price must be a positive number');
         }
 
+        // Auto-generate SKU if not provided
+        const sku = row.sku || generateSku(row, rowIndex);
+
         // SKU uniqueness check
-        if (row.sku) {
-          const existingSku = await Product.findBySku(row.sku);
-          if (existingSku) {
-            throw new Error(`SKU ${row.sku} already exists`);
-          }
+        const existingSku = await Product.findBySku(sku);
+        if (existingSku) {
+          throw new Error(`SKU ${sku} already exists`);
         }
 
         validProducts.push({
           _rowIndex: rowIndex,
-          category_id: parseInt(row.category_id),
-          sku: row.sku || null,
+          category_id: row.category_id,
+          sku,
           name_en: row.name_en.trim(),
           name_te: row.name_te ? row.name_te.trim() : null,
           unit_type: row.unit_type,
@@ -350,7 +355,7 @@ class ProductService {
       adminId,
       action: newStatus ? 'ACTIVATE_PRODUCT' : 'DEACTIVATE_PRODUCT',
       entityType: 'product',
-      entityId: parseInt(id),
+      entityId: id,
     });
 
     return { ...product, is_active: newStatus };
