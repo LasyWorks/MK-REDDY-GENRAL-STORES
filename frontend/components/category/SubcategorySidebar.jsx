@@ -1,6 +1,7 @@
 "use client";
 
 import { memo } from "react";
+import ImageWithFallback from "../common/ImageWithFallback";
 
 function SubcategoryItem({ subcat, isActive, onClick }) {
   return (
@@ -14,18 +15,12 @@ function SubcategoryItem({ subcat, isActive, onClick }) {
         }`}
     >
       <div className="w-12 h-12 rounded-lg bg-white overflow-hidden flex-shrink-0 flex items-center justify-center">
-        {subcat.image_url ? (
-          <img
-            src={subcat.image_url}
-            alt={subcat.name}
-            className="w-full h-full object-contain"
-            loading="lazy"
-          />
-        ) : (
-          <span className="text-gray-400 text-xs font-bold">
-            {subcat.name.charAt(0)}
-          </span>
-        )}
+        <ImageWithFallback
+          src={subcat.image_url}
+          alt={subcat.name}
+          className="w-full h-full object-contain"
+          size="sm"
+        />
       </div>
       <span
         className={`text-[11px] leading-tight font-medium ${

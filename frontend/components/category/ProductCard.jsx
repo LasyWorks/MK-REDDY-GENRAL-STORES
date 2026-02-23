@@ -1,6 +1,7 @@
 "use client";
 
 import { memo } from "react";
+import ImageWithFallback from "../common/ImageWithFallback";
 
 function ProductCard({ product }) {
   const hasDiscount = product.compare_price > product.price;
@@ -21,18 +22,12 @@ function ProductCard({ product }) {
 
       {/* Product Image */}
       <div className="w-full aspect-square relative mb-3 p-2">
-        {product.image_url ? (
-          <img
-            src={product.image_url}
-            alt={product.name}
-            className="w-full h-full object-contain"
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full bg-gray-50 rounded-lg flex items-center justify-center">
-            <span className="text-gray-400 text-xs">No image</span>
-          </div>
-        )}
+        <ImageWithFallback
+          src={product.image_url}
+          alt={product.name}
+          className="w-full h-full object-contain"
+          size="lg"
+        />
       </div>
 
       {/* Product Title */}

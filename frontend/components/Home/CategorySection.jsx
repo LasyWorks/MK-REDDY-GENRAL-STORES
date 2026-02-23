@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import categoryService from "../../services/categoryService";
 import Link from "next/link";
+import ImageWithFallback from "../common/ImageWithFallback";
 
 export default function CategorySection() {
   const [categories, setCategories] = useState([]);
@@ -81,19 +82,12 @@ export default function CategorySection() {
                 >
                   {/* Category Image - Circular */}
                   <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 border-gray-100 group-hover:border-blue-500 transition-all duration-300 shadow-md group-hover:shadow-xl mb-3">
-                    {category.image_url ? (
-                      <img
-                        src={category.image_url}
-                        alt={category.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                        <span className="text-white text-2xl font-bold">
-                          {category.name.charAt(0)}
-                        </span>
-                      </div>
-                    )}
+                    <ImageWithFallback
+                      src={category.image_url}
+                      alt={category.name}
+                      className="w-full h-full object-cover"
+                      size="lg"
+                    />
                   </div>
 
                   {/* Category Name */}
