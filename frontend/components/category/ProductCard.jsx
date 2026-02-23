@@ -4,60 +4,73 @@ import { memo } from "react";
 import ImageWithFallback from "../common/ImageWithFallback";
 
 function ProductCard({ product }) {
-  const hasDiscount = product.compare_price > product.price;
+  const mrp = parseFloat(product.mrp || 0);
+  const price = parseFloat(product.price || 0);
+  const hasDiscount = mrp > price;
   const discountPercent = hasDiscount
-    ? Math.round(
-        ((product.compare_price - product.price) / product.compare_price) * 100,
-      )
+    ? Math.round(((mrp - price) / mrp) * 100)
     : 0;
 
   return (
-    <div className="border border-gray-100 rounded-xl p-3 hover:shadow-md transition-shadow bg-white relative flex flex-col h-full">
-      {/* Discount Tag */}
-      {hasDiscount && (
-        <div className="absolute top-0 left-0 bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded-tl-xl rounded-br-lg z-10">
-          {discountPercent}% OFF
-        </div>
-      )}
+    <div className="group flex flex-col bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-lg hover:border-gray-200 transition-all duration-200 h-full">
 
-      {/* Product Image */}
-      <div className="w-full aspect-square relative mb-3 p-2">
-        <ImageWithFallback
-          src={product.image_url}
-          alt={product.name}
-          className="w-full h-full object-contain"
-          size="lg"
-        />
+      {/* ── Image box: fixed 200px, never grows or shrinks ── */}
+      <div className="relative w-full bg-gray-50" style={{ height: "200px" }}>
+        {hasDiscount && (
+          <span className="absolute top-2 left-2 z-10 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+            {discountPercent}% off
+          </span>
+        )}
+        <div className="w-full h-full p-3">
+          <ImageWithFallback
+            src={product.image_url}
+            alt={product.name}
+            className="w-full h-full object-contain"
+            size="lg"
+          />
+        </div>
       </div>
 
-      {/* Product Title */}
-      <h3 className="text-sm font-medium text-gray-900 line-clamp-2 mb-1 flex-1">
-        {product.name}
-      </h3>
+      {/* ── Text + action: grows to fill remaining height ── */}
+      <div className="flex flex-col flex-1 px-3 pt-3 pb-3 gap-1">
 
-      {/* Weight/Volume */}
-      <p className="text-xs text-gray-500 mb-3">{product.unit || "1 unit"}</p>
+        {/* Product name — exactly 2 lines, then truncate */}
+        <h3 className="text-sm font-medium text-gray-800 leading-snug line-clamp-2 min-h-[2.6rem]">
+          {product.name}
+        </h3>
 
-      {/* Price & Add Button */}
-      <div className="flex items-center justify-between mt-auto pt-2">
-        <div className="flex flex-col">
-          <span className="text-sm font-bold text-gray-900">
-            ₹{product.price}
-          </span>
-          {hasDiscount && (
-            <span className="text-[10px] text-gray-400 line-through">
-              ₹{product.compare_price}
+        {/* Unit / variant */}
+        <p className="text-xs text-gray-400">
+          {product.unit_pack_size || product.unit_type || "1 unit"}
+        </p>
+
+        {/* Spacer pushes price row to the bottom */}
+        <div className="flex-1" />
+
+        {/* ── Price row ── */}
+        <div className="flex items-center justify-between pt-2 border-t border-gray-50">
+          <div className="flex flex-col">
+            <span className="text-sm font-bold text-gray-900">
+              ₹{price.toFixed(2)}
             </span>
-          )}
+            {hasDiscount && (
+              <span className="text-[10px] text-gray-400 line-through leading-none">
+                ₹{mrp.toFixed(2)}
+              </span>
+            )}
+          </div>
+
+          <button
+            className="border border-green-600 text-green-700 text-xs font-bold px-4 py-1.5 rounded-lg
+              hover:bg-green-600 hover:text-white active:scale-95 transition-all duration-150"
+          >
+            ADD
+          </button>
         </div>
 
-        <button className="border border-green-600 text-green-600 bg-green-50 hover:bg-green-600 hover:text-white transition-colors px-4 py-1.5 rounded-lg text-xs font-bold">
-          ADD
-        </button>
       </div>
     </div>
   );
 }
 
-// memo prevents re-render if the same product prop is passed again
 export default memo(ProductCard);

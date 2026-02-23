@@ -9,14 +9,18 @@ function ProductGridSkeleton() {
       {[...Array(10)].map((_, i) => (
         <div
           key={i}
-          className="border border-gray-100 rounded-xl p-3 animate-pulse"
+          className="flex flex-col bg-white border border-gray-100 rounded-xl overflow-hidden animate-pulse"
         >
-          <div className="w-full aspect-square bg-gray-200 rounded-lg mb-3"></div>
-          <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-          <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
-          <div className="flex justify-between items-center">
-            <div className="h-5 bg-gray-200 rounded w-1/3"></div>
-            <div className="h-8 bg-gray-200 rounded w-16"></div>
+          {/* Fixed-height image skeleton matching the card */}
+          <div className="w-full bg-gray-200" style={{ height: "200px" }} />
+          <div className="px-3 pt-3 pb-3 flex flex-col gap-2">
+            <div className="h-3.5 bg-gray-200 rounded w-full" />
+            <div className="h-3.5 bg-gray-200 rounded w-3/4" />
+            <div className="h-3 bg-gray-200 rounded w-1/3 mt-1" />
+            <div className="flex justify-between items-center pt-2 mt-2 border-t border-gray-100">
+              <div className="h-5 bg-gray-200 rounded w-16" />
+              <div className="h-8 bg-gray-200 rounded w-14" />
+            </div>
           </div>
         </div>
       ))}
