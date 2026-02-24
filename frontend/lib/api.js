@@ -2,6 +2,8 @@
  * Base API configuration
  */
 
+import secureStorage from "./secureStorage";
+
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
 
@@ -32,7 +34,7 @@ class ApiClient {
 
     // Add auth token if available
     if (typeof window !== "undefined") {
-      const token = localStorage.getItem("token");
+      const token = secureStorage.getItem("token");
       if (token) {
         config.headers["Authorization"] = `Bearer ${token}`;
       }

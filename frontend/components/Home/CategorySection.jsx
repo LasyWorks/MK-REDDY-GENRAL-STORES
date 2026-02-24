@@ -33,7 +33,6 @@ export default function CategorySection() {
     }
   }, [lang]);
 
-  // Re-fetch whenever language changes
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
@@ -81,27 +80,27 @@ export default function CategorySection() {
           <div className="relative">
             <div className="flex gap-6 sm:gap-8 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
               {categories.map((category) => (
-                <Link
-                  key={category.id}
-                  href={`/categories/${category.id}`}
-                  className="flex flex-col items-center flex-shrink-0 group cursor-pointer snap-start"
-                >
-                  {/* Category Image - Circular */}
-                  <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 border-gray-100 group-hover:border-blue-500 transition-all duration-300 shadow-md group-hover:shadow-xl mb-3">
-                    <ImageWithFallback
-                      src={category.image_url}
-                      alt={category.name}
-                      className="w-full h-full object-cover"
-                      size="lg"
-                    />
-                  </div>
+                  <Link
+                    key={category.id}
+                    href={`/categories/${category.id}`}
+                    className="flex flex-col items-center flex-shrink-0 group cursor-pointer snap-start"
+                  >
+                    {/* Category Image - Circular */}
+                    <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 border-gray-100 group-hover:border-blue-500 transition-all duration-300 shadow-md group-hover:shadow-xl mb-3">
+                      <ImageWithFallback
+                        src={category.image_url}
+                        alt={category.name}
+                        className="w-full h-full object-cover"
+                        size="lg"
+                      />
+                    </div>
 
-                  {/* Category Name */}
-                  <span className="text-xs sm:text-sm font-medium text-gray-900 text-center group-hover:text-blue-600 transition-colors line-clamp-2 max-w-[110px] px-1">
-                    {category.name}
-                  </span>
-                </Link>
-              ))}
+                    {/* Category Name */}
+                    <span className="text-xs sm:text-sm font-medium text-gray-900 text-center group-hover:text-blue-600 transition-colors line-clamp-2 max-w-[110px] px-1">
+                      {category.name}
+                    </span>
+                  </Link>
+                ))}
             </div>
           </div>
         )}

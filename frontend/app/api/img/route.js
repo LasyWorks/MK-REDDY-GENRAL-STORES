@@ -1,0 +1,86 @@
+/**
+ * /api/img?url=<encoded-url>
+ *
+ * Proxies external product images through our own origin so browser tracking
+ * prevention never blocks them.
+ *
+ * Security: HTTPS only + blocks private/loopback IPs (SSRF protection).
+ * Any public HTTPS image URL is allowed — needed because SerpAPI returns
+ * images from many different CDNs.
+ */
+
+// Private / loopback ranges blocked to prevent SSRF
+const BLOCKED_HOSTS = [
+  /^localhost$/i,
+  /^127\./,
+  /^10\./,
+  /^172\.(1[6-9]|2\d|3[01])\./,
+  /^192\.168\./,
+  /^::1$/,
+  /^0\.0\.0\.0$/,
+];
+
+const CACHE_SECONDS = 60 * 60 * 24 * 7; // 7 days
+
+export async function GET(request) {
+  const { searchParams } = new URL(request.url);
+  const raw = searchParams.get("url");
+
+  if (!raw) {
+    return new Response("Missing url parameter", { status: 400 });
+  }
+
+  let target;
+  try {
+    target = new URL(raw);
+  } catch {
+    return new Response("Invalid url parameter", { status: 400 });
+  }
+
+  // Only allow HTTP/HTTPS (no file://, data://, etc.)
+  if (target.protocol !== "https:" && target.protocol !== "http:") {
+    return new Response("Only HTTP/HTTPS URLs are allowed", { status: 403 });
+  }
+
+  // Block private/loopback hosts (SSRF protection)
+  if (BLOCKED_HOSTS.some((re) => re.test(target.hostname))) {
+    return new Response("Host not allowed", { status: 403 });
+  }
+
+  try {
+    const upstream = await fetch(target.toString(), {
+      headers: {
+        // Mimic a browser request so Amazon CDN doesn't reject us
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "image/webp,image/avif,image/*,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        Referer: "https://www.amazon.in/",
+      },
+      // Don't follow Amazon's tracking redirects
+      redirect: "follow",
+    });
+
+    if (!upstream.ok) {
+      return new Response(`Upstream error: ${upstream.status}`, {
+        status: upstream.status,
+      });
+    }
+
+    const contentType = upstream.headers.get("content-type") || "image/jpeg";
+    const buffer = await upstream.arrayBuffer();
+
+    return new Response(buffer, {
+      status: 200,
+      headers: {
+        "Content-Type": contentType,
+        "Cache-Control": `public, max-age=${CACHE_SECONDS}, immutable`,
+        // Prevent the response itself from being treated as a tracker
+        "Cross-Origin-Resource-Policy": "cross-origin",
+      },
+    });
+  } catch (err) {
+    console.error("[img-proxy] fetch failed:", err.message);
+    return new Response("Failed to fetch image", { status: 502 });
+  }
+}

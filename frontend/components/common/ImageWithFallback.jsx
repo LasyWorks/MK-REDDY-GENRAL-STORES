@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, memo } from "react";
+import proxyImg from "@/lib/imgProxy";
 
 /**
  * Generates a consistent background color from a string (category/product name).
@@ -70,7 +71,7 @@ function ImageWithFallback({ src, alt = "", className = "", size = "md" }) {
 
   return (
     <img
-      src={src}
+      src={proxyImg(src)}
       alt={alt}
       className={className}
       loading="lazy"

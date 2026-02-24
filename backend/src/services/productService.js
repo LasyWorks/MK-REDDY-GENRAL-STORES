@@ -133,7 +133,8 @@ class ProductService {
   }
 
   /**
-   * Delete product
+   * Soft-delete product (sets is_active = false, never hard-deletes)
+   * The product remains in the DB and can be re-activated from the admin dashboard.
    */
   static async delete(id, adminId) {
     const product = await Product.findById(id);
@@ -141,24 +142,26 @@ class ProductService {
       throw ApiError.notFound('Product not found');
     }
 
-    await Product.delete(id);
+    // Soft delete: mark inactive instead of removing the row
+    await Product.update(id, { is_active: false });
 
     // Log admin action
     await AdminLog.create({
       adminId,
-      action: 'DELETE_PRODUCT',
+      action: 'DEACTIVATE_PRODUCT',
       entityType: 'product',
       entityId: id,
-      oldValue: product,
+      oldValue: { is_active: product.is_active },
+      newValue: { is_active: false },
     });
 
-    // Remove deleted product from its category page cache
+    // Revalidate so the product disappears from its category page
     await revalidatePages({
       tags: ['products', `product-${id}`, `category-${product.category_id}`],
       paths: [`/categories/${product.category_id}`],
     });
 
-    return { message: 'Product deleted successfully' };
+    return { message: 'Product deactivated successfully' };
   }
 
   /**

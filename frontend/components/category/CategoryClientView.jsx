@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, memo } from "react";
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import SubcategorySidebar from "./SubcategorySidebar";
 import ProductGrid from "./ProductGrid";
 import { useLanguage } from "@/context/LanguageContext";
@@ -123,20 +124,29 @@ function CategoryClientView({
   return (
     <div className="min-h-screen bg-gray-50 pt-4 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Breadcrumb */}
-        <nav className="text-sm text-gray-500 mb-4 flex items-center gap-2">
+        {/* Breadcrumb — Home > Main Category > Subcategory */}
+        <nav className="text-sm text-gray-500 mb-4 flex items-center gap-1.5 flex-wrap">
           <Link href="/" className="hover:text-green-600 transition-colors">
             Home
           </Link>
-          <span>/</span>
-          <span className="text-gray-900 font-medium">{displayMain?.name}</span>
-          {activeSubcategory && activeSubcategory.id !== displayMain?.id && (
+          <ChevronRight className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+          {activeSubcategory && activeSubcategory.id !== displayMain?.id ? (
             <>
-              <span>/</span>
-              <span className="text-gray-900 font-medium">
+              <Link
+                href={`/categories/${displayMain?.id}`}
+                className="hover:text-green-600 transition-colors whitespace-nowrap"
+              >
+                {displayMain?.name}
+              </Link>
+              <ChevronRight className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+              <span className="text-gray-900 font-medium whitespace-nowrap">
                 {activeSubcategory.name}
               </span>
             </>
+          ) : (
+            <span className="text-gray-900 font-medium whitespace-nowrap">
+              {displayMain?.name}
+            </span>
           )}
         </nav>
 

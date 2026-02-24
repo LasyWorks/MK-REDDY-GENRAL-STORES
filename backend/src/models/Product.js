@@ -3,17 +3,22 @@ const { translateProductFields } = require('../utils/translate');
 
 // Translation JOIN helper (lang = $1 parameter position)
 const buildTransJoins = (langParam) => `
-  LEFT JOIN product_translations    pt_req ON p.id = pt_req.product_id AND pt_req.lang_code = ${langParam}
-  LEFT JOIN product_translations    pt_en  ON p.id = pt_en.product_id  AND pt_en.lang_code  = 'en'
-  LEFT JOIN category_translations   ct_req ON c.id = ct_req.category_id AND ct_req.lang_code = ${langParam}
-  LEFT JOIN category_translations   ct_en  ON c.id = ct_en.category_id  AND ct_en.lang_code  = 'en'
+  LEFT JOIN product_translations    pt_req  ON p.id  = pt_req.product_id   AND pt_req.lang_code  = ${langParam}
+  LEFT JOIN product_translations    pt_en   ON p.id  = pt_en.product_id    AND pt_en.lang_code   = 'en'
+  LEFT JOIN category_translations   ct_req  ON c.id  = ct_req.category_id  AND ct_req.lang_code  = ${langParam}
+  LEFT JOIN category_translations   ct_en   ON c.id  = ct_en.category_id   AND ct_en.lang_code   = 'en'
+  LEFT JOIN categories              pc      ON pc.id = c.parent_id
+  LEFT JOIN category_translations   pct_req ON pc.id = pct_req.category_id AND pct_req.lang_code = ${langParam}
+  LEFT JOIN category_translations   pct_en  ON pc.id = pct_en.category_id  AND pct_en.lang_code  = 'en'
 `;
 const PROD_TRANS_COLS = `
   COALESCE(pt_req.name,        pt_en.name)        AS name,
   COALESCE(pt_req.description, pt_en.description) AS description,
   pt_en.name        AS name_en,
   pt_en.description AS description_en,
-  COALESCE(ct_req.name, ct_en.name) AS category_name
+  COALESCE(ct_req.name, ct_en.name)   AS category_name,
+  c.parent_id                         AS category_parent_id,
+  COALESCE(pct_req.name, pct_en.name) AS parent_category_name
 `;
 
 class Product {
@@ -36,9 +41,9 @@ class Product {
   static async findAll(options = {}) {
     const {
       page = 1, limit = 20,
-      categoryId = null, isActive = null, isFeatured = null,
+      categoryId = null, parentCategoryId = null, isActive = null, isFeatured = null,
       search = null, minPrice = null, maxPrice = null, inStock = null,
-      stockThreshold = null,
+      stockThreshold = null, brand = null,
       sortBy = 'name', sortOrder = 'ASC', lang = 'en',
     } = options;
     const offset = (page - 1) * limit;
@@ -48,12 +53,14 @@ class Product {
     let   idx    = 2;
 
     if (categoryId)           { conds.push(`p.category_id = $${idx++}`);       params.push(categoryId); }
+    if (parentCategoryId)     { conds.push(`c.parent_id = $${idx++}`);         params.push(parentCategoryId); }
     if (isActive !== null)    { conds.push(`p.is_active = $${idx++}`);         params.push(isActive ? true : false); }
     if (isFeatured !== null)  { conds.push(`p.is_featured = $${idx++}`);     params.push(isFeatured ? true : false); }
+    if (brand)                { conds.push(`p.brand ILIKE $${idx++}`);         params.push(brand); }
     if (search) {
-      conds.push(`(pt_en.name ILIKE $${idx} OR p.sku ILIKE $${idx + 1})`);
-      params.push(`%${search}%`, `%${search}%`);
-      idx += 2;
+      conds.push(`(pt_en.name ILIKE $${idx} OR p.sku ILIKE $${idx + 1} OR p.brand ILIKE $${idx + 2})`);
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+      idx += 3;
     }
     if (minPrice !== null)    { conds.push(`p.price >= $${idx++}`);            params.push(minPrice); }
     if (maxPrice !== null)    { conds.push(`p.price <= $${idx++}`);            params.push(maxPrice); }
@@ -112,7 +119,7 @@ class Product {
         unit_type || null, unit_pack_size || null, hsn_code || null,
         mrp || null, purchase_price || null, price,
         wholesale_price || null, gst_percentage || 18, discount || null, margin || null,
-        stock_quantity || 0, min_order_quantity || 1, max_order_quantity || null,
+        stock_quantity ?? 100, min_order_quantity || 1, max_order_quantity || null,
         image_url || null, is_active !== false, is_featured || false,
       ]
     );
@@ -143,7 +150,8 @@ class Product {
     // Base columns
     const base = ['category_id','sku','brand','variant','unit_type','unit_pack_size','hsn_code',
                   'mrp','purchase_price','price','wholesale_price','gst_percentage','discount','margin',
-                  'stock_quantity','min_order_quantity','max_order_quantity','image_url','is_active','is_featured'];
+                  'stock_quantity','min_order_quantity','max_order_quantity','image_url','image_urls',
+                  'is_active','is_featured'];
     const fields = []; const vals = []; let idx = 1;
     for (const [k, v] of Object.entries(data)) {
       if (base.includes(k) && v !== undefined) { fields.push(`${k} = $${idx++}`); vals.push(v); }

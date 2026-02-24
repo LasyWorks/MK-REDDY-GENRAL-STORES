@@ -7,15 +7,45 @@ import {
   User,
   ShoppingCart,
   Globe,
+  LogIn,
 } from "lucide-react";
 import Searchbar from "../common/Searchbar";
 import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "@/context/LanguageContext";
+import { useCart } from "@/context/CartContext";
+import authService from "@/services/authService";
+import secureStorage from "@/lib/secureStorage";
 
 export default function Navbar() {
   const { lang, setLang } = useLanguage();
+  const { totalCount, openCart } = useCart();
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const languageMenuRef = useRef(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check auth state on mount and when storage changes (login/logout in same or other tab)
+  useEffect(() => {
+    const check = () => {
+      const loggedIn = authService.isAuthenticated();
+      setIsLoggedIn(loggedIn);
+      if (loggedIn) {
+        try {
+          const user = JSON.parse(secureStorage.getItem("user") || "{}");
+          setIsAdmin(user.user_type === "admin");
+        } catch { setIsAdmin(false); }
+      } else {
+        setIsAdmin(false);
+      }
+    };
+    check();
+    window.addEventListener("storage", check);
+    window.addEventListener("authChange", check);
+    return () => {
+      window.removeEventListener("storage", check);
+      window.removeEventListener("authChange", check);
+    };
+  }, []);
 
   const languages = [
     { code: "en", label: "English", nativeLabel: "English" },
@@ -108,29 +138,61 @@ export default function Navbar() {
               )}
             </div>
 
-            <Link
-              href="/orders"
-              className="hidden md:flex items-center gap-2 text-gray-700 hover:text-blue-600 font-medium text-[15px] transition-colors"
-            >
-              <ClipboardList className="w-5 h-5" />
-              <span>Orders</span>
-            </Link>
+            {isLoggedIn ? (
+              <>
+                {isAdmin ? (
+                  <Link
+                    href="/admin/dashboard"
+                    prefetch={false}
+                    className="hidden md:flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
+                  >
+                    <ClipboardList className="w-5 h-5" />
+                    <span>Dashboard</span>
+                  </Link>
+                ) : (
+                  <Link
+                    href="/orders"
+                    prefetch={false}
+                    className="hidden md:flex items-center gap-2 text-gray-700 hover:text-blue-600 font-medium text-[15px] transition-colors"
+                  >
+                    <ClipboardList className="w-5 h-5" />
+                    <span>Orders</span>
+                  </Link>
+                )}
+                <Link
+                  href="/profile"
+                  prefetch={false}
+                  className="hidden md:flex items-center gap-2 text-gray-700 hover:text-blue-600 font-medium text-[15px] transition-colors"
+                >
+                  <User className="w-5 h-5" />
+                  <span>Profile</span>
+                </Link>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                prefetch={false}
+                className="hidden md:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Sign In</span>
+              </Link>
+            )}
 
-            <Link
-              href="/profile"
-              className="hidden md:flex items-center gap-2 text-gray-700 hover:text-blue-600 font-medium text-[15px] transition-colors"
-            >
-              <User className="w-5 h-5" />
-              <span>Profile</span>
-            </Link>
-
-            <Link
-              href="/cart"
-              className="flex items-center gap-2 text-blue-600 font-medium text-[15px] hover:text-blue-700 transition-colors"
+            {/* Cart icon with badge */}
+            <button
+              onClick={openCart}
+              className="relative flex items-center gap-2 text-blue-600 font-medium text-[15px] hover:text-blue-700 transition-colors"
+              aria-label="Open cart"
             >
               <ShoppingCart className="w-5 h-5" />
-              <span>Cart</span>
-            </Link>
+              <span className="hidden sm:inline">Cart</span>
+              {totalCount > 0 && (
+                <span className="absolute -top-2 -right-2 sm:-right-5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1 leading-none">
+                  {totalCount > 99 ? "99+" : totalCount}
+                </span>
+              )}
+            </button>
           </nav>
         </div>
 
