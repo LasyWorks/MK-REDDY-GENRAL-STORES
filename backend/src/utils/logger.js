@@ -18,6 +18,21 @@ const logFormat = winston.format.combine(
   })
 );
 
+// Skip file transports in development (disk I/O adds latency to every request)
+const fileTransports = config.env !== 'development' ? [
+  new winston.transports.File({
+    filename: path.join(__dirname, '../../logs/error.log'),
+    level: 'error',
+    maxsize: 5242880, // 5MB
+    maxFiles: 5,
+  }),
+  new winston.transports.File({
+    filename: path.join(__dirname, '../../logs/combined.log'),
+    maxsize: 5242880, // 5MB
+    maxFiles: 5,
+  }),
+] : [];
+
 // Create logger instance
 const logger = winston.createLogger({
   level: config.env === 'production' ? 'info' : 'debug',
@@ -30,19 +45,7 @@ const logger = winston.createLogger({
         logFormat
       ),
     }),
-    // File transport for errors
-    new winston.transports.File({
-      filename: path.join(__dirname, '../../logs/error.log'),
-      level: 'error',
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
-    }),
-    // File transport for all logs
-    new winston.transports.File({
-      filename: path.join(__dirname, '../../logs/combined.log'),
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
-    }),
+    ...fileTransports,
   ],
   exceptionHandlers: [
     new winston.transports.File({

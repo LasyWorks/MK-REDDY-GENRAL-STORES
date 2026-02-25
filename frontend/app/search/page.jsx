@@ -1,9 +1,11 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState, useCallback, Suspense } from "react";
+import { useEffect, useState, useCallback, useMemo, Suspense } from "react";
 import { Search } from "lucide-react";
 import ProductCard from "@/components/category/ProductCard";
+import ProductCardWithVariants from "@/components/category/ProductCardWithVariants";
+import { groupProductsByVariant } from "@/lib/productGrouping";
 import { useLanguage } from "@/context/LanguageContext";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
@@ -39,6 +41,11 @@ function SearchPageInner() {
     search(q);
   }, [q, search]);
 
+  // Group products by variants
+  const productGroups = useMemo(() => {
+    return groupProductsByVariant(products);
+  }, [products]);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6">
@@ -53,7 +60,7 @@ function SearchPageInner() {
           )}
         </h1>
         {!loading && q && (
-          <p className="text-sm text-gray-500 mt-1">{total} product{total !== 1 ? "s" : ""} found</p>
+          <p className="text-sm text-gray-500 mt-1">{productGroups.length} product{productGroups.length !== 1 ? "s" : ""} found</p>
         )}
       </div>
 
@@ -63,10 +70,14 @@ function SearchPageInner() {
             <div key={i} className="bg-gray-100 rounded-xl animate-pulse h-64" />
           ))}
         </div>
-      ) : products.length > 0 ? (
+      ) : productGroups.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {products.map((p) => (
-            <ProductCard key={p.id} product={p} />
+          {productGroups.map((group, idx) => (
+            group.variants.length > 1 ? (
+              <ProductCardWithVariants key={`${group.name}-${idx}`} variants={group.variants} />
+            ) : (
+              <ProductCard key={group.variants[0].id} product={group.variants[0]} />
+            )
           ))}
         </div>
       ) : q ? (

@@ -14,6 +14,17 @@ const sendOTP = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @desc    Send OTP by email (lookup phone from email)
+ * @route   POST /api/v1/auth/otp/send-by-email
+ * @access  Public
+ */
+const sendOTPByEmail = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  const result = await AuthService.sendOTPByEmail(email);
+  ApiResponse.success(res, result, 'OTP sent successfully');
+});
+
+/**
  * @desc    Verify OTP and login customer
  * @route   POST /api/v1/auth/verify-otp
  * @access  Public
@@ -139,6 +150,7 @@ const changePassword = asyncHandler(async (req, res) => {
 
 module.exports = {
   sendOTP,
+  sendOTPByEmail,
   verifyOTP,
   resendOTP,
   register,

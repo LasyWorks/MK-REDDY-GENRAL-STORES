@@ -13,6 +13,13 @@ const { validateSendOTP, validateVerifyOTP, validateRegister, validateAdminLogin
 router.post('/otp/send', otpLimiter, validateSendOTP, authController.sendOTP);
 
 /**
+ * @route   POST /api/v1/auth/otp/send-by-email
+ * @desc    Send OTP by email (looks up phone from email)
+ * @access  Public
+ */
+router.post('/otp/send-by-email', otpLimiter, authController.sendOTPByEmail);
+
+/**
  * @route   POST /api/v1/auth/otp/verify
  * @desc    Verify OTP and login/register
  * @access  Public

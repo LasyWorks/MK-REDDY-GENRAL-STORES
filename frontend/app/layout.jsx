@@ -3,8 +3,10 @@ import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import CategoryNav from "@/components/layout/CategoryNav";
 import CartSidebar from "@/components/cart/CartSidebar";
+import FestiveBanner from "@/components/Home/FestiveBanner";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { CartProvider } from "@/context/CartContext";
+import { PromotionProvider } from "@/context/PromotionContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,10 +32,13 @@ export default function RootLayout({ children }) {
       >
         <LanguageProvider>
           <CartProvider>
-            <Navbar />
-            <CategoryNav />
-            {children}
-            <CartSidebar />
+            <PromotionProvider>
+              <Navbar />
+              <FestiveBanner />
+              <CategoryNav />
+              {children}
+              <CartSidebar />
+            </PromotionProvider>
           </CartProvider>
         </LanguageProvider>
       </body>

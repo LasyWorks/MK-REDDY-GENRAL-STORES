@@ -79,6 +79,10 @@ class AuthService {
       secureStorage.removeItem("token");
       secureStorage.removeItem("refreshToken");
       secureStorage.removeItem("user");
+      // Clear cart so it doesn't persist for the next session
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("mk-reddy-cart");
+      }
     }
   }
 

@@ -51,6 +51,13 @@ router.delete('/', cartController.clearCart);
 router.post('/sync-prices', cartController.syncPrices);
 
 /**
+ * @route   POST /api/v1/cart/sync-all
+ * @desc    Replace backend cart with frontend state (pre-checkout)
+ * @access  Private
+ */
+router.post('/sync-all', cartController.syncAll);
+
+/**
  * @route   GET /api/v1/cart/validate
  * @desc    Validate cart (check stock, prices)
  * @access  Private

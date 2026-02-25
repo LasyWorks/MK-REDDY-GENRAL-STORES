@@ -56,6 +56,15 @@ class CartService {
   async syncPrices() {
     return api.post("/cart/sync-prices");
   }
+
+  /**
+   * Replace backend cart entirely with frontend items (pre-checkout sync)
+   * @param {Array} items - [{ product_id, quantity }]
+   * @returns {Promise} Backend cart after sync
+   */
+  async syncAll(items) {
+    return api.post("/cart/sync-all", { items });
+  }
 }
 
 export default new CartService();

@@ -1,4 +1,4 @@
-const { query, queryOne, insert, modify } = require('../config/database');
+const { query, queryOne, insert, modify, withTransaction } = require('../config/database');
 
 class Cart {
   static async getOrCreate(userId) {
@@ -16,6 +16,7 @@ class Cart {
     const items = await query(
       `SELECT ci.*,
               COALESCE(pt_req.name, pt_en.name)  AS product_name,
+              pt_en.name AS product_name_en,
               p.unit_type, p.price AS current_price,
               p.stock_quantity, p.gst_percentage, p.is_active, p.image_url,
               COALESCE(ct_req.name, ct_en.name)  AS category_name
@@ -42,6 +43,7 @@ class Cart {
         id: item.id,
         product_id: item.product_id,
         product_name: item.product_name,
+        product_name_en: item.product_name_en || item.product_name,
         category_name: item.category_name,
         unit_type: item.unit_type,
         quantity: item.quantity,
@@ -148,6 +150,33 @@ class Cart {
       }
     }
     return { valid: issues.length === 0, issues };
+  }
+
+  /**
+   * Replace backend cart entirely with the provided items.
+   * Used for a reliable full-sync before order placement.
+   */
+  static async replaceAll(userId, items) {
+    const cart = await this.getOrCreate(userId);
+    return withTransaction(async (client) => {
+      await client.query('DELETE FROM cart_items WHERE cart_id = $1', [cart.id]);
+      for (const item of items) {
+        // Get current price from DB (never trust client prices)
+        const product = await client.query(
+          'SELECT price, stock_quantity, is_active FROM products WHERE id = $1',
+          [item.product_id]
+        );
+        if (!product.rows.length) continue;               // product deleted
+        const p = product.rows[0];
+        if (!p.is_active) continue;                       // product deactivated
+        const qty = Math.min(item.quantity, p.stock_quantity); // cap to stock
+        if (qty <= 0) continue;
+        await client.query(
+          'INSERT INTO cart_items (cart_id, product_id, quantity, unit_price) VALUES ($1,$2,$3,$4)',
+          [cart.id, item.product_id, qty, p.price]
+        );
+      }
+    });
   }
 }
 

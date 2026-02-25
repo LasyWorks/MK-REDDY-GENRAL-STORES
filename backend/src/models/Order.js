@@ -74,13 +74,15 @@ class Order {
     return { orders: rows.map(r => this.formatOrder(r)), total: parseInt(countRow.total, 10) };
   }
 
-  static async createFromCart(userId, cart, notes = null) {
+  static async createFromCart(userId, cart, notes = null, promo = {}) {
+    const { promotionId = null, promotionDiscount = 0, promotionTitle = null } = promo;
     return withTransaction(async (client) => {
       const orderNumber = generateOrderNumber();
+      const finalTotal = parseFloat((cart.total - promotionDiscount).toFixed(2));
       const oRes = await client.query(
-        `INSERT INTO orders (user_id, order_number, status, subtotal, total_gst, total_amount, notes)
-         VALUES ($1,$2,'pending',$3,$4,$5,$6) RETURNING id`,
-        [userId, orderNumber, cart.subtotal, cart.total_gst, cart.total, notes]
+        `INSERT INTO orders (user_id, order_number, status, subtotal, total_gst, total_amount, notes, promotion_id, promotion_discount, promotion_title)
+         VALUES ($1,$2,'pending',$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
+        [userId, orderNumber, cart.subtotal, cart.total_gst, Math.max(finalTotal, 0), notes, promotionId, promotionDiscount, promotionTitle]
       );
       const orderId = oRes.rows[0].id;
       for (const item of cart.items) {
@@ -154,7 +156,11 @@ class Order {
       customer_phone: order.customer_phone, user_type: order.user_type,
       status: order.status,
       subtotal: parseFloat(order.subtotal), total_gst: parseFloat(order.total_gst),
-      total_amount: parseFloat(order.total_amount), notes: order.notes,
+      total_amount: parseFloat(order.total_amount),
+      promotion_id: order.promotion_id || null,
+      promotion_discount: parseFloat(order.promotion_discount || 0),
+      promotion_title: order.promotion_title || null,
+      notes: order.notes,
       confirmed_at: order.confirmed_at, ready_at: order.ready_at,
       picked_up_at: order.picked_up_at, cancelled_at: order.cancelled_at,
       cancellation_reason: order.cancellation_reason,

@@ -366,27 +366,48 @@ export default function ProductDetailClient({ product, variants: initialVariants
             {hasVariants && (
               <div>
                 <p className="text-sm font-semibold text-gray-700 mb-2">
-                  Select Size / Pack
+                  Select Unit
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {localVariants.map((v) => {
                     const outOfStock = (v.stock_quantity ?? 0) <= 0;
                     const isActive = v.id === selectedId;
+                    const vPrice = parseFloat(v.price || 0);
+                    const vMrp = parseFloat(v.mrp || vPrice);
+                    const vLabel = variantLabel(v);
                     return (
                       <button
                         key={v.id}
                         onClick={() => handleVariantSelect(v)}
                         disabled={outOfStock}
                         title={outOfStock ? "Out of Stock" : undefined}
-                        className={`relative px-3 py-1.5 text-sm font-medium rounded-lg border transition-all
+                        className={`relative flex flex-col items-center justify-center px-4 py-2.5 min-w-[72px] rounded-xl border-2 transition-all
                           ${isActive
-                            ? "border-green-600 bg-green-50 text-green-700 ring-2 ring-green-300"
+                            ? "border-green-600 bg-white shadow-sm"
                             : outOfStock
-                            ? "border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed line-through"
-                            : "border-gray-300 text-gray-700 hover:border-green-500 hover:text-green-700"
+                            ? "border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed opacity-60"
+                            : "border-gray-200 bg-white hover:border-green-400"
                           }`}
                       >
-                        {variantLabel(v)}
+                        {/* Size label */}
+                        <span className={`text-xs font-semibold leading-tight ${
+                          isActive ? "text-gray-800" : outOfStock ? "text-gray-300 line-through" : "text-gray-700"
+                        }`}>
+                          {vLabel}
+                        </span>
+                        {/* Price */}
+                        <span className={`text-xs font-bold mt-0.5 ${
+                          isActive ? "text-green-700" : outOfStock ? "text-gray-300" : "text-gray-600"
+                        }`}>
+                          ₹{vPrice.toFixed(0)}
+                        </span>
+                        {/* MRP strikethrough if discounted */}
+                        {vMrp > vPrice && !outOfStock && (
+                          <span className="text-[10px] text-gray-400 line-through leading-none">
+                            ₹{vMrp.toFixed(0)}
+                          </span>
+                        )}
+                        {/* Out of stock badge */}
                         {outOfStock && (
                           <span className="absolute -top-1.5 -right-1.5 bg-red-400 text-white text-[8px] font-bold px-1 rounded-full leading-tight">
                             OOS

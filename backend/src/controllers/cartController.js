@@ -75,6 +75,17 @@ const validateCart = asyncHandler(async (req, res) => {
   ApiResponse.success(res, result);
 });
 
+/**
+ * @desc    Full-replace backend cart with frontend state (pre-checkout sync)
+ * @route   POST /api/v1/cart/sync-all
+ * @access  Private
+ */
+const syncAll = asyncHandler(async (req, res) => {
+  const { items } = req.body;
+  const cart = await CartService.syncAll(req.user.id, items);
+  ApiResponse.success(res, cart, 'Cart synced');
+});
+
 module.exports = {
   getCart,
   addItem,
@@ -83,4 +94,5 @@ module.exports = {
   clearCart,
   syncPrices,
   validateCart,
+  syncAll,
 };

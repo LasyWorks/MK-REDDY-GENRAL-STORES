@@ -15,7 +15,7 @@ class OrderService {
       limit: params.limit || 10,
       ...params,
     };
-    return api.get("/orders", queryParams);
+    return api.get("/orders/my-orders", queryParams);
   }
 
   /**

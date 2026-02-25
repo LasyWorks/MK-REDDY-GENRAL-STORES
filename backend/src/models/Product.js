@@ -41,9 +41,10 @@ class Product {
   static async findAll(options = {}) {
     const {
       page = 1, limit = 20,
+      ids = null,
       categoryId = null, parentCategoryId = null, isActive = null, isFeatured = null,
       search = null, minPrice = null, maxPrice = null, inStock = null,
-      stockThreshold = null, brand = null,
+      stockThreshold = null, brand = null, hasDiscount = null,
       sortBy = 'name', sortOrder = 'ASC', lang = 'en',
     } = options;
     const offset = (page - 1) * limit;
@@ -52,11 +53,13 @@ class Product {
     const params = [lang];   // $1 = lang
     let   idx    = 2;
 
+    if (ids && Array.isArray(ids) && ids.length > 0) { conds.push(`p.id = ANY($${idx++})`); params.push(ids); }
     if (categoryId)           { conds.push(`p.category_id = $${idx++}`);       params.push(categoryId); }
     if (parentCategoryId)     { conds.push(`c.parent_id = $${idx++}`);         params.push(parentCategoryId); }
     if (isActive !== null)    { conds.push(`p.is_active = $${idx++}`);         params.push(isActive ? true : false); }
-    if (isFeatured !== null)  { conds.push(`p.is_featured = $${idx++}`);     params.push(isFeatured ? true : false); }
+    if (isFeatured !== null)  { conds.push(`p.is_featured = $${idx++}`);       params.push(isFeatured ? true : false); }
     if (brand)                { conds.push(`p.brand ILIKE $${idx++}`);         params.push(brand); }
+    if (hasDiscount === true)  { conds.push('p.mrp IS NOT NULL AND p.mrp > p.price'); }
     if (search) {
       conds.push(`(pt_en.name ILIKE $${idx} OR p.sku ILIKE $${idx + 1} OR p.brand ILIKE $${idx + 2})`);
       params.push(`%${search}%`, `%${search}%`, `%${search}%`);
@@ -69,7 +72,7 @@ class Product {
 
     const where = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
 
-    const allowedSort = { name: 'pt_en.name', price: 'p.price', created_at: 'p.created_at', stock_quantity: 'p.stock_quantity' };
+    const allowedSort = { name: 'pt_en.name', price: 'p.price', created_at: 'p.created_at', stock_quantity: 'p.stock_quantity', discount: '(p.mrp - p.price)' };
     const sortCol  = allowedSort[sortBy] || 'pt_en.name';
     const sortDir  = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
 

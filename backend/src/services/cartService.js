@@ -142,6 +142,20 @@ class CartService {
       cart,
     };
   }
+
+  /**
+   * Replace backend cart entirely with items from frontend.
+   * Used for reliable pre-checkout sync.
+   * @param {string} userId
+   * @param {Array} items - [{ product_id, quantity }]
+   */
+  static async syncAll(userId, items) {
+    if (!Array.isArray(items) || items.length === 0) {
+      throw ApiError.badRequest('Items array is required');
+    }
+    await Cart.replaceAll(userId, items);
+    return this.getCart(userId);
+  }
 }
 
 module.exports = CartService;

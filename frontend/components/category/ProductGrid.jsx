@@ -1,7 +1,9 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import ProductCard from "./ProductCard";
+import ProductCardWithVariants from "./ProductCardWithVariants";
+import { groupProductsByVariant } from "@/lib/productGrouping";
 
 function ProductGridSkeleton() {
   return (
@@ -36,23 +38,32 @@ function ProductGrid({
 }) {
   const title = activeSubcategoryName || mainCategoryName;
 
+  // Group products by variants
+  const productGroups = useMemo(() => {
+    return groupProductsByVariant(products);
+  }, [products]);
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 min-h-[500px]">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold text-gray-900">{title}</h2>
         {!loading && (
           <span className="text-sm text-gray-500">
-            {products.length} products
+            {productGroups.length} products
           </span>
         )}
       </div>
 
       {loading ? (
         <ProductGridSkeleton />
-      ) : products.length > 0 ? (
+      ) : productGroups.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
+          {productGroups.map((group, idx) => (
+            group.variants.length > 1 ? (
+              <ProductCardWithVariants key={`${group.name}-${idx}`} variants={group.variants} />
+            ) : (
+              <ProductCard key={group.variants[0].id} product={group.variants[0]} />
+            )
           ))}
         </div>
       ) : (

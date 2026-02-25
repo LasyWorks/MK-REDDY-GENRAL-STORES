@@ -55,11 +55,13 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Sanitize request data against XSS
 app.use(xssClean());
 
-// Request logging
+// Request logging — in dev use morgan only (console, no disk I/O)
+// In production use the structured requestLogger (writes to log files)
 if (config.env === 'development') {
   app.use(morgan('dev'));
+} else {
+  app.use(requestLogger);
 }
-app.use(requestLogger);
 
 // Language middleware
 app.use(languageMiddleware);

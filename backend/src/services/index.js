@@ -9,6 +9,7 @@ const EmailService = require('./emailService');
 const AdminService = require('./adminService');
 const SmsService = require('./smsService');
 const NotificationService = require('./notificationService');
+const PromotionService = require('./promotionService');
 
 module.exports = {
   AuthService,
@@ -22,4 +23,5 @@ module.exports = {
   AdminService,
   SmsService,
   NotificationService,
+  PromotionService,
 };

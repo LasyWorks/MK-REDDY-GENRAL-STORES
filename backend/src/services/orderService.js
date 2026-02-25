@@ -1,4 +1,4 @@
-const { Order, Cart, User, Invoice, AdminLog } = require('../models');
+const { Order, Cart, User, Invoice, AdminLog, Promotion } = require('../models');
 const EmailService = require('./emailService');
 const NotificationService = require('./notificationService');
 const ApiError = require('../utils/ApiError');
@@ -31,8 +31,52 @@ class OrderService {
     await Cart.syncPrices(userId);
     const updatedCart = await Cart.getWithItems(userId, lang);
 
+    // ── Calculate promotion discount ──────────────────────────────
+    let promoDiscount = 0;
+    let promoId = null;
+    let promoTitle = null;
+
+    try {
+      const promoMap = await Promotion.getActiveProductMap();
+      // Group eligible items by promotion
+      const promoTotals = {};  // { promoId: { discount, title, type, value, qualifyingTotal } }
+      for (const item of updatedCart.items) {
+        const p = promoMap[item.product_id];
+        if (!p) continue;
+        const key = p.promotion_id;
+        if (!promoTotals[key]) {
+          promoTotals[key] = {
+            discount: 0, title: p.title,
+            discount_type: p.discount_type,
+            discount_value: parseFloat(p.discount_value),
+            qualifyingTotal: 0,
+          };
+        }
+        promoTotals[key].qualifyingTotal += item.item_total;
+      }
+      // Pick the promo giving the best discount
+      for (const [pid, info] of Object.entries(promoTotals)) {
+        let d = 0;
+        if (info.discount_type === 'flat') {
+          d = Math.min(info.discount_value, info.qualifyingTotal);
+        } else {
+          d = parseFloat(((info.qualifyingTotal * info.discount_value) / 100).toFixed(2));
+          d = Math.min(d, info.qualifyingTotal);
+        }
+        if (d > promoDiscount) {
+          promoDiscount = parseFloat(d.toFixed(2));
+          promoId = pid;
+          promoTitle = info.title;
+        }
+      }
+    } catch (err) {
+      logger.error('Promotion discount calc failed (order will proceed without discount):', err);
+    }
+
     // Create order
-    const { orderId, orderNumber } = await Order.createFromCart(userId, updatedCart, notes);
+    const { orderId, orderNumber } = await Order.createFromCart(userId, updatedCart, notes, {
+      promotionId: promoId, promotionDiscount: promoDiscount, promotionTitle: promoTitle,
+    });
 
     // Get created order
     const order = await Order.findById(orderId, lang);
@@ -41,6 +85,15 @@ class OrderService {
     await Invoice.create(order, user);
 
     logger.info(`Order created: ${orderNumber} by user ${userId}`);
+
+    // Email order confirmation
+    try {
+      if (user.email) {
+        await EmailService.sendOrderConfirmation(order, user);
+      }
+    } catch (err) {
+      logger.error('Email confirmation failed:', err);
+    }
 
     // WhatsApp order confirmation
     try {

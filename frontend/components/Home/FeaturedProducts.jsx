@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import ProductCard from "@/components/category/ProductCard";
+import ProductCardWithVariants from "@/components/category/ProductCardWithVariants";
+import { groupProductsByVariant } from "@/lib/productGrouping";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
 
@@ -17,8 +19,7 @@ export default function FeaturedProducts() {
     try {
       setLoading(true);
       const res = await fetch(
-        `${API_URL}/products?is_featured=true&is_active=true&limit=20&lang=${lang}`,
-        { cache: "no-store" }
+        `${API_URL}/products?is_featured=true&is_active=true&limit=20&lang=${lang}`
       );
       if (!res.ok) throw new Error("failed");
       const json = await res.json();
@@ -34,6 +35,11 @@ export default function FeaturedProducts() {
     fetchFeatured();
   }, [fetchFeatured]);
 
+  // Group products by variants
+  const productGroups = useMemo(() => {
+    return groupProductsByVariant(products);
+  }, [products]);
+
   const scroll = (dir) => {
     if (!scrollRef.current) return;
     scrollRef.current.scrollBy({
@@ -43,7 +49,7 @@ export default function FeaturedProducts() {
   };
 
   // Don't render the section at all if there are no featured products
-  if (!loading && products.length === 0) return null;
+  if (!loading && productGroups.length === 0) return null;
 
   return (
     <section className="py-10 bg-gradient-to-b from-white to-yellow-50">
@@ -65,7 +71,7 @@ export default function FeaturedProducts() {
           </div>
 
           {/* Scroll arrows (desktop) */}
-          {!loading && products.length > 0 && (
+          {!loading && productGroups.length > 0 && (
             <div className="hidden sm:flex gap-2">
               <button
                 onClick={() => scroll("left")}
@@ -99,17 +105,21 @@ export default function FeaturedProducts() {
         )}
 
         {/* Products horizontal scroll */}
-        {!loading && products.length > 0 && (
+        {!loading && productGroups.length > 0 && (
           <div
             ref={scrollRef}
             className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory"
           >
-            {products.map((product) => (
+            {productGroups.map((group, idx) => (
               <div
-                key={product.id}
+                key={`${group.name}-${idx}`}
                 className="flex-shrink-0 w-44 sm:w-52 snap-start"
               >
-                <ProductCard product={product} />
+                {group.variants.length > 1 ? (
+                  <ProductCardWithVariants variants={group.variants} />
+                ) : (
+                  <ProductCard product={group.variants[0]} />
+                )}
               </div>
             ))}
           </div>

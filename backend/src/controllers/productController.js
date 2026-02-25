@@ -10,12 +10,19 @@ const { getPaginationParams } = require('../utils/helpers');
  */
 const getProducts = asyncHandler(async (req, res) => {
   const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
-  const { category_id, parent_category_id, is_active, is_featured, search, min_price, max_price, in_stock, sort_by, sort_order, brand } = req.query;
+  const { category_id, parent_category_id, is_active, is_featured, search, min_price, max_price, in_stock, sort_by, sort_order, brand, has_discount, id } = req.query;
   const lang = req.language || 'en';
+
+  // Handle id parameter - can be single string or array
+  let ids = null;
+  if (id) {
+    ids = Array.isArray(id) ? id : [id];
+  }
 
   const result = await ProductService.getAll({
     page,
     limit,
+    ids,
     categoryId: category_id,
     parentCategoryId: parent_category_id || null,
     isActive: is_active !== undefined ? is_active === 'true' : true,
@@ -24,6 +31,7 @@ const getProducts = asyncHandler(async (req, res) => {
     minPrice: min_price ? parseFloat(min_price) : null,
     maxPrice: max_price ? parseFloat(max_price) : null,
     inStock: in_stock === 'true',
+    hasDiscount: has_discount === 'true' ? true : null,
     sortBy: sort_by,
     sortOrder: sort_order,
     brand: brand || null,

@@ -11,6 +11,7 @@ const cartRoutes = require('./cartRoutes');
 const orderRoutes = require('./orderRoutes');
 const invoiceRoutes = require('./invoiceRoutes');
 const adminRoutes = require('./adminRoutes');
+const promotionRoutes = require('./promotionRoutes');
 
 // Health check endpoint — comprehensive
 router.get('/health', async (req, res) => {
@@ -84,5 +85,6 @@ router.use('/cart', cartRoutes);
 router.use('/orders', orderRoutes);
 router.use('/invoices', invoiceRoutes);
 router.use('/admin', adminRoutes);
+router.use('/promotions', promotionRoutes);
 
 module.exports = router;

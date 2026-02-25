@@ -8,6 +8,7 @@ const Order = require('./Order');
 const Invoice = require('./Invoice');
 const AdminLog = require('./AdminLog');
 const SystemConfig = require('./SystemConfig');
+const Promotion = require('./Promotion');
 
 module.exports = {
   User,
@@ -20,4 +21,5 @@ module.exports = {
   Invoice,
   AdminLog,
   SystemConfig,
+  Promotion,
 };

@@ -4,7 +4,9 @@ import { memo, useState } from "react";
 import Link from "next/link";
 import { Plus, Minus } from "lucide-react";
 import ImageWithFallback from "../common/ImageWithFallback";
+import CountdownTimer from "../common/CountdownTimer";
 import { useCart } from "@/context/CartContext";
+import { usePromotions } from "@/context/PromotionContext";
 
 function ProductCard({ product }) {
   const mrp = parseFloat(product.mrp || 0);
@@ -17,6 +19,8 @@ function ProductCard({ product }) {
   const isOutOfStock = (product.stock_quantity ?? 0) <= 0;
 
   const { items, addItem, updateQty } = useCart();
+  const { productPromoMap } = usePromotions();
+  const promo = productPromoMap[product.id] || null;
   const cartItem = items.find((i) => i.id === product.id);
   const qty = cartItem?.quantity ?? 0;
 
@@ -37,6 +41,14 @@ function ProductCard({ product }) {
     >
       {/* ── Image box: fixed 200px ── */}
       <div className="relative w-full bg-gray-50" style={{ height: "200px" }}>
+        {/* Promotion badge — top-right */}
+        {promo && !isOutOfStock && (
+          <span
+            className="absolute top-2 right-2 z-10 text-white text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse-glow"
+            style={{ backgroundColor: promo.theme_color || "#FF6B00" }}>
+            {promo.badge_text || "OFFER"}
+          </span>
+        )}
         {hasDiscount && !isOutOfStock && (
           <span className="absolute top-2 left-2 z-10 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
             {discountPercent}% off
@@ -66,6 +78,11 @@ function ProductCard({ product }) {
         <p className="text-xs text-gray-400">
           {product.unit_pack_size || product.unit_type || "1 unit"}
         </p>
+
+        {/* Promo countdown */}
+        {promo?.ends_at && !isOutOfStock && (
+          <CountdownTimer endsAt={promo.ends_at} compact themeColor={promo.theme_color} className="mt-0.5" />
+        )}
 
         <div className="flex-1" />
 

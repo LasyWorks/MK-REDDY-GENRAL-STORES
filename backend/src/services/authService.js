@@ -38,6 +38,44 @@ class AuthService {
   }
 
   /**
+   * Send OTP by email - looks up user's phone number from email
+   */
+  static async sendOTPByEmail(email) {
+    if (!email || !email.includes('@')) {
+      throw ApiError.badRequest('Valid email address is required');
+    }
+
+    // Find user by email
+    const user = await User.findByEmail(email);
+    
+    if (!user) {
+      throw ApiError.notFound('No account found with this email address');
+    }
+
+    if (!user.phone) {
+      throw ApiError.badRequest('No phone number associated with this account');
+    }
+
+    // Check if user is active
+    if (!user.is_active) {
+      throw ApiError.forbidden('Account is inactive');
+    }
+
+    if (user.is_blocked) {
+      throw ApiError.forbidden(`Account is blocked: ${user.blocked_reason || 'Contact support'}`);
+    }
+
+    // Send OTP to user's phone
+    const result = await this.sendOTP(user.phone, 'login');
+    
+    return {
+      ...result,
+      phone: user.phone, // Return phone so frontend can use it for verification
+      email: user.email,
+    };
+  }
+
+  /**
    * Verify OTP and login customer
    */
   static async verifyCustomerOTP(phone, otp) {

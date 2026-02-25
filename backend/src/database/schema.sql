@@ -72,7 +72,7 @@ CREATE INDEX idx_cart_items_cart ON cart_items(cart_id); CREATE INDEX idx_cart_i
 CREATE TRIGGER set_updated_at_cart_items BEFORE UPDATE ON cart_items FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();
 
 -- ORDERS
-CREATE TABLE orders (id UUID PRIMARY KEY DEFAULT uuid_generate_v7(), user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT, order_number VARCHAR(50) NOT NULL UNIQUE, status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','confirmed','ready_for_pickup','picked_up','cancelled')), subtotal DECIMAL(12,2) NOT NULL, total_gst DECIMAL(12,2) NOT NULL, total_amount DECIMAL(12,2) NOT NULL, notes TEXT, confirmed_at TIMESTAMPTZ, ready_at TIMESTAMPTZ, picked_up_at TIMESTAMPTZ, cancelled_at TIMESTAMPTZ, cancellation_reason VARCHAR(500), created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW());
+CREATE TABLE orders (id UUID PRIMARY KEY DEFAULT uuid_generate_v7(), user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT, order_number VARCHAR(50) NOT NULL UNIQUE, status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','confirmed','ready_for_pickup','picked_up','cancelled')), subtotal DECIMAL(12,2) NOT NULL, total_gst DECIMAL(12,2) NOT NULL, total_amount DECIMAL(12,2) NOT NULL, promotion_id UUID REFERENCES promotions(id) ON DELETE SET NULL, promotion_discount DECIMAL(12,2) NOT NULL DEFAULT 0, promotion_title VARCHAR(300), notes TEXT, confirmed_at TIMESTAMPTZ, ready_at TIMESTAMPTZ, picked_up_at TIMESTAMPTZ, cancelled_at TIMESTAMPTZ, cancellation_reason VARCHAR(500), created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW());
 CREATE INDEX idx_orders_user ON orders(user_id); CREATE INDEX idx_orders_number ON orders(order_number); CREATE INDEX idx_orders_status ON orders(status); CREATE INDEX idx_orders_created ON orders(created_at);
 CREATE TRIGGER set_updated_at_orders BEFORE UPDATE ON orders FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();
 
@@ -88,6 +88,45 @@ CREATE TRIGGER set_updated_at_invoices BEFORE UPDATE ON invoices FOR EACH ROW EX
 -- ADMIN LOGS
 CREATE TABLE admin_logs (id UUID PRIMARY KEY DEFAULT uuid_generate_v7(), admin_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, action VARCHAR(100) NOT NULL, entity_type VARCHAR(50), entity_id UUID, old_value JSONB, new_value JSONB, ip_address VARCHAR(45), user_agent VARCHAR(500), created_at TIMESTAMPTZ DEFAULT NOW());
 CREATE INDEX idx_admin_logs_admin ON admin_logs(admin_id); CREATE INDEX idx_admin_logs_action ON admin_logs(action); CREATE INDEX idx_admin_logs_entity ON admin_logs(entity_type,entity_id); CREATE INDEX idx_admin_logs_created ON admin_logs(created_at);
+
+-- PROMOTIONS / OFFERS
+CREATE TABLE promotions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+  title VARCHAR(200) NOT NULL,
+  description TEXT,
+  type VARCHAR(30) NOT NULL DEFAULT 'limited_time'
+    CHECK (type IN ('flash_sale','limited_time','festival','seasonal','recurring')),
+  discount_type VARCHAR(20) NOT NULL DEFAULT 'percentage'
+    CHECK (discount_type IN ('percentage','flat')),
+  discount_value DECIMAL(10,2) NOT NULL DEFAULT 0,
+  banner_image_url VARCHAR(500),
+  banner_text VARCHAR(300),
+  theme_color VARCHAR(30) DEFAULT '#FF6B00',
+  badge_text VARCHAR(50) DEFAULT 'LIMITED OFFER',
+  starts_at TIMESTAMPTZ NOT NULL,
+  ends_at TIMESTAMPTZ NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  priority INT DEFAULT 0,
+  recurrence_rule VARCHAR(100),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_promotions_active ON promotions(is_active);
+CREATE INDEX idx_promotions_dates ON promotions(starts_at, ends_at);
+CREATE INDEX idx_promotions_type ON promotions(type);
+CREATE TRIGGER set_updated_at_promotions BEFORE UPDATE ON promotions FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();
+
+-- PROMOTION ↔ PRODUCT (many-to-many)
+CREATE TABLE promotion_products (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+  promotion_id UUID NOT NULL REFERENCES promotions(id) ON DELETE CASCADE,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  custom_discount_value DECIMAL(10,2),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (promotion_id, product_id)
+);
+CREATE INDEX idx_promo_products_promo ON promotion_products(promotion_id);
+CREATE INDEX idx_promo_products_product ON promotion_products(product_id);
 
 -- SYSTEM CONFIG
 CREATE TABLE system_config (id UUID PRIMARY KEY DEFAULT uuid_generate_v7(), config_key VARCHAR(100) NOT NULL UNIQUE, config_value TEXT NOT NULL, description VARCHAR(255), is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW());
