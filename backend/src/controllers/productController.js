@@ -142,7 +142,7 @@ const searchProducts = asyncHandler(async (req, res) => {
  * @access  Admin
  */
 const getAllProductsAdmin = asyncHandler(async (req, res) => {
-  const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
+  const { page, limit } = getPaginationParams(req.query.page, req.query.limit, 1000);
   const { category_id } = req.query;
   const lang = req.language || 'en';
 
