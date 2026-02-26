@@ -13,6 +13,9 @@ class AuthService {
       secureStorage.setItem("token", response.data.accessToken);
       secureStorage.setItem("refreshToken", response.data.refreshToken);
       secureStorage.setItem("user", JSON.stringify(response.data.user));
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("authChange"));
+      }
     }
     return response;
   }
@@ -38,6 +41,7 @@ class AuthService {
       secureStorage.removeItem("user");
       if (typeof window !== "undefined") {
         localStorage.removeItem("mk-reddy-cart");
+        window.dispatchEvent(new Event("authChange"));
       }
     }
   }
@@ -49,4 +53,4 @@ class AuthService {
     return !!secureStorage.getItem("token");
   }
 }
-export default new AuthService();
+export default new AuthService();

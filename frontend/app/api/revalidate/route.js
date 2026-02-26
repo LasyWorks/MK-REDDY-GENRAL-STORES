@@ -8,7 +8,7 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Invalid secret' }, { status: 401 });
     }
     for (const tag of tags) {
-      revalidateTag(tag);
+      revalidateTag(tag, "max");
     }
     for (const path of paths) {
       revalidatePath(path);
@@ -22,4 +22,4 @@ export async function POST(req) {
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
-}
+}

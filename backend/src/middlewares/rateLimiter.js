@@ -6,7 +6,7 @@ const isDev = process.env.NODE_ENV === 'development';
 
 const apiLimiter = rateLimit({
   windowMs: config.rateLimit.windowMs, 
-  max: isDev ? Math.min(1000, config.rateLimit.maxRequests) : config.rateLimit.maxRequests, 
+  max: isDev ? 5000 : config.rateLimit.maxRequests, 
   message: {
     success: false,
     status: 'fail',
@@ -21,7 +21,7 @@ const apiLimiter = rateLimit({
 });
 const otpLimiter = rateLimit({
   windowMs: config.rateLimit.otpWindowMs, 
-  max: isDev ? Math.min(100, config.rateLimit.otpMaxRequests) : config.rateLimit.otpMaxRequests, 
+  max: isDev ? 500 : config.rateLimit.otpMaxRequests, 
   message: {
     success: false,
     status: 'fail',
