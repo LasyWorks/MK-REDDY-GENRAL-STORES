@@ -1,10 +1,8 @@
 "use client";
-
 import { memo, useMemo } from "react";
 import ProductCard from "./ProductCard";
 import ProductCardWithVariants from "./ProductCardWithVariants";
 import { groupProductsByVariant } from "@/lib/productGrouping";
-
 function ProductGridSkeleton() {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -13,7 +11,7 @@ function ProductGridSkeleton() {
           key={i}
           className="flex flex-col bg-white border border-gray-100 rounded-xl overflow-hidden animate-pulse"
         >
-          {/* Fixed-height image skeleton matching the card */}
+          { }
           <div className="w-full bg-gray-200" style={{ height: "200px" }} />
           <div className="px-3 pt-3 pb-3 flex flex-col gap-2">
             <div className="h-3.5 bg-gray-200 rounded w-full" />
@@ -29,7 +27,6 @@ function ProductGridSkeleton() {
     </div>
   );
 }
-
 function ProductGrid({
   products,
   loading,
@@ -37,12 +34,9 @@ function ProductGrid({
   mainCategoryName,
 }) {
   const title = activeSubcategoryName || mainCategoryName;
-
-  // Group products by variants
   const productGroups = useMemo(() => {
     return groupProductsByVariant(products);
   }, [products]);
-
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 min-h-[500px]">
       <div className="flex items-center justify-between mb-6">
@@ -53,7 +47,6 @@ function ProductGrid({
           </span>
         )}
       </div>
-
       {loading ? (
         <ProductGridSkeleton />
       ) : productGroups.length > 0 ? (
@@ -82,5 +75,4 @@ function ProductGrid({
     </div>
   );
 }
-
-export default memo(ProductGrid);
+export default memo(ProductGrid);

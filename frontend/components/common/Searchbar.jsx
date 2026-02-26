@@ -1,15 +1,12 @@
 "use client";
-
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Search, X, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ImageWithFallback from "./ImageWithFallback";
 import { useLanguage } from "@/context/LanguageContext";
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
 const DEBOUNCE_MS = 350;
-
 export default function Searchbar() {
   const { lang } = useLanguage();
   const [query, setQuery] = useState("");
@@ -20,8 +17,6 @@ export default function Searchbar() {
   const inputRef = useRef(null);
   const wrapperRef = useRef(null);
   const router = useRouter();
-
-  // Close dropdown on outside click
   useEffect(() => {
     function handleOutside(e) {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
@@ -31,8 +26,6 @@ export default function Searchbar() {
     document.addEventListener("mousedown", handleOutside);
     return () => document.removeEventListener("mousedown", handleOutside);
   }, []);
-
-  // Debounced search
   const doSearch = useCallback(async (q) => {
     if (!q.trim()) {
       setResults([]);
@@ -55,7 +48,6 @@ export default function Searchbar() {
       setLoading(false);
     }
   }, [lang]);
-
   const handleChange = (e) => {
     const val = e.target.value;
     setQuery(val);
@@ -66,17 +58,15 @@ export default function Searchbar() {
       setLoading(false);
       return;
     }
-    setLoading(true); // show spinner immediately while waiting
+    setLoading(true); 
     timerRef.current = setTimeout(() => doSearch(val), DEBOUNCE_MS);
   };
-
   const handleClear = () => {
     setQuery("");
     setResults([]);
     setOpen(false);
     inputRef.current?.focus();
   };
-
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && query.trim()) {
       clearTimeout(timerRef.current);
@@ -87,10 +77,9 @@ export default function Searchbar() {
       setOpen(false);
     }
   };
-
   return (
     <div ref={wrapperRef} className="relative w-full max-w-2xl">
-      {/* Input row */}
+      { }
       <div className="flex items-center bg-[#f1f5f9] rounded-lg px-4 py-2.5 w-full gap-2 focus-within:ring-2 focus-within:ring-blue-400 transition-all">
         {loading ? (
           <Loader2 className="w-5 h-5 text-blue-500 animate-spin flex-shrink-0" />
@@ -114,8 +103,7 @@ export default function Searchbar() {
           </button>
         )}
       </div>
-
-      {/* Dropdown results */}
+      { }
       {open && (
         <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden max-h-[420px] overflow-y-auto">
           {results.length === 0 ? (
@@ -150,16 +138,11 @@ export default function Searchbar() {
     </div>
   );
 }
-
-// ── Individual result row ─────────────────────────────────────────────
 function SearchResultItem({ product, query, onSelect }) {
   const price = parseFloat(product.price || 0);
   const mrp = parseFloat(product.mrp || 0);
   const hasDiscount = mrp > price;
-
-  // Highlight matching text
   const highlighted = highlightMatch(product.name || "", query);
-
   return (
     <Link
       href={`/products/${product.id}`}
@@ -195,7 +178,6 @@ function SearchResultItem({ product, query, onSelect }) {
     </Link>
   );
 }
-
 function highlightMatch(text, query) {
   if (!query.trim()) return text;
   const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -203,5 +185,4 @@ function highlightMatch(text, query) {
     new RegExp(`(${escaped})`, "gi"),
     `<mark class="bg-yellow-100 text-yellow-800 rounded px-0.5">$1</mark>`
   );
-}
-
+}

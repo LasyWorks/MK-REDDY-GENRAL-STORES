@@ -1,5 +1,4 @@
 "use client";
-
 import { memo, useState, useMemo } from "react";
 import Link from "next/link";
 import { Plus, Minus, X, Package } from "lucide-react";
@@ -7,17 +6,9 @@ import ImageWithFallback from "../common/ImageWithFallback";
 import CountdownTimer from "../common/CountdownTimer";
 import { useCart } from "@/context/CartContext";
 import { usePromotions } from "@/context/PromotionContext";
-
-/**
- * ProductCardWithVariants - Displays a product with variant selector modal
- * @param {Object} props
- * @param {Array} props.variants - Array of product variants (same name/brand, different sizes)
- */
 function ProductCardWithVariants({ variants }) {
   const { items, addItem, updateQty } = useCart();
   const { productPromoMap } = usePromotions();
-  
-  // Filter variants: if any has promotion, show only promoted variants
   const hasAnyPromo = variants.some(v => productPromoMap[v.id]);
   const displayVariants = useMemo(() => {
     if (hasAnyPromo) {
@@ -25,58 +16,45 @@ function ProductCardWithVariants({ variants }) {
     }
     return variants;
   }, [variants, hasAnyPromo, productPromoMap]);
-
-  // Use first display variant as the card preview
   const previewProduct = displayVariants[0];
-  
   const [showModal, setShowModal] = useState(false);
   const [selectedVariantId, setSelectedVariantId] = useState(null);
-
   const mrp = parseFloat(previewProduct.mrp || 0);
   const price = parseFloat(previewProduct.price || 0);
   const hasDiscount = mrp > price;
   const discountPercent = hasDiscount
     ? Math.round(((mrp - price) / mrp) * 100)
     : 0;
-
   const isOutOfStock = (previewProduct.stock_quantity ?? 0) <= 0;
   const promo = productPromoMap[previewProduct.id] || null;
-
   const handleCardClick = (e) => {
     e.preventDefault();
     setShowModal(true);
   };
-
   const handleAddClick = (e) => {
     e.preventDefault();
     if (isOutOfStock) return;
-    
-    // If only one variant, add directly
     if (displayVariants.length === 1) {
       addItem(displayVariants[0], 1);
       return;
     }
-    
-    // Otherwise show modal
     setShowModal(true);
   };
-
   const handleModalAddToCart = async (variantId) => {
     const variant = displayVariants.find(v => v.id === variantId);
     if (variant && variant.stock_quantity > 0) {
       await addItem(variant, 1);
     }
   };
-
   return (
     <>
       <div
         onClick={handleCardClick}
         className="group flex flex-col bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-lg hover:border-gray-200 transition-all duration-200 h-full cursor-pointer"
       >
-        {/* ── Image box: fixed 200px ── */}
+        { }
         <div className="relative w-full bg-gray-50" style={{ height: "200px" }}>
-          {/* Promotion badge — top-right */}
+          { }
           {promo && !isOutOfStock && (
             <span
               className="absolute top-2 right-2 z-10 text-white text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse-glow"
@@ -103,34 +81,28 @@ function ProductCardWithVariants({ variants }) {
             />
           </div>
         </div>
-
-        {/* ── Text + action ── */}
+        { }
         <div className="flex flex-col flex-1 px-3 pt-3 pb-3 gap-1">
           <h3 className="text-sm font-medium text-gray-800 leading-snug line-clamp-2 min-h-[2.6rem]">
             {previewProduct.name}
           </h3>
-
-          {/* Show variant count indicator */}
+          { }
           {displayVariants.length > 1 && (
             <p className="text-xs text-blue-600 font-medium">
               {displayVariants.length} sizes available
             </p>
           )}
-
           {displayVariants.length === 1 && (
             <p className="text-xs text-gray-400">
               {previewProduct.unit_pack_size || previewProduct.unit_type || "1 unit"}
             </p>
           )}
-
-          {/* Promo countdown */}
+          { }
           {promo?.ends_at && !isOutOfStock && (
             <CountdownTimer endsAt={promo.ends_at} compact themeColor={promo.theme_color} className="mt-0.5" />
           )}
-
           <div className="flex-1" />
-
-          {/* ── Price row ── */}
+          { }
           <div className="flex items-center justify-between pt-2 border-t border-gray-50">
             <div className="flex flex-col">
               <span className="text-sm font-bold text-gray-900">
@@ -145,8 +117,7 @@ function ProductCardWithVariants({ variants }) {
                 </span>
               )}
             </div>
-
-            {/* ADD button */}
+            { }
             {isOutOfStock ? (
               <span className="text-xs text-red-400 font-medium">Unavailable</span>
             ) : (
@@ -161,8 +132,7 @@ function ProductCardWithVariants({ variants }) {
           </div>
         </div>
       </div>
-
-      {/* Variant Selector Modal */}
+      { }
       {showModal && (
         <div
           className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
@@ -172,7 +142,7 @@ function ProductCardWithVariants({ variants }) {
             className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Header */}
+            { }
             <div className="flex items-center justify-between p-4 border-b">
               <div>
                 <h3 className="font-bold text-gray-900">{previewProduct.name}</h3>
@@ -185,8 +155,7 @@ function ProductCardWithVariants({ variants }) {
                 <X className="w-5 h-5" />
               </button>
             </div>
-
-            {/* Variants List */}
+            { }
             <div className="flex-1 overflow-y-auto p-4">
               <div className="grid grid-cols-1 gap-3">
                 {displayVariants.map((variant) => {
@@ -199,7 +168,6 @@ function ProductCardWithVariants({ variants }) {
                   const variantOutOfStock = (variant.stock_quantity ?? 0) <= 0;
                   const cartItem = items.find((i) => i.id === variant.id);
                   const cartQty = cartItem?.quantity ?? 0;
-
                   return (
                     <div
                       key={variant.id}
@@ -211,7 +179,7 @@ function ProductCardWithVariants({ variants }) {
                       onClick={() => !variantOutOfStock && setSelectedVariantId(variant.id)}
                     >
                       <div className="flex items-start gap-3">
-                        {/* Variant Image */}
+                        { }
                         <div className="w-20 h-20 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0">
                           <ImageWithFallback
                             src={variant.image_url}
@@ -220,8 +188,7 @@ function ProductCardWithVariants({ variants }) {
                             size="sm"
                           />
                         </div>
-
-                        {/* Variant Details */}
+                        { }
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1">
@@ -249,8 +216,7 @@ function ProductCardWithVariants({ variants }) {
                               )}
                             </div>
                           </div>
-
-                          {/* Stock status */}
+                          { }
                           {variantOutOfStock ? (
                             <p className="text-xs text-red-500 mt-1">Out of stock</p>
                           ) : variant.stock_quantity < 10 && (
@@ -258,8 +224,7 @@ function ProductCardWithVariants({ variants }) {
                               Only {variant.stock_quantity} left
                             </p>
                           )}
-
-                          {/* Cart actions */}
+                          { }
                           <div className="mt-2">
                             {cartQty === 0 ? (
                               <button
@@ -310,8 +275,7 @@ function ProductCardWithVariants({ variants }) {
                 })}
               </div>
             </div>
-
-            {/* Modal Footer */}
+            { }
             <div className="border-t p-4 bg-gray-50">
               <button
                 onClick={() => setShowModal(false)}
@@ -326,5 +290,4 @@ function ProductCardWithVariants({ variants }) {
     </>
   );
 }
-
-export default memo(ProductCardWithVariants);
+export default memo(ProductCardWithVariants);

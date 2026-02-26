@@ -6,159 +6,101 @@ const { generateOTP, hashOTP, getRoleIdByUserType } = require('../utils/helpers'
 const SmsService = require('./smsService');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
-
-const OTP_RESEND_COOLDOWN_SECS = 30; // seconds between resend requests
-
+const OTP_RESEND_COOLDOWN_SECS = 30; 
 class AuthService {
   static async sendOTP(phone, purpose = 'login') {
-    // ── Resend cooldown: max 1 OTP per 30 seconds ──────────────
     const recentCount = await OTP.countRecent(phone, OTP_RESEND_COOLDOWN_SECS);
     if (recentCount > 0) {
       throw ApiError.tooManyRequests(
         `Please wait ${OTP_RESEND_COOLDOWN_SECS} seconds before requesting a new OTP.`
       );
     }
-
-    // ── Generate & store hashed OTP ────────────────────────────
     const otp = generateOTP(6);
     const hashedOTP = hashOTP(otp);
     await OTP.create(phone, hashedOTP, purpose, config.otp.expiryMinutes);
-
-    // ── Send via Fast2SMS ──────────────────────────────────────
     const smsResult = await SmsService.sendOtp(phone, otp);
     if (config.env !== 'development' && !smsResult.success) {
       logger.warn(`OTP SMS delivery failure for ${phone}: ${smsResult.error}`);
     }
-
     return {
       message: 'OTP sent successfully',
       expiresIn: config.otp.expiryMinutes * 60,
       ...(config.env === 'development' && { otp }),
     };
   }
-
-  /**
-   * Send OTP by email - looks up user's phone number from email
-   */
   static async sendOTPByEmail(email) {
     if (!email || !email.includes('@')) {
       throw ApiError.badRequest('Valid email address is required');
     }
-
-    // Find user by email
     const user = await User.findByEmail(email);
-    
     if (!user) {
       throw ApiError.notFound('No account found with this email address');
     }
-
     if (!user.phone) {
       throw ApiError.badRequest('No phone number associated with this account');
     }
-
-    // Check if user is active
     if (!user.is_active) {
       throw ApiError.forbidden('Account is inactive');
     }
-
     if (user.is_blocked) {
       throw ApiError.forbidden(`Account is blocked: ${user.blocked_reason || 'Contact support'}`);
     }
-
-    // Send OTP to user's phone
     const result = await this.sendOTP(user.phone, 'login');
-    
     return {
       ...result,
-      phone: user.phone, // Return phone so frontend can use it for verification
+      phone: user.phone, 
       email: user.email,
     };
   }
-
-  /**
-   * Verify OTP and login customer
-   */
   static async verifyCustomerOTP(phone, otp) {
-    // Find valid OTP
     const otpRecord = await OTP.findValid(phone, 'login');
-
     if (!otpRecord) {
       throw ApiError.badRequest('OTP expired or not found');
     }
-
-    // Check max attempts
     if (otpRecord.attempts >= config.otp.maxAttempts) {
       await OTP.delete(otpRecord.id);
       throw ApiError.tooManyRequests('Maximum OTP attempts exceeded. Please request a new OTP.');
     }
-
-    // Verify OTP
     const hashedOTP = hashOTP(otp);
     if (hashedOTP !== otpRecord.otp_hash) {
       await OTP.incrementAttempts(otpRecord.id);
       throw ApiError.badRequest('Invalid OTP');
     }
-
-    // Mark OTP as verified and delete
     await OTP.markVerified(otpRecord.id);
     await OTP.delete(otpRecord.id);
-
-    // Find or return customer
     let user = await User.findByPhone(phone);
-
     if (!user) {
-      // User doesn't exist, they need to register
       return {
         authenticated: false,
         requiresRegistration: true,
         phone,
       };
     }
-
-    // Check if user is active
     if (!user.is_active) {
       throw ApiError.forbidden('Account is inactive');
     }
-
     if (user.is_blocked) {
       throw ApiError.forbidden(`Account is blocked: ${user.blocked_reason || 'Contact support'}`);
     }
-
-    // Generate tokens
     const tokens = await this.generateTokens(user);
-
-    // Update last login
     await User.updateLastLogin(user.id);
-
     return {
       authenticated: true,
       user: this.sanitizeUser(user),
       ...tokens,
     };
   }
-
-  /**
-   * Register new customer
-   */
   static async registerCustomer(userData) {
     const { name, phone, user_type, address } = userData;
-
-    // Check if user already exists
     const existingUser = await User.findByPhone(phone);
     if (existingUser) {
       throw ApiError.conflict('User with this phone number already exists');
     }
-
-    // Check customer limit
     const customerCount = await User.countCustomers();
     if (customerCount >= config.limits.maxCustomers) {
       throw ApiError.forbidden('Maximum customer limit reached. Please contact support.');
     }
-
-    // Determine role based on user type
     const roleId = await getRoleIdByUserType(user_type);
-
-    // Create user
     const userId = await User.create({
       name,
       phone,
@@ -166,163 +108,99 @@ class AuthService {
       role_id: roleId,
       address,
     });
-
     const user = await User.findById(userId);
-
-    // Generate tokens
     const tokens = await this.generateTokens(user);
-
     return {
       user: this.sanitizeUser(user),
       ...tokens,
     };
   }
-
-  /**
-   * Admin login with email/phone and password
-   */
   static async adminLoginWithPassword(identifier, password) {
-    // Find admin user by email or phone
     let user = null;
-    
     if (identifier.includes('@')) {
       user = await User.findByEmail(identifier);
     } else {
       user = await User.findByPhone(identifier);
     }
-
     if (!user) {
       throw ApiError.unauthorized('Invalid credentials');
     }
-
-    // Check if admin
     if (user.role_name !== 'admin') {
       throw ApiError.forbidden('Access denied');
     }
-
-    // Check if active
     if (!user.is_active) {
       throw ApiError.forbidden('Account is inactive');
     }
-
-    // Verify password
     if (!user.password_hash) {
       throw ApiError.unauthorized('Password not set. Contact administrator.');
     }
-
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     if (!isPasswordValid) {
       throw ApiError.unauthorized('Invalid credentials');
     }
-
-    // Generate tokens
     const tokens = await this.generateTokens(user);
-
-    // Update last login
     await User.updateLastLogin(user.id);
-
     return {
       user: this.sanitizeUser(user),
       ...tokens,
     };
   }
-
-  /**
-   * Admin login with email and phone (OTP-based)
-   */
   static async adminLogin(email, phone) {
-    // Find admin user
     const user = await User.findByEmail(email);
-
     if (!user) {
       throw ApiError.unauthorized('Invalid credentials');
     }
-
-    // Verify phone matches
     if (user.phone !== phone) {
       throw ApiError.unauthorized('Invalid credentials');
     }
-
-    // Check if admin
     if (user.role_name !== 'admin') {
       throw ApiError.forbidden('Access denied');
     }
-
-    // Check if active
     if (!user.is_active) {
       throw ApiError.forbidden('Account is inactive');
     }
-
-    // Send OTP for 2FA
     return this.sendOTP(phone, 'login');
   }
-
-  /**
-   * Verify admin OTP login
-   */
   static async verifyAdminOTP(email, phone, otp) {
-    // Find admin
     const user = await User.findByEmail(email);
-
     if (!user || user.phone !== phone || user.role_name !== 'admin') {
       throw ApiError.unauthorized('Invalid credentials');
     }
-
-    // Verify OTP
     const otpRecord = await OTP.findValid(phone, 'login');
-
     if (!otpRecord) {
       throw ApiError.badRequest('OTP expired or not found');
     }
-
     if (otpRecord.attempts >= config.otp.maxAttempts) {
       await OTP.delete(otpRecord.id);
       throw ApiError.tooManyRequests('Maximum OTP attempts exceeded');
     }
-
     const hashedOTP = hashOTP(otp);
     if (hashedOTP !== otpRecord.otp_hash) {
       await OTP.incrementAttempts(otpRecord.id);
       throw ApiError.badRequest('Invalid OTP');
     }
-
     await OTP.delete(otpRecord.id);
-
-    // Generate tokens
     const tokens = await this.generateTokens(user);
-
-    // Update last login
     await User.updateLastLogin(user.id);
-
     return {
       user: this.sanitizeUser(user),
       ...tokens,
     };
   }
-
-  /**
-   * Generate access and refresh tokens
-   */
   static async generateTokens(user, deviceInfo = null, ipAddress = null) {
     const accessToken = jwt.sign(
       { userId: user.id, role: user.role_name },
       config.jwt.secret,
       { expiresIn: config.jwt.expiresIn }
     );
-
     const refreshToken = jwt.sign(
       { userId: user.id },
       config.jwt.refreshSecret,
       { expiresIn: config.jwt.refreshExpiresIn }
     );
-
-    // Calculate expiry date
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
-
-    // Store refresh token
+    expiresAt.setDate(expiresAt.getDate() + 7); 
     await RefreshToken.create(user.id, refreshToken, expiresAt, deviceInfo, ipAddress);
-
     return {
       accessToken,
       refreshToken,
@@ -330,41 +208,24 @@ class AuthService {
       expiresIn: config.jwt.expiresIn,
     };
   }
-
-  /**
-   * Refresh access token
-   */
   static async refreshTokens(refreshToken) {
-    // Verify refresh token
     let decoded;
     try {
       decoded = jwt.verify(refreshToken, config.jwt.refreshSecret);
     } catch (error) {
       throw ApiError.unauthorized('Invalid refresh token');
     }
-
-    // Check if token exists and not revoked
     const tokenRecord = await RefreshToken.findByToken(refreshToken);
     if (!tokenRecord) {
       throw ApiError.unauthorized('Invalid or expired refresh token');
     }
-
-    // Get user
     const user = await User.findById(decoded.userId);
     if (!user || !user.is_active) {
       throw ApiError.unauthorized('User not found or inactive');
     }
-
-    // Revoke old token
     await RefreshToken.revoke(tokenRecord.id);
-
-    // Generate new tokens
     return this.generateTokens(user);
   }
-
-  /**
-   * Logout - revoke refresh token
-   */
   static async logout(userId, refreshToken = null) {
     if (refreshToken) {
       const tokenRecord = await RefreshToken.findByToken(refreshToken);
@@ -374,18 +235,10 @@ class AuthService {
     }
     return true;
   }
-
-  /**
-   * Logout all devices
-   */
   static async logoutAll(userId) {
     await RefreshToken.revokeAllForUser(userId);
     return true;
   }
-
-  /**
-   * Sanitize user object for response
-   */
   static sanitizeUser(user) {
     return {
       id: user.id,
@@ -401,5 +254,4 @@ class AuthService {
     };
   }
 }
-
-module.exports = AuthService;
+module.exports = AuthService;

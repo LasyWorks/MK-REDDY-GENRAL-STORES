@@ -1,8 +1,6 @@
 const winston = require('winston');
 const path = require('path');
 const config = require('../config');
-
-// Define log format
 const logFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   winston.format.errors({ stack: true }),
@@ -17,28 +15,23 @@ const logFormat = winston.format.combine(
     return log;
   })
 );
-
-// Skip file transports in development (disk I/O adds latency to every request)
 const fileTransports = config.env !== 'development' ? [
   new winston.transports.File({
     filename: path.join(__dirname, '../../logs/error.log'),
     level: 'error',
-    maxsize: 5242880, // 5MB
+    maxsize: 5242880, 
     maxFiles: 5,
   }),
   new winston.transports.File({
     filename: path.join(__dirname, '../../logs/combined.log'),
-    maxsize: 5242880, // 5MB
+    maxsize: 5242880, 
     maxFiles: 5,
   }),
 ] : [];
-
-// Create logger instance
 const logger = winston.createLogger({
   level: config.env === 'production' ? 'info' : 'debug',
   format: logFormat,
   transports: [
-    // Console transport
     new winston.transports.Console({
       format: winston.format.combine(
         winston.format.colorize(),
@@ -58,5 +51,4 @@ const logger = winston.createLogger({
     }),
   ],
 });
-
-module.exports = logger;
+module.exports = logger;

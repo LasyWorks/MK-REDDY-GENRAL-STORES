@@ -1,19 +1,15 @@
 "use client";
-
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import categoryService from "../../services/categoryService";
-
 export default function CategoryNav() {
   const scrollContainerRef = useRef(null);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
   useEffect(() => {
     fetchCategories();
   }, []);
-
   const fetchCategories = async () => {
     try {
       setLoading(true);
@@ -27,7 +23,6 @@ export default function CategoryNav() {
       setLoading(false);
     }
   };
-
   const scroll = (direction) => {
     if (scrollContainerRef.current) {
       const scrollAmount = 300;
@@ -37,12 +32,11 @@ export default function CategoryNav() {
       });
     }
   };
-
   return (
     <div className="bg-white border-b border-gray-100 sticky top-20 z-40">
       <div className="max-w-7xl mx-auto px-6">
         <div className="relative flex items-center h-14">
-          {/* Left Arrow */}
+          { }
           {!loading && categories.length > 0 && (
             <button
               onClick={() => scroll("left")}
@@ -52,8 +46,7 @@ export default function CategoryNav() {
               <ChevronLeft className="w-5 h-5 text-gray-800" />
             </button>
           )}
-
-          {/* Categories */}
+          { }
           <div
             ref={scrollContainerRef}
             className="flex gap-8 overflow-x-auto scrollbar-hide py-4 scroll-smooth md:pl-12 md:pr-12"
@@ -80,7 +73,6 @@ export default function CategoryNav() {
                   key={category.id}
                   className="text-gray-800 hover:text-blue-600 text-[15px] whitespace-nowrap transition-colors"
                   onClick={() => {
-                    // Navigate to category page or filter products
                     window.location.href = `/categories/${category.id}`;
                   }}
                 >
@@ -89,8 +81,7 @@ export default function CategoryNav() {
               ))
             )}
           </div>
-
-          {/* Right Arrow */}
+          { }
           {!loading && categories.length > 0 && (
             <button
               onClick={() => scroll("right")}
@@ -104,4 +95,4 @@ export default function CategoryNav() {
       </div>
     </div>
   );
-}
+}

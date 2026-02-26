@@ -1,5 +1,4 @@
 "use client";
-
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useCallback, useMemo, Suspense } from "react";
 import { Search } from "lucide-react";
@@ -7,18 +6,14 @@ import ProductCard from "@/components/category/ProductCard";
 import ProductCardWithVariants from "@/components/category/ProductCardWithVariants";
 import { groupProductsByVariant } from "@/lib/productGrouping";
 import { useLanguage } from "@/context/LanguageContext";
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
-
 function SearchPageInner() {
   const searchParams = useSearchParams();
   const q = searchParams.get("q") || "";
   const { lang } = useLanguage();
-
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
-
   const search = useCallback(async (query) => {
     if (!query.trim()) return;
     setLoading(true);
@@ -36,16 +31,12 @@ function SearchPageInner() {
       setLoading(false);
     }
   }, [lang]);
-
   useEffect(() => {
     search(q);
   }, [q, search]);
-
-  // Group products by variants
   const productGroups = useMemo(() => {
     return groupProductsByVariant(products);
   }, [products]);
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6">
@@ -63,7 +54,6 @@ function SearchPageInner() {
           <p className="text-sm text-gray-500 mt-1">{productGroups.length} product{productGroups.length !== 1 ? "s" : ""} found</p>
         )}
       </div>
-
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {[...Array(10)].map((_, i) => (
@@ -92,7 +82,6 @@ function SearchPageInner() {
     </div>
   );
 }
-
 export default function SearchPage() {
   return (
     <main className="min-h-screen bg-gray-50 pt-4">
@@ -101,4 +90,4 @@ export default function SearchPage() {
       </Suspense>
     </main>
   );
-}
+}

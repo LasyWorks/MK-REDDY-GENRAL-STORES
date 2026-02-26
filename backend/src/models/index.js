@@ -9,7 +9,6 @@ const Invoice = require('./Invoice');
 const AdminLog = require('./AdminLog');
 const SystemConfig = require('./SystemConfig');
 const Promotion = require('./Promotion');
-
 module.exports = {
   User,
   OTP,
@@ -22,4 +21,4 @@ module.exports = {
   AdminLog,
   SystemConfig,
   Promotion,
-};
+};

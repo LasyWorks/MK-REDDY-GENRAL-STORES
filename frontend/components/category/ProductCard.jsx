@@ -1,5 +1,4 @@
 "use client";
-
 import { memo, useState } from "react";
 import Link from "next/link";
 import { Plus, Minus } from "lucide-react";
@@ -7,7 +6,6 @@ import ImageWithFallback from "../common/ImageWithFallback";
 import CountdownTimer from "../common/CountdownTimer";
 import { useCart } from "@/context/CartContext";
 import { usePromotions } from "@/context/PromotionContext";
-
 function ProductCard({ product }) {
   const mrp = parseFloat(product.mrp || 0);
   const price = parseFloat(product.price || 0);
@@ -15,33 +13,28 @@ function ProductCard({ product }) {
   const discountPercent = hasDiscount
     ? Math.round(((mrp - price) / mrp) * 100)
     : 0;
-
   const isOutOfStock = (product.stock_quantity ?? 0) <= 0;
-
   const { items, addItem, updateQty } = useCart();
   const { productPromoMap } = usePromotions();
   const promo = productPromoMap[product.id] || null;
   const cartItem = items.find((i) => i.id === product.id);
   const qty = cartItem?.quantity ?? 0;
-
   const [adding, setAdding] = useState(false);
-
   const handleAdd = async (e) => {
-    e.preventDefault(); // don't navigate when clicking ADD inside the card link
+    e.preventDefault(); 
     if (isOutOfStock) return;
     setAdding(true);
     await addItem(product, 1);
     setTimeout(() => setAdding(false), 300);
   };
-
   return (
     <Link
       href={`/products/${product.id}`}
       className="group flex flex-col bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-lg hover:border-gray-200 transition-all duration-200 h-full"
     >
-      {/* ── Image box: fixed 200px ── */}
+      { }
       <div className="relative w-full bg-gray-50" style={{ height: "200px" }}>
-        {/* Promotion badge — top-right */}
+        { }
         {promo && !isOutOfStock && (
           <span
             className="absolute top-2 right-2 z-10 text-white text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse-glow"
@@ -68,25 +61,20 @@ function ProductCard({ product }) {
           />
         </div>
       </div>
-
-      {/* ── Text + action ── */}
+      { }
       <div className="flex flex-col flex-1 px-3 pt-3 pb-3 gap-1">
         <h3 className="text-sm font-medium text-gray-800 leading-snug line-clamp-2 min-h-[2.6rem]">
           {product.name}
         </h3>
-
         <p className="text-xs text-gray-400">
           {product.unit_pack_size || product.unit_type || "1 unit"}
         </p>
-
-        {/* Promo countdown */}
+        { }
         {promo?.ends_at && !isOutOfStock && (
           <CountdownTimer endsAt={promo.ends_at} compact themeColor={promo.theme_color} className="mt-0.5" />
         )}
-
         <div className="flex-1" />
-
-        {/* ── Price row ── */}
+        { }
         <div className="flex items-center justify-between pt-2 border-t border-gray-50">
           <div className="flex flex-col">
             <span className="text-sm font-bold text-gray-900">
@@ -98,8 +86,7 @@ function ProductCard({ product }) {
               </span>
             )}
           </div>
-
-          {/* ADD / qty controls */}
+          { }
           {isOutOfStock ? (
             <span className="text-xs text-red-400 font-medium">Unavailable</span>
           ) : qty === 0 ? (
@@ -141,6 +128,4 @@ function ProductCard({ product }) {
     </Link>
   );
 }
-
-export default memo(ProductCard);
-
+export default memo(ProductCard);

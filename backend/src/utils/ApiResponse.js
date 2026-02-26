@@ -1,10 +1,4 @@
-/**
- * Standard API response helper
- */
 class ApiResponse {
-  /**
-   * Success response
-   */
   static success(res, data = null, message = 'Success', statusCode = 200) {
     return res.status(statusCode).json({
       success: true,
@@ -14,24 +8,12 @@ class ApiResponse {
       timestamp: new Date().toISOString(),
     });
   }
-
-  /**
-   * Created response
-   */
   static created(res, data = null, message = 'Resource created successfully') {
     return this.success(res, data, message, 201);
   }
-
-  /**
-   * No content response
-   */
   static noContent(res) {
     return res.status(204).send();
   }
-
-  /**
-   * Error response
-   */
   static error(res, message = 'Error', statusCode = 500, errors = null) {
     return res.status(statusCode).json({
       success: false,
@@ -41,10 +23,6 @@ class ApiResponse {
       timestamp: new Date().toISOString(),
     });
   }
-
-  /**
-   * Paginated response
-   */
   static paginated(res, data, pagination, message = 'Success') {
     return res.status(200).json({
       success: true,
@@ -63,5 +41,4 @@ class ApiResponse {
     });
   }
 }
-
-module.exports = ApiResponse;
+module.exports = ApiResponse;

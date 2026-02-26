@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
@@ -14,7 +13,6 @@ import {
   RefreshCw,
 } from "lucide-react";
 import orderService from "@/services/orderService";
-
 const STATUS_META = {
   pending: {
     label: "Pending",
@@ -42,7 +40,6 @@ const STATUS_META = {
     icon: XCircle,
   },
 };
-
 function StatusBadge({ status }) {
   const meta = STATUS_META[status] || STATUS_META.pending;
   const Icon = meta.icon;
@@ -53,12 +50,10 @@ function StatusBadge({ status }) {
     </span>
   );
 }
-
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
   const load = async () => {
     setLoading(true);
     setError(null);
@@ -71,15 +66,13 @@ export default function OrdersPage() {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     load();
   }, []);
-
   return (
     <main className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-3xl mx-auto px-4 sm:px-6">
-        {/* Header */}
+        { }
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">My Orders</h1>
@@ -96,16 +89,14 @@ export default function OrdersPage() {
             <RefreshCw className={`w-4 h-4 text-gray-500 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
-
-        {/* Error */}
+        { }
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl px-5 py-4 mb-6 text-sm flex items-center gap-2">
             <XCircle className="w-4 h-4 shrink-0" />
             {error}
           </div>
         )}
-
-        {/* Loading skeletons */}
+        { }
         {loading && (
           <div className="space-y-3">
             {[...Array(4)].map((_, i) => (
@@ -122,8 +113,7 @@ export default function OrdersPage() {
             ))}
           </div>
         )}
-
-        {/* Empty state */}
+        { }
         {!loading && !error && orders.length === 0 && (
           <div className="flex flex-col items-center py-20 text-center">
             <ShoppingBag className="w-16 h-16 text-gray-200 mb-4" />
@@ -139,8 +129,7 @@ export default function OrdersPage() {
             </Link>
           </div>
         )}
-
-        {/* Orders list */}
+        { }
         {!loading && orders.length > 0 && (
           <div className="space-y-3">
             {orders.map((order) => (
@@ -172,7 +161,6 @@ export default function OrdersPage() {
                       </p>
                     )}
                   </div>
-
                   <div className="flex items-center gap-3 shrink-0">
                     <div className="text-right">
                       <p className="font-bold text-gray-900 text-sm">
@@ -194,4 +182,4 @@ export default function OrdersPage() {
       </div>
     </main>
   );
-}
+}

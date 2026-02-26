@@ -1,26 +1,6 @@
-/**
- * fetch-category-images.js
- *
- * Fetches one SerpAPI image for every category / sub-category that has no
- * image_url saved in the database.
- *
- * Usage (from the backend/ folder):
- *   node scripts/fetch-category-images.js            – all missing
- *   node scripts/fetch-category-images.js --all      – overwrite existing too
- *   node scripts/fetch-category-images.js --limit 10 – cap at 10
- *   node scripts/fetch-category-images.js --dry-run  – preview, no DB writes
- *
- * Requires the backend .env to be present (reads DB_* and SERPAPI_KEY*).
- */
-
 "use strict";
-
 require("dotenv").config();
-
 const { Pool } = require("pg");
-
-// ── DB ─────────────────────────────────────────────────────────────────────────
-
 const pool = new Pool({
   host:     process.env.DB_HOST,
   port:     parseInt(process.env.DB_PORT, 10) || 5432,
@@ -30,18 +10,13 @@ const pool = new Pool({
   ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false,
   max: 3,
 });
-
-// ── SerpAPI key rotation ───────────────────────────────────────────────────────
-
 const ALL_KEYS = [
   process.env.SERPAPI_KEY,
   process.env.SERPAPI_KEY_2,
   process.env.SERPAPI_KEY_3,
 ].filter(Boolean);
-
 const exhausted = new Set();
 let keyPointer = 0;
-
 function nextLiveKey() {
   if (exhausted.size >= ALL_KEYS.length) return -1;
   let tries = 0;
@@ -53,7 +28,6 @@ function nextLiveKey() {
   }
   return -1;
 }
-
 function markExhausted(idx) {
   if (!exhausted.has(idx)) {
     exhausted.add(idx);
@@ -61,47 +35,30 @@ function markExhausted(idx) {
     console.warn(`\n  ⛔  Key[${idx}] exhausted (429/limit). ${rem} key(s) remaining.\n`);
   }
 }
-
 function keyStatus() {
   return `(${ALL_KEYS.length - exhausted.size}/${ALL_KEYS.length} keys live)`;
 }
-
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
-
-/**
- * A search query tailored to grocery / general-store category images.
- * Returns a single high-quality icon/image URL, or null on failure.
- */
 function buildQuery(name, parentName) {
   const base = parentName ? `${parentName} ${name}` : name;
-  // Prefer clean pack / icon shots over lifestyle photos
   return `${base} grocery product india`;
 }
-
 async function fetchImage(query, _attempt = 0) {
-  if (_attempt >= ALL_KEYS.length) return null; // tried all keys
-
+  if (_attempt >= ALL_KEYS.length) return null; 
   const keyIdx = nextLiveKey();
   if (keyIdx === -1) return null;
-
   const key = ALL_KEYS[keyIdx];
   const url =
     `https://serpapi.com/search.json?engine=google_images` +
     `&q=${encodeURIComponent(query)}&num=5&ijn=0&api_key=${key}`;
-
   try {
     const res = await fetch(url);
-
     if (res.status === 429) {
       markExhausted(keyIdx);
-      // Try the next live key immediately
       return fetchImage(query, _attempt + 1);
     }
-
     if (!res.ok) {
       const txt = await res.text();
       let parsed; try { parsed = JSON.parse(txt); } catch { parsed = null; }
@@ -112,7 +69,6 @@ async function fetchImage(query, _attempt = 0) {
       console.warn(`    ⚠  HTTP ${res.status} for "${query}"`);
       return null;
     }
-
     const json = await res.json();
     if (json.error) {
       if (/run out|out of search/i.test(json.error)) {
@@ -122,14 +78,11 @@ async function fetchImage(query, _attempt = 0) {
       console.warn(`    ⚠  API error for "${query}": ${json.error}`);
       return null;
     }
-
     const imgs = json.images_results || [];
-    // Prefer larger images, skip tiny thumbnails
     for (const img of imgs) {
       const src = img.original;
       if (src && !src.startsWith("data:")) return src;
     }
-    // Fallback to thumbnail
     for (const img of imgs) {
       const src = img.thumbnail;
       if (src && !src.startsWith("data:")) return src;
@@ -140,23 +93,17 @@ async function fetchImage(query, _attempt = 0) {
     return null;
   }
 }
-
-// ── Main ───────────────────────────────────────────────────────────────────────
-
 async function main() {
   const args    = process.argv.slice(2);
   const OVERWRITE = args.includes("--all");
   const DRY_RUN   = args.includes("--dry-run");
   const limitArg  = args.indexOf("--limit");
   const LIMIT     = limitArg !== -1 ? parseInt(args[limitArg + 1], 10) : Infinity;
-
   console.log("\n🏪  MK Reddy — Category Image Fetcher");
   console.log("─".repeat(52));
   if (DRY_RUN)  console.log("  DRY RUN — no DB writes");
   if (OVERWRITE) console.log("  Mode    : overwrite ALL (--all)");
   else           console.log("  Mode    : missing only (use --all to overwrite)");
-
-  // Fetch all categories with their English name + optional parent name
   const { rows } = await pool.query(`
     SELECT
       c.id,
@@ -170,46 +117,35 @@ async function main() {
     LEFT JOIN category_translations tp ON tp.category_id = cp.id       AND tp.lang_code = 'en'
     ORDER BY c.parent_id NULLS FIRST, t.name
   `);
-
   const targets = OVERWRITE
     ? rows
     : rows.filter((r) => !r.image_url);
-
   const total = LIMIT === Infinity ? targets.length : Math.min(targets.length, LIMIT);
-
   const roots = targets.filter((r) => !r.parent_id).length;
   const subs  = targets.filter((r) =>  r.parent_id).length;
-
   console.log(`\n  Categories to process : ${total} (${roots} root, ${subs} sub)`);
   console.log(`  SerpAPI keys          : ${ALL_KEYS.length}`);
   console.log("─".repeat(52) + "\n");
-
   if (total === 0) {
     console.log("  ✅  All categories already have images! Use --all to refresh.\n");
     await pool.end();
     return;
   }
-
   let done = 0, skipped = 0;
-
   for (let i = 0; i < total; i++) {
     if (exhausted.size >= ALL_KEYS.length) {
       console.log("\n  ⛔  All SerpAPI keys exhausted — stopping early.");
       break;
     }
-
     const cat = targets[i];
     const label = cat.parent_name ? `${cat.parent_name} › ${cat.name}` : cat.name;
     process.stdout.write(`[${i + 1}/${total}] ${label} … `);
-
     const query = buildQuery(cat.name, cat.parent_name);
     const imageUrl = await fetchImage(query);
-
     if (!imageUrl) {
       console.log(`no image found  ${keyStatus()}`);
       skipped++;
     } else {
-      // Show a short preview of the URL
       const preview = imageUrl.length > 60 ? imageUrl.slice(0, 57) + "…" : imageUrl;
       console.log(`✓  ${preview}  ${keyStatus()}`);
       if (!DRY_RUN) {
@@ -220,11 +156,8 @@ async function main() {
       }
       done++;
     }
-
-    // Small delay to avoid hammering the API
     if (i < total - 1) await sleep(800);
   }
-
   console.log("\n" + "─".repeat(52));
   console.log(`✅  Done!`);
   console.log(`   Updated : ${done}`);
@@ -232,11 +165,9 @@ async function main() {
   if (exhausted.size > 0)
     console.log(`   Keys exhausted : ${exhausted.size}/${ALL_KEYS.length}`);
   console.log("─".repeat(52) + "\n");
-
   await pool.end();
 }
-
 main().catch((err) => {
   console.error("\n❌  Fatal:", err.message);
   process.exit(1);
-});
+});

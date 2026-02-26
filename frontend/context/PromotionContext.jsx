@@ -1,21 +1,16 @@
 "use client";
-
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
-
 const PromotionContext = createContext({
-  activePromos: [],          // full promo objects (for banners)
-  productPromoMap: {},       // productId → { badge_text, theme_color, discount_type, discount_value, ends_at, type }
+  activePromos: [],          
+  productPromoMap: {},       
   loading: true,
   refresh: () => {},
 });
-
 export function PromotionProvider({ children }) {
   const [activePromos, setActivePromos]       = useState([]);
   const [productPromoMap, setProductPromoMap] = useState({});
   const [loading, setLoading]                 = useState(true);
-
   const refresh = useCallback(async () => {
     try {
       const [promosRes, mapRes] = await Promise.all([
@@ -31,23 +26,18 @@ export function PromotionProvider({ children }) {
       setLoading(false);
     }
   }, []);
-
-  // Fetch once on mount, then refresh every 60s to catch promotion start/end
   useEffect(() => {
     refresh();
     const interval = setInterval(refresh, 60_000);
     return () => clearInterval(interval);
   }, [refresh]);
-
   return (
     <PromotionContext.Provider value={{ activePromos, productPromoMap, loading, refresh }}>
       {children}
     </PromotionContext.Provider>
   );
 }
-
 export function usePromotions() {
   return useContext(PromotionContext);
 }
-
-export default PromotionContext;
+export default PromotionContext;

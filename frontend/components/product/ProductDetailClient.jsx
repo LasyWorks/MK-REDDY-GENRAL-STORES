@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import {
@@ -16,26 +15,15 @@ import ImageWithFallback from "@/components/common/ImageWithFallback";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 import ProductCard from "@/components/category/ProductCard";
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
-
-/**
- * Returns a display label for a variant.
- * Tries unit_pack_size, then variant, then price.
- */
 function variantLabel(v) {
   return v.unit_pack_size || v.variant || `₹${parseFloat(v.price).toFixed(0)}`;
 }
-
 export default function ProductDetailClient({ product, variants: initialVariants }) {
   const { lang } = useLanguage();
   const { items, addItem, updateQty, openCart } = useCart();
-
-  // Localised product/variants state — server provides English as initial value
   const [localProduct, setLocalProduct] = useState(product);
   const [localVariants, setLocalVariants] = useState(initialVariants);
-
-  // Re-fetch in correct language whenever lang changes
   useEffect(() => {
     let cancelled = false;
     async function refetch() {
@@ -49,8 +37,6 @@ export default function ProductDetailClient({ product, variants: initialVariants
         const prod = json.data;
         if (!prod) return;
         setLocalProduct(prod);
-
-        // Also re-fetch variants if there's a brand
         if (prod.brand) {
           const vRes = await fetch(
             `${API_URL}/products?brand=${encodeURIComponent(prod.brand)}&category_id=${prod.category_id}&limit=50&is_active=true&lang=${lang}`,
@@ -64,37 +50,28 @@ export default function ProductDetailClient({ product, variants: initialVariants
           setLocalVariants([prod]);
         }
       } catch {
-        // keep existing data on error
       }
     }
     refetch();
     return () => { cancelled = true; };
   }, [lang, product.id, product.brand, product.category_id]);
-
-  // Selected variant = the product whose page we're on (by default)
   const [selectedId, setSelectedId] = useState(product.id);
-
-  // Related products — from parent category when available (more variety)
   const [related, setRelated]               = useState([]);
   const [relatedCatName, setRelatedCatName] = useState("");
   const [relatedCatId,   setRelatedCatId]   = useState("");
-
   useEffect(() => {
     let cancelled = false;
     async function fetchRelated() {
       try {
-        // Prefer parent category (e.g. "Household") over subcategory (e.g. "Starch & Fabric Stiffener")
         const useParent = !!(localProduct.category_parent_id || product.category_parent_id);
         const parentId  = localProduct.category_parent_id || product.category_parent_id;
         const catName   = useParent
           ? (localProduct.parent_category_name || product.parent_category_name || "")
           : (localProduct.category_name        || product.category_name        || "");
         const catId     = useParent ? parentId : product.category_id;
-
         const param = useParent
           ? `parent_category_id=${parentId}`
           : `category_id=${product.category_id}`;
-
         const res = await fetch(
           `${API_URL}/products?${param}&limit=24&is_active=true&lang=${lang}`,
           { cache: "no-store" }
@@ -102,7 +79,6 @@ export default function ProductDetailClient({ product, variants: initialVariants
         if (!res.ok || cancelled) return;
         const json = await res.json();
         const all = json.data || [];
-        // Exclude same brand (they are variants shown above already)
         const filtered = all.filter(
           (p) =>
             p.id !== product.id &&
@@ -114,50 +90,35 @@ export default function ProductDetailClient({ product, variants: initialVariants
           setRelatedCatId(catId);
         }
       } catch {
-        // ignore
       }
     }
     fetchRelated();
     return () => { cancelled = true; };
   }, [lang, product.id, product.category_id, product.brand, localProduct.category_parent_id, localProduct.parent_category_name]);
-
-  // Keep selectedId in sync when navigating to a new variant URL
   useEffect(() => {
     setSelectedId(product.id);
   }, [product.id]);
-
   const selected = localVariants.find((v) => v.id === selectedId) || localProduct;
-
   const price = parseFloat(selected.price || 0);
   const mrp = parseFloat(selected.mrp || price);
   const hasDiscount = mrp > price;
   const discountPct = hasDiscount ? Math.round(((mrp - price) / mrp) * 100) : 0;
   const isOutOfStock = (selected.stock_quantity ?? 0) <= 0;
-
   const cartItem = items.find((i) => i.id === selected.id);
   const qty = cartItem?.quantity ?? 0;
-
-  // ── Image gallery ──
-  // galleryImages: up to 4 URLs — driven by whichever variant is selected
   const imagesForVariant = (v) =>
     v.image_urls?.length
       ? v.image_urls
       : v.image_url
       ? [v.image_url]
       : [];
-
   const [galleryImages, setGalleryImages] = useState(() => imagesForVariant(selected));
   const [selectedImage, setSelectedImage] = useState(() => galleryImages[0] || null);
-
-  // Whenever the selected variant changes (variant click OR lang change), update gallery
   useEffect(() => {
     const base = imagesForVariant(selected);
     setGalleryImages(base);
     setSelectedImage(base[0] || null);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId, localProduct]);
-
-  // Auto-fetch from SerpAPI if this variant has fewer than 4 stored images
   useEffect(() => {
     if (galleryImages.length >= 4) return;
     let cancelled = false;
@@ -176,44 +137,34 @@ export default function ProductDetailClient({ product, variants: initialVariants
       .catch(() => {});
     return () => { cancelled = true; };
   }, [selected.id, galleryImages.length]);
-
-  // Fade state for smooth variant switch
   const [fading, setFading] = useState(false);
-
   const handleVariantSelect = useCallback(
     (variant) => {
       if (variant.id === selectedId) return;
       setFading(true);
       setTimeout(() => {
         setSelectedId(variant.id);
-        // Update URL without navigation (no page reload, no RSC re-render)
         window.history.replaceState(null, "", `/products/${variant.id}`);
         setFading(false);
       }, 120);
     },
     [selectedId]
   );
-
   const handleAdd = async () => {
     if (isOutOfStock) return;
     await addItem(selected, 1);
     openCart();
   };
-
-  // Show multiple variants only when there are more than 1
   const hasVariants = localVariants.length > 1;
-
-  // The main display image: selected thumbnail, else gallery[0], else product image_url
   const mainImage = selectedImage || galleryImages[0] || selected.image_url;
-
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-      {/* Breadcrumb — Home > Parent Category > Subcategory > Product */}
+      { }
       <nav className="flex items-center gap-1.5 text-sm text-gray-500 mb-6 flex-wrap">
         <Link href="/" className="hover:text-blue-600 transition-colors">
           Home
         </Link>
-        {/* Parent category (e.g. "Household Care") */}
+        { }
         {(localProduct.category_parent_id || product.category_parent_id) && (
           <>
             <ChevronRight className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
@@ -225,7 +176,7 @@ export default function ProductDetailClient({ product, variants: initialVariants
             </Link>
           </>
         )}
-        {/* Subcategory (e.g. "Starch & Fabric Stiffener") */}
+        { }
         {(localProduct.category_name || selected.category_name) && (
           <>
             <ChevronRight className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
@@ -237,19 +188,18 @@ export default function ProductDetailClient({ product, variants: initialVariants
             </Link>
           </>
         )}
-        {/* Product name */}
+        { }
         <ChevronRight className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
         <span className="text-gray-900 font-medium line-clamp-1 max-w-xs">
           {selected.name}
         </span>
       </nav>
-
-      {/* Main card */}
+      { }
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="flex flex-col md:flex-row gap-0">
-          {/* ── Image panel ── */}
+          { }
           <div className="md:w-2/5 bg-gray-50 flex flex-col p-4 sm:p-6 gap-4">
-            {/* Main large image */}
+            { }
             <div className="relative flex items-center justify-center bg-white rounded-xl border border-gray-100 overflow-hidden" style={{ minHeight: "280px" }}>
               {isOutOfStock && (
                 <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full z-10">
@@ -270,8 +220,7 @@ export default function ProductDetailClient({ product, variants: initialVariants
                 />
               </div>
             </div>
-
-            {/* Thumbnail strip with view labels */}
+            { }
             {galleryImages.length > 1 && (
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {galleryImages.map((url, i) => {
@@ -305,10 +254,9 @@ export default function ProductDetailClient({ product, variants: initialVariants
               </div>
             )}
           </div>
-
-          {/* ── Info panel ── */}
+          { }
           <div className={`md:w-3/5 p-6 sm:p-8 flex flex-col gap-4 transition-opacity duration-150 ${fading ? "opacity-0" : "opacity-100"}`}>
-            {/* Brand + Name */}
+            { }
             {selected.brand && (
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
                 {selected.brand}
@@ -317,13 +265,11 @@ export default function ProductDetailClient({ product, variants: initialVariants
             <h1 className="text-2xl font-bold text-gray-900 leading-snug">
               {selected.name}
             </h1>
-
-            {/* SKU */}
+            { }
             {selected.sku && (
               <p className="text-xs text-gray-400">SKU: {selected.sku}</p>
             )}
-
-            {/* Price */}
+            { }
             <div className="flex items-end gap-3">
               <span className="text-3xl font-extrabold text-gray-900">
                 ₹{price.toFixed(2)}
@@ -339,8 +285,7 @@ export default function ProductDetailClient({ product, variants: initialVariants
                 </>
               )}
             </div>
-
-            {/* Stock indicator */}
+            { }
             <div className={`flex items-center gap-1.5 text-sm font-medium ${
               isOutOfStock ? "text-red-500" : "text-green-600"
             }`}>
@@ -361,8 +306,7 @@ export default function ProductDetailClient({ product, variants: initialVariants
                 </>
               )}
             </div>
-
-            {/* ── Variants ── */}
+            { }
             {hasVariants && (
               <div>
                 <p className="text-sm font-semibold text-gray-700 mb-2">
@@ -389,25 +333,25 @@ export default function ProductDetailClient({ product, variants: initialVariants
                             : "border-gray-200 bg-white hover:border-green-400"
                           }`}
                       >
-                        {/* Size label */}
+                        { }
                         <span className={`text-xs font-semibold leading-tight ${
                           isActive ? "text-gray-800" : outOfStock ? "text-gray-300 line-through" : "text-gray-700"
                         }`}>
                           {vLabel}
                         </span>
-                        {/* Price */}
+                        { }
                         <span className={`text-xs font-bold mt-0.5 ${
                           isActive ? "text-green-700" : outOfStock ? "text-gray-300" : "text-gray-600"
                         }`}>
                           ₹{vPrice.toFixed(0)}
                         </span>
-                        {/* MRP strikethrough if discounted */}
+                        { }
                         {vMrp > vPrice && !outOfStock && (
                           <span className="text-[10px] text-gray-400 line-through leading-none">
                             ₹{vMrp.toFixed(0)}
                           </span>
                         )}
-                        {/* Out of stock badge */}
+                        { }
                         {outOfStock && (
                           <span className="absolute -top-1.5 -right-1.5 bg-red-400 text-white text-[8px] font-bold px-1 rounded-full leading-tight">
                             OOS
@@ -419,8 +363,7 @@ export default function ProductDetailClient({ product, variants: initialVariants
                 </div>
               </div>
             )}
-
-            {/* ── Add to Cart / Qty controls ── */}
+            { }
             <div className="flex items-center gap-3 pt-2">
               {isOutOfStock ? (
                 <div className="flex-1 flex items-center justify-center gap-2 py-3 bg-gray-100 text-gray-400 rounded-xl font-semibold text-sm cursor-not-allowed">
@@ -465,8 +408,7 @@ export default function ProductDetailClient({ product, variants: initialVariants
                 </div>
               )}
             </div>
-
-            {/* Description */}
+            { }
             {selected.description && (
               <div className="pt-2 border-t border-gray-100">
                 <h3 className="text-sm font-semibold text-gray-700 mb-1">
@@ -477,8 +419,7 @@ export default function ProductDetailClient({ product, variants: initialVariants
                 </p>
               </div>
             )}
-
-            {/* Meta details */}
+            { }
             <div className="pt-2 border-t border-gray-100 grid grid-cols-2 gap-3 text-sm">
               {selected.unit_pack_size && (
                 <Detail label="Pack Size" value={selected.unit_pack_size} />
@@ -502,8 +443,7 @@ export default function ProductDetailClient({ product, variants: initialVariants
           </div>
         </div>
       </div>
-
-      {/* ── Related Products ── */}
+      { }
       {related.length > 0 && (
         <section className="mt-10">
           <div className="flex items-center justify-between mb-4">
@@ -533,7 +473,6 @@ export default function ProductDetailClient({ product, variants: initialVariants
     </div>
   );
 }
-
 function Detail({ label, value }) {
   return (
     <div>
@@ -541,4 +480,4 @@ function Detail({ label, value }) {
       <span className="font-medium text-gray-700">{value}</span>
     </div>
   );
-}
+}

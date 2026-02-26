@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Zap, Clock } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
@@ -8,54 +7,36 @@ import ProductCard from "@/components/category/ProductCard";
 import ProductCardWithVariants from "@/components/category/ProductCardWithVariants";
 import CountdownTimer from "@/components/common/CountdownTimer";
 import { groupProductsByVariant } from "@/lib/productGrouping";
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
-
-/**
- * PromotionalProducts – shows products tied to the highest-priority active promotion
- * with a countdown timer and themed header.
- * If there are no active promotions with linked products this section is hidden.
- */
 export default function PromotionalProducts() {
   const { lang } = useLanguage();
   const { activePromos, productPromoMap, loading: promoLoading } = usePromotions();
   const [products, setProducts] = useState([]);
   const [loading, setLoading]   = useState(true);
   const scrollRef = useRef(null);
-
-  // Pick the best active promo that has linked products
   const promo = activePromos.find(p => {
     const linked = p.products || [];
     return linked.length > 0;
   });
-
   const fetchProducts = useCallback(async () => {
     if (!promo) { setProducts([]); setLoading(false); return; }
     try {
       setLoading(true);
       const productIds = (promo.products || []).map(p => p.id);
       if (productIds.length === 0) { setProducts([]); setLoading(false); return; }
-      
       console.log('[PromotionalProducts] Fetching products for promotion:', promo.title);
       console.log('[PromotionalProducts] Product IDs from promo:', productIds);
-      
-      // Fetch products by specific IDs using the products endpoint with id filter
       const idParams = productIds.map(id => `id=${id}`).join('&');
       const res = await fetch(
         `${API_URL}/products?is_active=true&${idParams}&lang=${lang}`
       );
-      
       if (!res.ok) throw new Error("failed");
       const json = await res.json();
       const fetchedProducts = json.data || [];
-      
       console.log('[PromotionalProducts] Fetched products:', fetchedProducts.length, fetchedProducts.map(p => p.name));
-      
-      // If the API doesn't support id filtering, fall back to filtering client-side
       const filtered = fetchedProducts.length > 0 
         ? fetchedProducts.filter(p => productIds.includes(p.id))
         : [];
-      
       console.log('[PromotionalProducts] Final filtered products:', filtered.length);
       setProducts(filtered);
     } catch (err) {
@@ -65,28 +46,20 @@ export default function PromotionalProducts() {
       setLoading(false);
     }
   }, [promo, lang]);
-
   useEffect(() => {
     if (!promoLoading) fetchProducts();
   }, [promoLoading, fetchProducts]);
-
-  // Group products by variants
   const productGroups = useMemo(() => {
     return groupProductsByVariant(products);
   }, [products]);
-
   const scroll = (dir) => {
     if (!scrollRef.current) return;
     scrollRef.current.scrollBy({ left: dir === "left" ? -320 : 320, behavior: "smooth" });
   };
-
   if (!promoLoading && !loading && productGroups.length === 0) return null;
-
   const themeColor = promo?.theme_color || "#FF6B00";
   const title = promo?.title || "Limited Time Offers";
   const endsAt = promo?.ends_at;
-
-  // Skeletons
   const Skeleton = () => (
     <div className="w-44 sm:w-52 flex-shrink-0 animate-pulse">
       <div className="bg-gray-200 rounded-xl h-52 mb-2" />
@@ -94,11 +67,10 @@ export default function PromotionalProducts() {
       <div className="bg-gray-200 h-3 rounded w-1/2" />
     </div>
   );
-
   return (
     <section className="py-10" style={{ background: `linear-gradient(to bottom, ${themeColor}08, transparent)` }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
+        { }
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="text-white p-2 rounded-lg animate-pulse-glow" style={{ backgroundColor: themeColor }}>
@@ -115,7 +87,6 @@ export default function PromotionalProducts() {
               )}
             </div>
           </div>
-
           {!loading && productGroups.length > 0 && (
             <div className="hidden sm:flex gap-2">
               <button onClick={() => scroll("left")}
@@ -131,8 +102,7 @@ export default function PromotionalProducts() {
             </div>
           )}
         </div>
-
-        {/* Scrollable product row */}
+        { }
         <div ref={scrollRef}
           className="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-2 -mx-4 px-4">
           {loading
@@ -151,4 +121,4 @@ export default function PromotionalProducts() {
       </div>
     </section>
   );
-}
+}

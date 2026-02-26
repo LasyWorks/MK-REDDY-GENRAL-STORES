@@ -1,9 +1,5 @@
 const { body, param, query, validationResult } = require('express-validator');
 const ApiError = require('./ApiError');
-
-/**
- * Validate request and throw error if validation fails
- */
 const validate = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -15,59 +11,42 @@ const validate = (req, res, next) => {
   }
   next();
 };
-
-// Common validation rules
 const commonRules = {
-  // ID validation (UUID)
   id: (field = 'id') =>
     param(field)
       .isUUID()
       .withMessage(`${field} must be a valid UUID`),
-
-  // UUID validation (alias)
   uuid: (field = 'id') =>
     param(field)
       .isUUID()
       .withMessage(`${field} must be a valid UUID`),
-
-  // UUID validation for body fields
   bodyUuid: (field) =>
     body(field)
       .isUUID()
       .withMessage(`${field} must be a valid UUID`),
-
-  // Phone number validation (Indian)
   phone: (field = 'phone') =>
     body(field)
       .trim()
       .matches(/^[6-9]\d{9}$/)
       .withMessage('Phone number must be a valid 10-digit Indian mobile number'),
-
-  // Email validation
   email: (field = 'email') =>
     body(field)
       .trim()
       .isEmail()
       .normalizeEmail()
       .withMessage('Invalid email address'),
-
-  // OTP validation
   otp: (field = 'otp') =>
     body(field)
       .trim()
       .isLength({ min: 6, max: 6 })
       .isNumeric()
       .withMessage('OTP must be a 6-digit number'),
-
-  // Password validation
   password: (field = 'password') =>
     body(field)
       .isLength({ min: 8 })
       .withMessage('Password must be at least 8 characters')
       .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
       .withMessage('Password must contain uppercase, lowercase, number, and special character'),
-
-  // Name validation
   name: (field = 'name', minLength = 2, maxLength = 100) =>
     body(field)
       .trim()
@@ -75,126 +54,89 @@ const commonRules = {
       .withMessage(`${field} must be between ${minLength} and ${maxLength} characters`)
       .matches(/^[a-zA-Z\s]+$/)
       .withMessage(`${field} can only contain letters and spaces`),
-
-  // Telugu name validation (allows Telugu characters)
   nameTelugu: (field = 'name_te') =>
     body(field)
       .optional()
       .trim()
       .isLength({ min: 2, max: 200 })
       .withMessage(`${field} must be between 2 and 200 characters`),
-
-  // Generic string validation
   string: (field, minLength = 1, maxLength = 255) =>
     body(field)
       .trim()
       .isLength({ min: minLength, max: maxLength })
       .withMessage(`${field} must be between ${minLength} and ${maxLength} characters`),
-
-  // Optional string validation
   optionalString: (field, maxLength = 255) =>
     body(field)
       .optional()
       .trim()
       .isLength({ max: maxLength })
       .withMessage(`${field} must not exceed ${maxLength} characters`),
-
-  // Number validation
   number: (field, min = 0, max = Number.MAX_SAFE_INTEGER) =>
     body(field)
       .isFloat({ min, max })
       .withMessage(`${field} must be a number between ${min} and ${max}`),
-
-  // Integer validation
   integer: (field, min = 0, max = Number.MAX_SAFE_INTEGER) =>
     body(field)
       .isInt({ min, max })
       .withMessage(`${field} must be an integer between ${min} and ${max}`),
-
-  // Boolean validation
   boolean: (field) =>
     body(field)
       .isBoolean()
       .withMessage(`${field} must be a boolean`),
-
-  // Enum validation
   enum: (field, values) =>
     body(field)
       .isIn(values)
       .withMessage(`${field} must be one of: ${values.join(', ')}`),
-
-  // Optional enum validation
   optionalEnum: (field, values) =>
     body(field)
       .optional()
       .isIn(values)
       .withMessage(`${field} must be one of: ${values.join(', ')}`),
-
-  // Array validation
   array: (field, minLength = 1) =>
     body(field)
       .isArray({ min: minLength })
       .withMessage(`${field} must be an array with at least ${minLength} item(s)`),
-
-  // Date validation
   date: (field) =>
     body(field)
       .isISO8601()
       .toDate()
       .withMessage(`${field} must be a valid date`),
-
-  // Pagination
   page: () =>
     query('page')
       .optional()
       .isInt({ min: 1 })
       .withMessage('Page must be a positive integer'),
-
   limit: () =>
     query('limit')
       .optional()
       .isInt({ min: 1, max: 100 })
       .withMessage('Limit must be between 1 and 100'),
-
-  // Language
   language: () =>
     query('lang')
       .optional()
       .isIn(['en', 'te'])
       .withMessage('Language must be en or te'),
-
-  // Price validation
   price: (field = 'price') =>
     body(field)
       .isFloat({ min: 0.01 })
       .withMessage(`${field} must be a positive number`),
-
-  // Quantity validation
   quantity: (field = 'quantity') =>
     body(field)
       .isInt({ min: 1 })
       .withMessage(`${field} must be a positive integer`),
-
-  // Stock validation
   stock: (field = 'stock_quantity') =>
     body(field)
       .isInt({ min: 0 })
       .withMessage(`${field} must be a non-negative integer`),
-
-  // GST percentage validation
   gstPercentage: (field = 'gst_percentage') =>
     body(field)
       .isFloat({ min: 0, max: 28 })
       .withMessage(`${field} must be between 0 and 28`),
-
-  // Unit type validation
   unitType: (field = 'unit_type') =>
     body(field)
       .isIn(['kg', 'piece', 'case', 'litre', 'gram', 'pack'])
       .withMessage(`${field} must be one of: kg, piece, case, litre, gram, pack`),
 };
-
-// User validation schemas
 const userValidation = {
   create: [
     commonRules.name('name'),
@@ -223,7 +165,6 @@ const userValidation = {
       .withMessage('Role ID must be a valid UUID'),
     validate,
   ],
-
   register: [
     commonRules.name('name'),
     commonRules.phone('phone'),
@@ -237,24 +178,20 @@ const userValidation = {
       .withMessage('Address must not exceed 500 characters'),
     validate,
   ],
-
   sendOtp: [
     commonRules.phone('phone'),
     validate,
   ],
-
   verifyOtp: [
     commonRules.phone('phone'),
     commonRules.otp('otp'),
     validate,
   ],
-
   adminLogin: [
     commonRules.email('email'),
     commonRules.phone('phone'),
     validate,
   ],
-
   update: [
     commonRules.name('name').optional(),
     body('address')
@@ -265,8 +202,6 @@ const userValidation = {
     validate,
   ],
 };
-
-// Category validation schemas
 const categoryValidation = {
   create: [
     commonRules.string('name_en', 2, 100),
@@ -288,7 +223,6 @@ const categoryValidation = {
       .isBoolean(),
     validate,
   ],
-
   update: [
     commonRules.string('name_en', 2, 100).optional(),
     commonRules.nameTelugu('name_te'),
@@ -310,8 +244,6 @@ const categoryValidation = {
     validate,
   ],
 };
-
-// Product validation schemas
 const productValidation = {
   create: [
     commonRules.string('name_en', 2, 200),
@@ -338,7 +270,6 @@ const productValidation = {
       .isBoolean(),
     validate,
   ],
-
   update: [
     commonRules.string('name_en', 2, 200).optional(),
     commonRules.nameTelugu('name_te'),
@@ -361,22 +292,17 @@ const productValidation = {
     validate,
   ],
 };
-
-// Cart validation schemas
 const cartValidation = {
   addItem: [
     commonRules.bodyUuid('product_id'),
     commonRules.quantity('quantity'),
     validate,
   ],
-
   updateItem: [
     commonRules.quantity('quantity'),
     validate,
   ],
 };
-
-// Order validation schemas
 const orderValidation = {
   create: [
     body('notes')
@@ -386,7 +312,6 @@ const orderValidation = {
       .withMessage('Notes must not exceed 500 characters'),
     validate,
   ],
-
   updateStatus: [
     body('status')
       .isIn(['pending', 'confirmed', 'ready_for_pickup', 'picked_up', 'cancelled'])
@@ -398,28 +323,22 @@ const orderValidation = {
     validate,
   ],
 };
-
-// Pagination validation
 const paginationValidation = [
   commonRules.page(),
   commonRules.limit(),
   commonRules.language(),
   validate,
 ];
-
-// Auth validation schemas
 const authValidation = {
   sendOTP: [
     commonRules.phone('phone'),
     validate,
   ],
-
   verifyOTP: [
     commonRules.phone('phone'),
     commonRules.otp('otp'),
     validate,
   ],
-
   register: [
     body('name')
       .trim()
@@ -436,7 +355,6 @@ const authValidation = {
       .isLength({ max: 500 }),
     validate,
   ],
-
   adminLogin: [
     body('identifier')
       .trim()
@@ -447,14 +365,12 @@ const authValidation = {
       .withMessage('Password is required'),
     validate,
   ],
-
   refreshToken: [
     body('refresh_token')
       .notEmpty()
       .withMessage('Refresh token is required'),
     validate,
   ],
-
   changePassword: [
     body('currentPassword')
       .notEmpty()
@@ -465,8 +381,6 @@ const authValidation = {
     validate,
   ],
 };
-
-// Invoice validation schemas
 const invoiceValidation = {
   markAsPaid: [
     body('payment_method')
@@ -484,8 +398,6 @@ const invoiceValidation = {
     validate,
   ],
 };
-
-// Admin validation schemas
 const adminValidation = {
   systemConfig: [
     body('key')
@@ -504,7 +416,6 @@ const adminValidation = {
       .isLength({ max: 255 }),
     validate,
   ],
-
   gstConfig: [
     body('category_name')
       .optional()
@@ -528,8 +439,6 @@ const adminValidation = {
     validate,
   ],
 };
-
-// Aliased exports for route compatibility
 const validateSendOTP = authValidation.sendOTP;
 const validateVerifyOTP = authValidation.verifyOTP;
 const validateRegister = authValidation.register;
@@ -562,7 +471,6 @@ const validateCancelOrder = [
 const validateMarkAsPaid = invoiceValidation.markAsPaid;
 const validateSystemConfig = adminValidation.systemConfig;
 const validateGSTConfig = adminValidation.gstConfig;
-
 module.exports = {
   validate,
   commonRules,
@@ -575,7 +483,6 @@ module.exports = {
   authValidation,
   invoiceValidation,
   adminValidation,
-  // Aliased exports for routes
   validateSendOTP,
   validateVerifyOTP,
   validateRegister,
@@ -596,4 +503,4 @@ module.exports = {
   validateMarkAsPaid,
   validateSystemConfig,
   validateGSTConfig,
-};
+};

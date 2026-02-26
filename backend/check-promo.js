@@ -1,9 +1,7 @@
 const { query } = require('./src/config/database');
 const { Promotion } = require('./src/models');
-
 (async () => {
   try {
-    // Check promotion products
     const promoProds = await query(`
       SELECT pp.promotion_id, pp.product_id, pt.name 
       FROM promotion_products pp 
@@ -11,17 +9,14 @@ const { Promotion } = require('./src/models');
       ORDER BY pp.created_at
     `);
     console.log('Promotion Products:', JSON.stringify(promoProds, null, 2));
-    
-    // Check active product map
     const map = await Promotion.getActiveProductMap();
     console.log('\nActive Product Map - Total:', Object.keys(map).length);
     Object.entries(map).forEach(([pid, info]) => {
       console.log(`  ${pid}: ${info.title} - ${info.discount_type} ${info.discount_value}`);
     });
-    
     process.exit(0);
   } catch(e) {
     console.error('ERROR:', e.message);
     process.exit(1);
   }
-})();
+})();

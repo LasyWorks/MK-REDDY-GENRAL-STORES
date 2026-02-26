@@ -2,25 +2,14 @@ const jwt = require('jsonwebtoken');
 const config = require('../config');
 const ApiError = require('../utils/ApiError');
 const { query } = require('../config/database');
-
-/**
- * Verify JWT token middleware
- */
 const authenticate = async (req, res, next) => {
   try {
-    // Get token from header
     const authHeader = req.headers.authorization;
-    
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw ApiError.unauthorized('Access token is required');
     }
-
     const token = authHeader.split(' ')[1];
-
-    // Verify token
     const decoded = jwt.verify(token, config.jwt.secret);
-
-    // Check if user exists and is active
     const user = await query(
       `SELECT u.*, r.name as role_name 
        FROM users u 
@@ -28,12 +17,9 @@ const authenticate = async (req, res, next) => {
        WHERE u.id = $1 AND u.is_active = TRUE`,
       [decoded.userId]
     );
-
     if (!user.length) {
       throw ApiError.unauthorized('User not found or inactive');
     }
-
-    // Attach user to request
     req.user = {
       id: user[0].id,
       name: user[0].name,
@@ -43,7 +29,6 @@ const authenticate = async (req, res, next) => {
       roleId: user[0].role_id,
       userType: user[0].user_type,
     };
-
     next();
   } catch (error) {
     if (error instanceof ApiError) {
@@ -57,21 +42,14 @@ const authenticate = async (req, res, next) => {
     }
   }
 };
-
-/**
- * Optional authentication - doesn't fail if no token
- */
 const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return next();
     }
-
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, config.jwt.secret);
-
     const user = await query(
       `SELECT u.*, r.name as role_name 
        FROM users u 
@@ -79,7 +57,6 @@ const optionalAuth = async (req, res, next) => {
        WHERE u.id = $1 AND u.is_active = TRUE`,
       [decoded.userId]
     );
-
     if (user.length) {
       req.user = {
         id: user[0].id,
@@ -91,71 +68,43 @@ const optionalAuth = async (req, res, next) => {
         userType: user[0].user_type,
       };
     }
-
     next();
   } catch (error) {
-    // Ignore token errors for optional auth
     next();
   }
 };
-
-/**
- * Role-based access control middleware
- * @param {string[]} allowedRoles - Array of allowed role names
- */
 const authorize = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
       return next(ApiError.unauthorized('Authentication required'));
     }
-
     if (!allowedRoles.includes(req.user.role)) {
       return next(ApiError.forbidden('You do not have permission to perform this action'));
     }
-
     next();
   };
 };
-
-/**
- * Admin only middleware
- */
 const adminOnly = authorize('admin');
-
-/**
- * Customer only middleware (retail or wholesale)
- */
 const customerOnly = authorize('retail_customer', 'wholesale_customer');
-
-/**
- * Verify refresh token
- */
 const verifyRefreshToken = async (req, res, next) => {
   try {
     const { refreshToken } = req.body;
-
     if (!refreshToken) {
       throw ApiError.badRequest('Refresh token is required');
     }
-
     const decoded = jwt.verify(refreshToken, config.jwt.refreshSecret);
-
-    // Check if refresh token exists in database
     const tokenRecord = await query(
       `SELECT * FROM refresh_tokens 
        WHERE token = $1 AND user_id = $2 AND expires_at > NOW() AND revoked = FALSE`,
       [refreshToken, decoded.userId]
     );
-
     if (!tokenRecord.length) {
       throw ApiError.unauthorized('Invalid or expired refresh token');
     }
-
     req.refreshTokenData = {
       userId: decoded.userId,
       tokenRecord: tokenRecord[0],
     };
-
     next();
   } catch (error) {
     if (error instanceof ApiError) {
@@ -165,7 +114,6 @@ const verifyRefreshToken = async (req, res, next) => {
     }
   }
 };
-
 module.exports = {
   authenticate,
   optionalAuth,
@@ -173,4 +121,4 @@ module.exports = {
   adminOnly,
   customerOnly,
   verifyRefreshToken,
-};
+};

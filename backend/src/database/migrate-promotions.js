@@ -1,10 +1,5 @@
-/**
- * Migration – add promotions + promotion_products tables
- * Run: node src/database/migrate-promotions.js
- */
 const { Client } = require('pg');
 require('dotenv').config();
-
 const run = async () => {
   const client = new Client({
     host: process.env.DB_HOST || 'localhost',
@@ -13,10 +8,8 @@ const run = async () => {
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'mk_kirana_stores',
   });
-
   await client.connect();
   console.log('Connected – running promotions migration…');
-
   await client.query(`
     CREATE TABLE IF NOT EXISTS promotions (
       id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
@@ -41,7 +34,6 @@ const run = async () => {
     );
   `);
   console.log('✓ promotions table');
-
   await client.query(`
     CREATE TABLE IF NOT EXISTS promotion_products (
       id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
@@ -53,16 +45,12 @@ const run = async () => {
     );
   `);
   console.log('✓ promotion_products table');
-
-  // Indexes
   await client.query(`CREATE INDEX IF NOT EXISTS idx_promotions_active ON promotions(is_active);`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_promotions_dates ON promotions(starts_at, ends_at);`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_promotions_type ON promotions(type);`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_promo_products_promo ON promotion_products(promotion_id);`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_promo_products_product ON promotion_products(product_id);`);
   console.log('✓ indexes');
-
-  // Trigger
   await client.query(`
     DO $$ BEGIN
       IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'set_updated_at_promotions') THEN
@@ -73,9 +61,7 @@ const run = async () => {
     END $$;
   `);
   console.log('✓ trigger');
-
   await client.end();
   console.log('Promotions migration complete ✓');
 };
-
-run().catch(err => { console.error('Migration failed:', err.message); process.exit(1); });
+run().catch(err => { console.error('Migration failed:', err.message); process.exit(1); });

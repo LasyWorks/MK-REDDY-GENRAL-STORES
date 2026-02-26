@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const os = require('os');
+const path = require('path');
 const { pool } = require('../config/database');
-
 const authRoutes = require('./authRoutes');
 const userRoutes = require('./userRoutes');
 const categoryRoutes = require('./categoryRoutes');
@@ -12,13 +12,9 @@ const orderRoutes = require('./orderRoutes');
 const invoiceRoutes = require('./invoiceRoutes');
 const adminRoutes = require('./adminRoutes');
 const promotionRoutes = require('./promotionRoutes');
-
-// Health check endpoint — comprehensive
 router.get('/health', async (req, res) => {
   const startAt = process.hrtime.bigint();
   const checks = { database: 'unknown' };
-
-  // DB ping
   try {
     const client = await pool.connect();
     await client.query('SELECT 1');
@@ -27,10 +23,8 @@ router.get('/health', async (req, res) => {
   } catch {
     checks.database = 'error';
   }
-
   const latencyMs = Number(process.hrtime.bigint() - startAt) / 1e6;
   const allOk = Object.values(checks).every(v => v === 'ok');
-
   res.status(allOk ? 200 : 503).json({
     success: allOk,
     status: allOk ? 'healthy' : 'degraded',
@@ -55,8 +49,6 @@ router.get('/health', async (req, res) => {
     node: process.version,
   });
 });
-
-// API version info
 router.get('/', (req, res) => {
   res.json({
     success: true,
@@ -73,10 +65,18 @@ router.get('/', (req, res) => {
       admin: '/api/v1/admin',
     },
     documentation: '/api/v1/docs',
+    pagination: {
+      default_limit: 10,
+      max_limit: 100,
+      usage: '?page=1&limit=20',
+      note: 'All list endpoints support pagination',
+    },
   });
 });
-
-// Mount routes
+router.get('/docs', (req, res) => {
+  const docsPath = path.join(__dirname, '../../tests/API-REFERENCE.html');
+  res.sendFile(docsPath);
+});
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/categories', categoryRoutes);
@@ -86,5 +86,4 @@ router.use('/orders', orderRoutes);
 router.use('/invoices', invoiceRoutes);
 router.use('/admin', adminRoutes);
 router.use('/promotions', promotionRoutes);
-
-module.exports = router;
+module.exports = router;

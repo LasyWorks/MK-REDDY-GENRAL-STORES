@@ -1,5 +1,4 @@
 "use client";
-
 import Link from "next/link";
 import {
   ChevronDown,
@@ -15,7 +14,6 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
 import authService from "@/services/authService";
 import secureStorage from "@/lib/secureStorage";
-
 export default function Navbar() {
   const { lang, setLang } = useLanguage();
   const { totalCount, openCart } = useCart();
@@ -23,8 +21,6 @@ export default function Navbar() {
   const languageMenuRef = useRef(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-
-  // Check auth state on mount and when storage changes (login/logout in same or other tab)
   useEffect(() => {
     const check = () => {
       const loggedIn = authService.isAuthenticated();
@@ -46,14 +42,11 @@ export default function Navbar() {
       window.removeEventListener("authChange", check);
     };
   }, []);
-
   const languages = [
     { code: "en", label: "English", nativeLabel: "English" },
     { code: "te", label: "Telugu", nativeLabel: "తెలుగు" },
   ];
-
   const currentLanguage = languages.find((l) => l.code === lang);
-
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -68,14 +61,13 @@ export default function Navbar() {
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showLanguageMenu]);
-
   return (
     <header className="w-full border-b border-gray-200 bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20 gap-8">
-          {/* Left Section: Logo & Location */}
+          { }
           <div className="flex items-center gap-8 shrink-0">
-            {/* Logo */}
+            { }
             <Link href="/" className="flex items-center gap-3">
               <div className="bg-blue-600 text-white font-bold text-xl rounded-lg w-10 h-10 flex items-center justify-center">
                 MK
@@ -89,19 +81,15 @@ export default function Navbar() {
                 </span>
               </div>
             </Link>
-
-            {/* Location Selector */}
-           
+            { }
           </div>
-
-          {/* Middle Section: Search Bar */}
+          { }
           <div className="flex-1 max-w-2xl hidden lg:block">
             <Searchbar />
           </div>
-
-          {/* Right Section: Navigation Links */}
+          { }
           <nav className="flex items-center gap-8 shrink-0">
-            {/* Language Selector */}
+            { }
             <div className="relative" ref={languageMenuRef}>
               <button
                 onClick={() => setShowLanguageMenu(!showLanguageMenu)}
@@ -111,8 +99,7 @@ export default function Navbar() {
                 <span>{currentLanguage?.label}</span>
                 <ChevronDown className="w-4 h-4 text-gray-500" />
               </button>
-
-              {/* Language Dropdown */}
+              { }
               {showLanguageMenu && (
                 <div className="absolute top-full right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50">
                   {languages.map((l) => (
@@ -137,7 +124,6 @@ export default function Navbar() {
                 </div>
               )}
             </div>
-
             {isLoggedIn ? (
               <>
                 {isAdmin ? (
@@ -178,8 +164,7 @@ export default function Navbar() {
                 <span>Sign In</span>
               </Link>
             )}
-
-            {/* Cart icon with badge */}
+            { }
             <button
               onClick={openCart}
               className="relative flex items-center gap-2 text-blue-600 font-medium text-[15px] hover:text-blue-700 transition-colors"
@@ -195,12 +180,11 @@ export default function Navbar() {
             </button>
           </nav>
         </div>
-
-        {/* Mobile Search Bar (visible only on small screens) */}
+        { }
         <div className="pb-4 lg:hidden">
           <Searchbar />
         </div>
       </div>
     </header>
   );
-}
+}

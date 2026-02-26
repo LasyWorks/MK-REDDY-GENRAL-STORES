@@ -1,27 +1,20 @@
 const { query, queryOne, insert, modify } = require('../config/database');
 const { generateInvoiceNumber } = require('../utils/helpers');
 const config = require('../config');
-
-/* ── Invoice model (PostgreSQL) ─────────────────────────────── */
-
 class Invoice {
   static async findById(id) {
     return queryOne('SELECT * FROM invoices WHERE id = $1', [id]);
   }
-
   static async findByOrderId(orderId) {
     return queryOne('SELECT * FROM invoices WHERE order_id = $1', [orderId]);
   }
-
   static async findByInvoiceNumber(invoiceNumber) {
     return queryOne('SELECT * FROM invoices WHERE invoice_number = $1', [invoiceNumber]);
   }
-
   static async create(order, customer) {
     const invoiceNumber = generateInvoiceNumber();
     const cgst = parseFloat((order.total_gst / 2).toFixed(2));
     const sgst = parseFloat((order.total_gst / 2).toFixed(2));
-
     return insert(
       `INSERT INTO invoices (
          order_id, invoice_number,
@@ -37,32 +30,26 @@ class Invoice {
       ]
     );
   }
-
   static async findAll(options = {}) {
     const { page = 1, limit = 10, startDate = null, endDate = null, isPaid = null, customerId = null } = options;
     const offset = (page - 1) * limit;
     const conds = ['1=1']; const params = []; let idx = 1;
-
     if (startDate)    { conds.push(`i.created_at::date >= $${idx++}`); params.push(startDate); }
     if (endDate)      { conds.push(`i.created_at::date <= $${idx++}`); params.push(endDate); }
     if (isPaid !== null) { conds.push(`i.is_paid = $${idx++}`);        params.push(isPaid); }
     if (customerId)   { conds.push(`o.user_id = $${idx++}`);           params.push(customerId); }
-
     const where = conds.join(' AND ');
     const countRow = await queryOne(
       `SELECT COUNT(*) AS total FROM invoices i JOIN orders o ON i.order_id = o.id WHERE ${where}`, params
     );
-
     const rows = await query(
       `SELECT i.*, o.order_number, o.status AS order_status
        FROM invoices i JOIN orders o ON i.order_id = o.id
        WHERE ${where} ORDER BY i.created_at DESC LIMIT $${idx++} OFFSET $${idx++}`,
       [...params, limit, offset]
     );
-
     return { invoices: rows.map(inv => this.formatInvoice(inv)), total: parseInt(countRow.total, 10) };
   }
-
   static async getFullInvoice(orderId, lang = 'en') {
     const invoice = await queryOne(
       `SELECT i.*, o.order_number, o.status AS order_status, o.created_at AS order_date
@@ -70,7 +57,6 @@ class Invoice {
       [orderId]
     );
     if (!invoice) return null;
-
     const items = await query(
       `SELECT oi.*, COALESCE(pt_req.name, oi.product_name_en) AS product_name
        FROM order_items oi
@@ -78,7 +64,6 @@ class Invoice {
        WHERE oi.order_id = $1`,
       [orderId, lang]
     );
-
     return {
       ...this.formatInvoice(invoice),
       order_number: invoice.order_number,
@@ -95,18 +80,15 @@ class Invoice {
       })),
     };
   }
-
   static async markPaid(id, paymentMethod = 'cash') {
     return modify(
       'UPDATE invoices SET is_paid = TRUE, paid_at = NOW(), payment_method = $1 WHERE id = $2',
       [paymentMethod, id]
     );
   }
-
   static async markSmsSent(id) {
     return modify('UPDATE invoices SET sms_sent = TRUE WHERE id = $1', [id]);
   }
-
   static async updateEmailStatus(id, sent) {
     if (sent) {
       return modify(
@@ -116,7 +98,6 @@ class Invoice {
     }
     return modify('UPDATE invoices SET email_attempts = email_attempts + 1 WHERE id = $1', [id]);
   }
-
   static async getGSTReport(startDate, endDate) {
     const summary = await queryOne(
       `SELECT COUNT(*) AS total_invoices,
@@ -129,7 +110,6 @@ class Invoice {
        WHERE created_at::date BETWEEN $1 AND $2 AND is_paid = TRUE`,
       [startDate, endDate]
     );
-
     const breakdown = await query(
       `SELECT oi.gst_percentage,
               SUM(oi.subtotal)  AS taxable_amount,
@@ -142,7 +122,6 @@ class Invoice {
        GROUP BY oi.gst_percentage ORDER BY oi.gst_percentage`,
       [startDate, endDate]
     );
-
     return {
       period: { startDate, endDate },
       summary: {
@@ -161,7 +140,6 @@ class Invoice {
       })),
     };
   }
-
   static formatInvoice(invoice) {
     return {
       id: invoice.id, order_id: invoice.order_id,
@@ -189,5 +167,4 @@ class Invoice {
     };
   }
 }
-
-module.exports = Invoice;
+module.exports = Invoice;

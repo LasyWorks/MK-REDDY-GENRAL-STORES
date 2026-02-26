@@ -1,7 +1,5 @@
 const { query, queryOne, insert, modify, withTransaction } = require('../config/database');
 const { translateProductFields } = require('../utils/translate');
-
-// Translation JOIN helper (lang = $1 parameter position)
 const buildTransJoins = (langParam) => `
   LEFT JOIN product_translations    pt_req  ON p.id  = pt_req.product_id   AND pt_req.lang_code  = ${langParam}
   LEFT JOIN product_translations    pt_en   ON p.id  = pt_en.product_id    AND pt_en.lang_code   = 'en'
@@ -20,7 +18,6 @@ const PROD_TRANS_COLS = `
   c.parent_id                         AS category_parent_id,
   COALESCE(pct_req.name, pct_en.name) AS parent_category_name
 `;
-
 class Product {
   static async findById(id, lang = 'en') {
     const row = await queryOne(
@@ -33,11 +30,9 @@ class Product {
     );
     return row || null;
   }
-
   static async findBySku(sku) {
     return queryOne('SELECT * FROM products WHERE sku = $1', [sku]);
   }
-
   static async findAll(options = {}) {
     const {
       page = 1, limit = 20,
@@ -48,11 +43,9 @@ class Product {
       sortBy = 'name', sortOrder = 'ASC', lang = 'en',
     } = options;
     const offset = (page - 1) * limit;
-
     const conds  = [];
-    const params = [lang];   // $1 = lang
+    const params = [lang];   
     let   idx    = 2;
-
     if (ids && Array.isArray(ids) && ids.length > 0) { conds.push(`p.id = ANY($${idx++})`); params.push(ids); }
     if (categoryId)           { conds.push(`p.category_id = $${idx++}`);       params.push(categoryId); }
     if (parentCategoryId)     { conds.push(`c.parent_id = $${idx++}`);         params.push(parentCategoryId); }
@@ -69,13 +62,10 @@ class Product {
     if (maxPrice !== null)    { conds.push(`p.price <= $${idx++}`);            params.push(maxPrice); }
     if (inStock)              { conds.push('p.stock_quantity > 0'); }
     if (stockThreshold !== null) { conds.push(`p.stock_quantity <= $${idx++}`); params.push(stockThreshold); }
-
     const where = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
-
     const allowedSort = { name: 'pt_en.name', price: 'p.price', created_at: 'p.created_at', stock_quantity: 'p.stock_quantity', discount: '(p.mrp - p.price)' };
     const sortCol  = allowedSort[sortBy] || 'pt_en.name';
     const sortDir  = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
-
     const countRow = await queryOne(
       `SELECT COUNT(*) AS total
        FROM products p
@@ -84,7 +74,6 @@ class Product {
        ${where}`,
       params
     );
-
     const listParams = [...params, limit, offset];
     const rows = await query(
       `SELECT p.*, ${PROD_TRANS_COLS}
@@ -96,10 +85,8 @@ class Product {
        LIMIT $${idx++} OFFSET $${idx++}`,
       listParams
     );
-
     return { products: rows, total: parseInt(countRow.total, 10) };
   }
-
   static async create(data) {
     const {
       category_id, sku, name_en, name_te, description_en, description_te,
@@ -109,7 +96,6 @@ class Product {
       stock_quantity, min_order_quantity, max_order_quantity,
       image_url, is_active, is_featured,
     } = data;
-
     const prodId = await insert(
       `INSERT INTO products
          (category_id, sku, brand, variant, unit_type, unit_pack_size, hsn_code,
@@ -126,13 +112,10 @@ class Product {
         image_url || null, is_active !== false, is_featured || false,
       ]
     );
-
     await modify(
       `INSERT INTO product_translations (product_id, lang_code, name, description) VALUES ($1,'en',$2,$3)`,
       [prodId, name_en, description_en || null]
     );
-
-    // Auto-translate to Telugu if not provided
     let teluguName = name_te;
     let teluguDesc = description_te;
     if (!teluguName) {
@@ -148,9 +131,7 @@ class Product {
     }
     return prodId;
   }
-
   static async update(id, data) {
-    // Base columns
     const base = ['category_id','sku','brand','variant','unit_type','unit_pack_size','hsn_code',
                   'mrp','purchase_price','price','wholesale_price','gst_percentage','discount','margin',
                   'stock_quantity','min_order_quantity','max_order_quantity','image_url','image_urls',
@@ -160,8 +141,6 @@ class Product {
       if (base.includes(k) && v !== undefined) { fields.push(`${k} = $${idx++}`); vals.push(v); }
     }
     if (fields.length) { vals.push(id); await modify(`UPDATE products SET ${fields.join(', ')} WHERE id = $${idx}`, vals); }
-
-    // Upsert translations
     const upsert = async (lang, name, desc) => {
       if (!name) return;
       await modify(
@@ -172,8 +151,6 @@ class Product {
       );
     };
     await upsert('en', data.name_en, data.description_en);
-
-    // Auto-translate to Telugu if English is provided but Telugu is not
     let teluguName = data.name_te;
     let teluguDesc = data.description_te;
     if (data.name_en && !teluguName) {
@@ -184,35 +161,29 @@ class Product {
     await upsert('te', teluguName, teluguDesc);
     return this.findById(id);
   }
-
   static async delete(id) {
     return modify('DELETE FROM products WHERE id = $1', [id]);
   }
-
   static async updateStock(id, quantity) {
     return modify(
       'UPDATE products SET stock_quantity = stock_quantity + $1 WHERE id = $2',
       [quantity, id]
     );
   }
-
   static async reduceStock(id, quantity) {
     return modify(
       'UPDATE products SET stock_quantity = stock_quantity - $1 WHERE id = $2 AND stock_quantity >= $1',
       [quantity, id]
     );
   }
-
   static async checkStock(id, quantity) {
     const r = await queryOne('SELECT stock_quantity FROM products WHERE id = $1 AND is_active = TRUE', [id]);
     return r && r.stock_quantity >= quantity;
   }
-
   static async count() {
     const r = await queryOne('SELECT COUNT(*) AS count FROM products');
     return parseInt(r.count, 10);
   }
-
   static async bulkInsert(products) {
     return withTransaction(async (client) => {
       const results = { success: 0, failed: 0, errors: [] };
@@ -233,8 +204,6 @@ class Product {
             `INSERT INTO product_translations (product_id, lang_code, name) VALUES ($1,'en',$2)`,
             [pid, product.name_en]
           );
-
-          // Auto-translate to Telugu if not provided
           let teluguName = product.name_te;
           if (!teluguName) {
             const { name_te } = await translateProductFields(product.name_en, null);
@@ -256,5 +225,4 @@ class Product {
     });
   }
 }
-
-module.exports = Product;
+module.exports = Product;

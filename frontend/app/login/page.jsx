@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -9,62 +8,41 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import secureStorage from "@/lib/secureStorage";
-
-// ── Inner component (needs useSearchParams) ──────────────────────────────────
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/";
-
-  // ── Steps: "phone" | "otp" | "register" ──────────────────────────────────
   const [step, setStep] = useState("phone");
-  const [loginMethod, setLoginMethod] = useState("phone"); // "phone" or "email"
-
-  // Phone step
+  const [loginMethod, setLoginMethod] = useState("phone"); 
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [sentToEmail, setSentToEmail] = useState(""); // Track which email OTP was sent for
-
-  // OTP step — 6 individual boxes
+  const [sentToEmail, setSentToEmail] = useState(""); 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const otpRefs = useRef([]);
   const [countdown, setCountdown] = useState(0);
-
-  // Register step
   const [name, setName] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPhone, setRegisterPhone] = useState("");
   const [userType, setUserType] = useState("retail");
   const [address, setAddress] = useState("");
-
-  // Shared
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
-  // ── Already logged in? ────────────────────────────────────────────────────
   useEffect(() => {
     if (typeof window !== "undefined" && secureStorage.getItem("token") && secureStorage.getItem("user")) {
       router.replace("/");
     }
   }, [router]);
-
-  // ── Countdown timer ───────────────────────────────────────────────────────
   useEffect(() => {
     if (countdown <= 0) return;
     const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
     return () => clearTimeout(t);
   }, [countdown]);
-
-  // Auto-focus first OTP box when entering otp step
   useEffect(() => {
     if (step === "otp") setTimeout(() => otpRefs.current[0]?.focus(), 80);
   }, [step]);
-
-  // ── Step 1: Send OTP ──────────────────────────────────────────────────────
   async function handleSendOTP(e) {
     e?.preventDefault();
-    
     if (loginMethod === "phone") {
       if (!/^[6-9]\d{9}$/.test(phone)) {
         setError("Enter a valid 10-digit Indian mobile number");
@@ -81,7 +59,6 @@ function LoginForm() {
         setError(err.message || "Failed to send OTP. Please try again.");
       } finally { setLoading(false); }
     } else {
-      // Email method
       if (!email || !email.includes('@')) {
         setError("Enter a valid email address");
         return;
@@ -89,7 +66,6 @@ function LoginForm() {
       setError(""); setLoading(true);
       try {
         const res = await api.post("/auth/otp/send-by-email", { email });
-        // Backend returns the phone number associated with this email
         setPhone(res.data.phone);
         setSentToEmail(email);
         setStep("otp");
@@ -100,14 +76,11 @@ function LoginForm() {
       } finally { setLoading(false); }
     }
   }
-
-  // ── Verify OTP (shared by button + auto-submit) ───────────────────────────
   async function doVerify(otpStr) {
     setError(""); setLoading(true);
     try {
       const res = await api.post("/auth/otp/verify", { phone, otp: otpStr });
       if (res.data?.requiresRegistration) {
-        // Pre-fill email if they logged in via email
         if (sentToEmail) {
           setRegisterEmail(sentToEmail);
         }
@@ -126,10 +99,7 @@ function LoginForm() {
       setTimeout(() => otpRefs.current[0]?.focus(), 60);
     } finally { setLoading(false); }
   }
-
   function handleVerifyOTP(e) { e?.preventDefault(); doVerify(otp.join("")); }
-
-  // ── Resend OTP ────────────────────────────────────────────────────────────
   async function handleResend() {
     if (countdown > 0) return;
     setError(""); setLoading(true);
@@ -141,22 +111,14 @@ function LoginForm() {
     } catch (err) { setError(err.message || "Failed to resend OTP.");
     } finally { setLoading(false); }
   }
-
-  // ── Step 3: Register ──────────────────────────────────────────────────────
   async function handleRegister(e) {
     e.preventDefault();
     if (!name.trim()) { setError("Full name is required"); return; }
-    
-    // If user logged in via email, phone is already set from backend
-    // If user logged in via phone, use that phone
-    // Otherwise check registerPhone field
     const phoneToUse = phone || registerPhone;
-    
     if (!phoneToUse || !/^[6-9]\d{9}$/.test(phoneToUse)) {
       setError("Valid phone number is required");
       return;
     }
-    
     setError(""); setLoading(true);
     try {
       const res = await api.post("/auth/register", {
@@ -166,8 +128,6 @@ function LoginForm() {
         ...(registerEmail.trim() && { email: registerEmail.trim() }),
         ...(address.trim() && { address: address.trim() }),
       });
-      
-      // Backend returns tokens after successful registration, use them directly
       if (res.data?.accessToken && res.data?.user) {
         secureStorage.setItem("token", res.data.accessToken);
         secureStorage.setItem("refreshToken", res.data.refreshToken);
@@ -176,7 +136,6 @@ function LoginForm() {
         setSuccess("Account created successfully! Redirecting…");
         setTimeout(() => router.push(redirectTo), 600);
       } else {
-        // Fallback: if for some reason tokens aren't returned, send OTP
         await api.post("/auth/otp/send", { phone: phoneToUse });
         setSuccess("Account created! Enter the OTP to sign in.");
         setOtp(["", "", "", "", "", ""]); setCountdown(30);
@@ -186,8 +145,6 @@ function LoginForm() {
       setError(err.message || "Registration failed. Please try again.");
     } finally { setLoading(false); }
   }
-
-  // ── OTP box key handling ──────────────────────────────────────────────────
   function handleOtpChange(idx, val) {
     const digit = val.replace(/\D/g, "").slice(-1);
     const next = [...otp]; next[idx] = digit; setOtp(next); setError("");
@@ -209,12 +166,10 @@ function LoginForm() {
     otpRefs.current[Math.min(pasted.length, 5)]?.focus();
     if (pasted.length === 6) setTimeout(() => doVerify(pasted), 80);
   }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
-
-        {/* Logo */}
+        { }
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 bg-green-600 rounded-2xl shadow-lg mb-4">
             <Store className="w-7 h-7 text-white" />
@@ -226,8 +181,7 @@ function LoginForm() {
             {step === "register" && "Complete your profile to get started"}
           </p>
         </div>
-
-        {/* Step indicator — shown on otp + register steps */}
+        { }
         {(step === "otp" || step === "register") && (
           <div className="flex items-center justify-center gap-2 mb-5">
             {["Phone", "OTP", "Profile"].map((label, i) => {
@@ -250,10 +204,8 @@ function LoginForm() {
             })}
           </div>
         )}
-
-        {/* Card */}
+        { }
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
-
           {success && (
             <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm rounded-xl px-4 py-3 mb-4">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" />{success}
@@ -264,11 +216,10 @@ function LoginForm() {
               {error}
             </div>
           )}
-
-          {/* ── STEP 1: Phone ── */}
+          { }
           {step === "phone" && (
             <form onSubmit={handleSendOTP} className="space-y-5">
-              {/* Login method toggle */}
+              { }
               <div className="flex gap-2 p-1 bg-gray-100 rounded-xl">
                 <button
                   type="button"
@@ -293,10 +244,9 @@ function LoginForm() {
                   ✉️ Email
                 </button>
               </div>
-
               {loginMethod === "phone" ? (
                 <>
-                  {/* Phone number — always required & verified via OTP */}
+                  { }
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                       Mobile Number <span className="text-red-500">*</span>
@@ -319,7 +269,6 @@ function LoginForm() {
                       An OTP will be sent to verify your number
                     </p>
                   </div>
-
                   <button
                     type="submit"
                     disabled={loading || phone.length !== 10}
@@ -330,7 +279,7 @@ function LoginForm() {
                 </>
               ) : (
                 <>
-                  {/* Email login */}
+                  { }
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                       Email Address <span className="text-red-500">*</span>
@@ -351,7 +300,6 @@ function LoginForm() {
                       OTP will be sent to your registered phone number
                     </p>
                   </div>
-
                   <button
                     type="submit"
                     disabled={loading || !email.includes('@')}
@@ -361,13 +309,11 @@ function LoginForm() {
                   </button>
                 </>
               )}
-
               <p className="text-center text-xs text-gray-500">
                 New here? Just enter your {loginMethod} — we'll create your account after verification.
               </p>
             </form>
           )}
-
           {/* ── STEP 2: OTP ── */}
           {step === "otp" && (
             <form onSubmit={handleVerifyOTP} className="space-y-5">
@@ -391,7 +337,6 @@ function LoginForm() {
                   Change {loginMethod}
                 </button>
               </div>
-
               {/* 6-box OTP input */}
               <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
                 {otp.map((digit, idx) => (
@@ -406,12 +351,10 @@ function LoginForm() {
                   />
                 ))}
               </div>
-
               <button type="submit" disabled={loading || otp.join("").length !== 6}
                 className="w-full flex items-center justify-center gap-2 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors shadow-sm text-sm">
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Verify &amp; Sign In <ShieldCheck className="w-4 h-4" /></>}
               </button>
-
               <div className="flex items-center justify-center gap-1.5 text-sm">
                 <RotateCcw className="w-3.5 h-3.5 text-gray-400" />
                 {countdown > 0 ? (
@@ -423,14 +366,12 @@ function LoginForm() {
               </div>
             </form>
           )}
-
           {/* ── STEP 3: Register ── */}
           {step === "register" && (
             <form onSubmit={handleRegister} className="space-y-4">
               <p className="text-xs text-gray-500 bg-blue-50 rounded-lg px-3 py-2 border border-blue-100">
                 ✓ OTP verified — complete your profile to finish sign-up.
               </p>
-
               {/* Phone (read-only if entered via phone, editable if via email) */}
               {phone && !sentToEmail ? (
                 <div className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-600">
@@ -439,7 +380,6 @@ function LoginForm() {
                   <CheckCircle2 className="w-4 h-4 text-green-500 ml-auto" />
                 </div>
               ) : null}
-
               {/* Full Name */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
@@ -453,7 +393,6 @@ function LoginForm() {
                     autoFocus autoComplete="name" />
                 </div>
               </div>
-
               {/* Email - pre-filled if logged in via email, otherwise optional */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
@@ -468,7 +407,6 @@ function LoginForm() {
                     disabled={!!sentToEmail} />
                 </div>
               </div>
-
               {/* Account Type */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -490,7 +428,6 @@ function LoginForm() {
                   ))}
                 </div>
               </div>
-
               {/* Address */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
@@ -503,7 +440,6 @@ function LoginForm() {
                     className="flex-1 px-3 py-3 text-sm text-gray-900 outline-none placeholder-gray-400 resize-none" />
                 </div>
               </div>
-
               <button type="submit" disabled={loading || !name.trim()}
                 className="w-full flex items-center justify-center gap-2 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors shadow-sm text-sm">
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Create Account <ArrowRight className="w-4 h-4" /></>}
@@ -511,7 +447,6 @@ function LoginForm() {
             </form>
           )}
         </div>
-
         <p className="text-center text-xs text-gray-400 mt-6">
           By continuing, you agree to our{" "}
           <span className="text-green-600 cursor-pointer hover:underline">Terms of Service</span>{" "}
@@ -522,7 +457,6 @@ function LoginForm() {
     </div>
   );
 }
-
 // ── Exported page (Suspense for useSearchParams) ──────────────────────────────
 export default function LoginPage() {
   return (
@@ -534,4 +468,4 @@ export default function LoginPage() {
       <LoginForm />
     </Suspense>
   );
-}
+}

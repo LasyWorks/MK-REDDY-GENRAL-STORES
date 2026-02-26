@@ -1,18 +1,10 @@
 "use client";
-
 import { useEffect } from "react";
 import { RefreshCw } from "lucide-react";
-
-/**
- * App Router `global-error.jsx` – catches errors in the root layout itself.
- * Must be a Client Component AND must include its own <html>/<body> since
- * the root layout is bypassed when this renders.
- */
 export default function GlobalError({ error, reset }) {
   useEffect(() => {
     console.error("[GlobalError]", error);
   }, [error]);
-
   return (
     <html lang="en">
       <body
@@ -35,7 +27,7 @@ export default function GlobalError({ error, reset }) {
             textAlign: "center",
           }}
         >
-          {/* Logo */}
+          { }
           <div
             style={{
               display: "inline-flex",
@@ -64,13 +56,11 @@ export default function GlobalError({ error, reset }) {
               MK Reddy General Store
             </span>
           </div>
-
-          {/* Icon */}
+          { }
           <div style={{ fontSize: "6rem", lineHeight: 1, marginBottom: "1.5rem" }}>
             🏪
           </div>
-
-          {/* Badge */}
+          { }
           <div
             style={{
               display: "inline-block",
@@ -87,7 +77,6 @@ export default function GlobalError({ error, reset }) {
           >
             Critical Error
           </div>
-
           <h1
             style={{
               fontSize: "1.75rem",
@@ -99,7 +88,6 @@ export default function GlobalError({ error, reset }) {
           >
             The store is temporarily closed
           </h1>
-
           <p
             style={{
               color: "#6b7280",
@@ -111,8 +99,7 @@ export default function GlobalError({ error, reset }) {
             We're experiencing an unexpected issue. Our team has been notified
             and we'll be back up shortly. Thank you for your patience!
           </p>
-
-          {/* Dev error details */}
+          { }
           {process.env.NODE_ENV === "development" && error?.message && (
             <pre
               style={{
@@ -131,8 +118,7 @@ export default function GlobalError({ error, reset }) {
               {error.message}
             </pre>
           )}
-
-          {/* Retry */}
+          { }
           <button
             onClick={reset}
             style={{
@@ -153,7 +139,7 @@ export default function GlobalError({ error, reset }) {
             onMouseOver={(e) => (e.currentTarget.style.background = "#1d4ed8")}
             onMouseOut={(e) => (e.currentTarget.style.background = "#2563eb")}
           >
-            {/* Inline icon (no lucide import to keep this file self-contained) */}
+            { }
             <svg
               width={16}
               height={16}
@@ -169,7 +155,6 @@ export default function GlobalError({ error, reset }) {
             </svg>
             Reload Store
           </button>
-
           <p style={{ marginTop: "2rem", fontSize: "0.8rem", color: "#9ca3af" }}>
             Need help?{" "}
             <a
@@ -183,4 +168,4 @@ export default function GlobalError({ error, reset }) {
       </body>
     </html>
   );
-}
+}

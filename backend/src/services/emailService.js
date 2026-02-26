@@ -2,7 +2,6 @@ const nodemailer = require('nodemailer');
 const config = require('../config');
 const { Invoice } = require('../models');
 const logger = require('../utils/logger');
-
 class EmailService {
   constructor() {
     this.transporter = nodemailer.createTransport({
@@ -15,10 +14,6 @@ class EmailService {
       },
     });
   }
-
-  /**
-   * Send email
-   */
   async send(to, subject, html, text = null) {
     try {
       const mailOptions = {
@@ -28,7 +23,6 @@ class EmailService {
         html,
         text: text || html.replace(/<[^>]*>/g, ''),
       };
-
       const info = await this.transporter.sendMail(mailOptions);
       logger.info(`Email sent: ${info.messageId}`);
       return { success: true, messageId: info.messageId };
@@ -37,16 +31,11 @@ class EmailService {
       throw error;
     }
   }
-
-  /**
-   * Send order confirmation email
-   */
   async sendOrderConfirmation(order, user) {
     const invoice = await Invoice.getFullInvoice(order.id);
     if (!invoice || !user.email) {
       return { success: false, reason: 'No email or invoice' };
     }
-
     const itemsHtml = invoice.items.map(item => `
       <tr>
         <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.product_name}</td>
@@ -55,7 +44,6 @@ class EmailService {
         <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">₹${item.total.toFixed(2)}</td>
       </tr>
     `).join('');
-
     const html = `
       <!DOCTYPE html>
       <html>
@@ -79,13 +67,11 @@ class EmailService {
             <h1>Order Confirmed!</h1>
             <p>Thank you for your order</p>
           </div>
-          
           <div class="content">
             <h2>Order Details</h2>
             <p><strong>Order Number:</strong> ${order.order_number}</p>
             <p><strong>Invoice Number:</strong> ${invoice.invoice_number}</p>
             <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleString('en-IN')}</p>
-            
             <table class="invoice-table">
               <thead>
                 <tr>
@@ -115,7 +101,6 @@ class EmailService {
                 </tr>
               </tbody>
             </table>
-            
             <div class="store-info">
               <h3>Pickup Location</h3>
               <p><strong>${config.store.name}</strong></p>
@@ -123,12 +108,10 @@ class EmailService {
               <p>Phone: ${config.store.phone}</p>
               <p>GST: ${config.store.gstNumber}</p>
             </div>
-            
             <p style="margin-top: 20px; padding: 15px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px;">
               <strong>Note:</strong> This is a pickup-only order. We will notify you when your order is ready for pickup.
             </p>
           </div>
-          
           <div class="footer">
             <p>This is an automated email. Please do not reply.</p>
             <p>&copy; ${new Date().getFullYear()} ${config.store.name}. All rights reserved.</p>
@@ -137,33 +120,23 @@ class EmailService {
       </body>
       </html>
     `;
-
     try {
       const result = await this.send(
         user.email,
         `Order Confirmed - ${order.order_number}`,
         html
       );
-
-      // Update invoice email status
       await Invoice.updateEmailStatus(invoice.id, true);
-      
       return result;
     } catch (error) {
-      // Update invoice email status (failed)
       await Invoice.updateEmailStatus(invoice.id, false);
       throw error;
     }
   }
-
-  /**
-   * Send order ready notification
-   */
   async sendOrderReadyNotification(order, user) {
     if (!user.email) {
       return { success: false, reason: 'No email' };
     }
-
     const html = `
       <!DOCTYPE html>
       <html>
@@ -183,25 +156,20 @@ class EmailService {
           <div class="header">
             <h1>Your Order is Ready!</h1>
           </div>
-          
           <div class="content">
             <p>Dear ${user.name},</p>
             <p>Great news! Your order <strong>${order.order_number}</strong> is ready for pickup.</p>
-            
             <div class="store-info">
               <h3>Pickup Location</h3>
               <p><strong>${config.store.name}</strong></p>
               <p>${config.store.address}</p>
               <p>Phone: ${config.store.phone}</p>
             </div>
-            
             <p style="margin-top: 20px;">
               Please bring this email or your order number when you come to pick up your order.
             </p>
-            
             <p><strong>Total Amount:</strong> ₹${order.total_amount.toFixed(2)}</p>
           </div>
-          
           <div class="footer">
             <p>Thank you for shopping with us!</p>
             <p>&copy; ${new Date().getFullYear()} ${config.store.name}</p>
@@ -210,17 +178,12 @@ class EmailService {
       </body>
       </html>
     `;
-
     return this.send(
       user.email,
       `Order Ready for Pickup - ${order.order_number}`,
       html
     );
   }
-
-  /**
-   * Test email configuration
-   */
   async testConnection() {
     try {
       await this.transporter.verify();
@@ -232,6 +195,4 @@ class EmailService {
     }
   }
 }
-
-// Export singleton instance
-module.exports = new EmailService();
+module.exports = new EmailService();

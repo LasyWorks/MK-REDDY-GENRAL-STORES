@@ -1,10 +1,5 @@
 import Link from "next/link";
 import { Home, Search, ShoppingCart, ArrowRight } from "lucide-react";
-
-/**
- * Custom 404 – App Router `not-found.jsx`
- * Rendered whenever notFound() is called or a route doesn't exist.
- */
 export default function NotFound() {
   const suggestions = [
     { label: "Fresh Vegetables", href: "/categories/vegetables", emoji: "🥦" },
@@ -12,11 +7,9 @@ export default function NotFound() {
     { label: "Snacks & Drinks",   href: "/categories/snacks",     emoji: "🧃" },
     { label: "Cooking Essentials",href: "/categories/cooking",    emoji: "🫙" },
   ];
-
   return (
     <main className="min-h-[80vh] bg-gradient-to-b from-blue-50/40 to-white flex flex-col items-center justify-center px-4 py-20 text-center">
-
-      {/* Bouncing cart illustration */}
+      { }
       <div className="relative mb-8 select-none">
         <span
           className="text-8xl sm:text-9xl block animate-bounce"
@@ -26,24 +19,20 @@ export default function NotFound() {
           🛒
         </span>
       </div>
-
-      {/* Error code */}
+      { }
       <p className="text-sm font-bold tracking-[0.3em] text-blue-400 uppercase mb-2">
         Error 404
       </p>
-
-      {/* Heading */}
+      { }
       <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-3">
         Aisle not found!
       </h1>
-
-      {/* Sub-text */}
+      { }
       <p className="text-gray-500 text-base sm:text-lg max-w-md mb-10 leading-relaxed">
         Looks like this page wandered off to the wrong shelf. Don't worry — our
         store is fully stocked. Let's get you back on track.
       </p>
-
-      {/* Primary actions */}
+      { }
       <div className="flex flex-col sm:flex-row gap-3 mb-12">
         <Link
           href="/"
@@ -60,8 +49,7 @@ export default function NotFound() {
           Search Products
         </Link>
       </div>
-
-      {/* Quick category shortcuts */}
+      { }
       <div className="w-full max-w-md">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">
           Popular categories
@@ -80,8 +68,7 @@ export default function NotFound() {
           ))}
         </div>
       </div>
-
-      {/* Store branding footer strip */}
+      { }
       <div className="mt-16 flex items-center gap-2 text-gray-400 text-sm">
         <div className="bg-blue-600 text-white font-bold text-xs rounded-md w-6 h-6 flex items-center justify-center shrink-0">
           MK
@@ -90,7 +77,6 @@ export default function NotFound() {
         <span className="text-gray-200">•</span>
         <span>Your daily essentials, delivered</span>
       </div>
-
     </main>
   );
-}
+}

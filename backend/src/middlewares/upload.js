@@ -2,8 +2,6 @@ const multer = require('multer');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const ApiError = require('../utils/ApiError');
-
-// Configure storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, path.join(__dirname, '../../uploads'));
@@ -13,8 +11,6 @@ const storage = multer.diskStorage({
     cb(null, uniqueName);
   },
 });
-
-// File filter for Excel files
 const excelFilter = (req, file, cb) => {
   const allowedMimes = [
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -22,55 +18,43 @@ const excelFilter = (req, file, cb) => {
   ];
   const allowedExts = ['.xlsx', '.xls'];
   const ext = path.extname(file.originalname).toLowerCase();
-
   if (allowedMimes.includes(file.mimetype) && allowedExts.includes(ext)) {
     cb(null, true);
   } else {
     cb(new ApiError(400, 'Only Excel files (.xlsx, .xls) are allowed'), false);
   }
 };
-
-// File filter for images
 const imageFilter = (req, file, cb) => {
   const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
   const allowedExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
   const ext = path.extname(file.originalname).toLowerCase();
-
   if (allowedMimes.includes(file.mimetype) && allowedExts.includes(ext)) {
     cb(null, true);
   } else {
     cb(new ApiError(400, 'Only image files (jpg, png, gif, webp) are allowed'), false);
   }
 };
-
-// Excel upload middleware
 const uploadExcel = multer({
   storage,
   fileFilter: excelFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 5 * 1024 * 1024, 
   },
 }).single('file');
-
-// Image upload middleware
 const uploadImage = multer({
   storage,
   fileFilter: imageFilter,
   limits: {
-    fileSize: 2 * 1024 * 1024, // 2MB limit
+    fileSize: 2 * 1024 * 1024, 
   },
 }).single('image');
-
-// Multiple images upload
 const uploadImages = multer({
   storage,
   fileFilter: imageFilter,
   limits: {
-    fileSize: 2 * 1024 * 1024, // 2MB limit per file
+    fileSize: 2 * 1024 * 1024, 
   },
-}).array('images', 5); // Max 5 images
-
-// Wrapper to handle multer errors
+}).array('images', 5); 
 const handleUpload = (uploadFn) => {
   return (req, res, next) => {
     uploadFn(req, res, (err) => {
@@ -90,9 +74,8 @@ const handleUpload = (uploadFn) => {
     });
   };
 };
-
 module.exports = {
   uploadExcel: handleUpload(uploadExcel),
   uploadImage: handleUpload(uploadImage),
   uploadImages: handleUpload(uploadImages),
-};
+};

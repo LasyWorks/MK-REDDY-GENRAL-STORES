@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -17,16 +16,13 @@ import {
 } from "lucide-react";
 import authService from "@/services/authService";
 import orderService from "@/services/orderService";
-
 export default function ProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [orderCount, setOrderCount] = useState(null);
   const [loggingOut, setLoggingOut] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
-
   useEffect(() => {
-    // Guard: only redirect after we've confirmed no valid session
     if (!authService.isAuthenticated()) {
       setAuthChecked(true);
       router.replace("/login");
@@ -34,7 +30,6 @@ export default function ProfilePage() {
     }
     const u = authService.getCurrentUser();
     if (!u) {
-      // Token exists but user object missing — clear stale token and redirect
       authService.logout().catch(() => {});
       setAuthChecked(true);
       router.replace("/login");
@@ -42,8 +37,6 @@ export default function ProfilePage() {
     }
     setUser(u);
     setAuthChecked(true);
-
-    // Fetch order count
     orderService
       .getAll({ limit: 1 })
       .then((res) => {
@@ -52,39 +45,31 @@ export default function ProfilePage() {
       })
       .catch(() => setOrderCount(0));
   }, [router]);
-
   const handleLogout = async () => {
     setLoggingOut(true);
     await authService.logout();
     router.replace("/");
   };
-
-  // Show nothing until auth check is done to prevent flash
   if (!authChecked || !user) return null;
-
-  // Derive initials from name
   const initials = user.name
     ?.trim()
     .split(/\s+/)
     .slice(0, 2)
     .map((w) => w[0].toUpperCase())
     .join("") || "?";
-
   const userTypeLabel =
     user.user_type === "wholesale"
       ? "Wholesale"
       : user.user_type === "admin"
       ? "Admin"
       : "Retail";
-
   return (
     <main className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-lg mx-auto px-4 sm:px-6 space-y-4">
-
-        {/* Avatar + name card */}
+        { }
         <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl shadow-lg shadow-blue-200 p-6 text-white">
           <div className="flex items-center gap-4">
-            {/* Avatar circle */}
+            { }
             <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center text-2xl font-extrabold text-white ring-4 ring-white/30 shrink-0">
               {initials}
             </div>
@@ -104,8 +89,7 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-
-          {/* Quick stats */}
+          { }
           <div className="grid grid-cols-2 gap-3 mt-5 pt-5 border-t border-white/20">
             <div className="bg-white/10 rounded-xl px-4 py-3 text-center">
               <p className="text-2xl font-extrabold">
@@ -125,13 +109,11 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
-
-        {/* Contact details */}
+        { }
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-50">
           <p className="px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest">
             Contact Details
           </p>
-
           {user.phone && (
             <InfoRow icon={Phone} label="Phone" value={user.phone} />
           )}
@@ -147,17 +129,14 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
-
-        {/* Navigation links */}
+        { }
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-50">
           <p className="px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest">
             Account
           </p>
-
           <NavLink href="/orders" icon={Package} label="My Orders" sub={orderCount !== null ? `${orderCount} order${orderCount !== 1 ? "s" : ""}` : undefined} />
         </div>
-
-        {/* Logout */}
+        { }
         <div className="bg-white rounded-2xl border border-red-100 shadow-sm overflow-hidden">
           <button
             onClick={handleLogout}
@@ -170,8 +149,7 @@ export default function ProfilePage() {
             </span>
           </button>
         </div>
-
-        {/* Branding footnote */}
+        { }
         <p className="text-center text-xs text-gray-400 pb-4">
           MK Reddy General Store · Your daily essentials
         </p>
@@ -179,7 +157,6 @@ export default function ProfilePage() {
     </main>
   );
 }
-
 function InfoRow({ icon: Icon, label, value }) {
   return (
     <div className="flex items-start gap-4 px-5 py-4">
@@ -193,7 +170,6 @@ function InfoRow({ icon: Icon, label, value }) {
     </div>
   );
 }
-
 function NavLink({ href, icon: Icon, label, sub }) {
   return (
     <Link
@@ -210,4 +186,4 @@ function NavLink({ href, icon: Icon, label, sub }) {
       <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-blue-500 transition-colors" />
     </Link>
   );
-}
+}

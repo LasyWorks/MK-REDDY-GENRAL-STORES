@@ -1,8 +1,6 @@
 "use client";
-
 import { memo } from "react";
 import ImageWithFallback from "../common/ImageWithFallback";
-
 function SubcategoryItem({ subcat, isActive, onClick }) {
   return (
     <button
@@ -32,9 +30,7 @@ function SubcategoryItem({ subcat, isActive, onClick }) {
     </button>
   );
 }
-
 const SubcategoryItemMemo = memo(SubcategoryItem);
-
 function SubcategorySidebar({
   mainCategory,
   subcategories,
@@ -63,7 +59,6 @@ function SubcategorySidebar({
           )}
         </div>
       </div>
-
       <style jsx>{`
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
@@ -76,5 +71,4 @@ function SubcategorySidebar({
     </div>
   );
 }
-
-export default memo(SubcategorySidebar);
+export default memo(SubcategorySidebar);

@@ -1,26 +1,14 @@
 "use client";
-
 import { useEffect } from "react";
 import { RefreshCw, Home, AlertTriangle } from "lucide-react";
 import Link from "next/link";
-
-/**
- * App Router `error.jsx` – catches runtime errors inside route segments.
- * Must be a Client Component.
- *
- * `error`  – the Error object thrown
- * `reset`  – call this to attempt re-rendering the segment
- */
 export default function ErrorPage({ error, reset }) {
   useEffect(() => {
-    // Log to your error monitoring service (e.g. Sentry) here
     console.error("[ErrorBoundary]", error);
   }, [error]);
-
   return (
     <main className="min-h-[80vh] bg-gradient-to-b from-orange-50/30 to-white flex flex-col items-center justify-center px-4 py-20 text-center">
-
-      {/* Spilled-bag illustration */}
+      { }
       <div className="relative mb-8 select-none">
         <span
           className="text-8xl sm:text-9xl block"
@@ -34,31 +22,26 @@ export default function ErrorPage({ error, reset }) {
           ⚠️
         </span>
       </div>
-
-      {/* Error code badge */}
+      { }
       <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-600 text-xs font-bold px-3 py-1.5 rounded-full mb-4 uppercase tracking-wider">
         <AlertTriangle className="w-3.5 h-3.5" />
         Something went wrong
       </div>
-
       <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-3">
         We dropped the groceries!
       </h1>
-
       <p className="text-gray-500 text-base sm:text-lg max-w-md mb-4 leading-relaxed">
         Our team has been notified and is cleaning this up. In the meantime, 
         try refreshing or head back to the store.
       </p>
-
-      {/* Show error message only in development */}
+      { }
       {process.env.NODE_ENV === "development" && error?.message && (
         <pre className="mb-6 bg-gray-900 text-red-400 text-xs rounded-xl px-5 py-4 max-w-lg w-full text-left overflow-auto whitespace-pre-wrap break-all shadow-inner">
           {error.message}
           {error.stack && `\n\n${error.stack}`}
         </pre>
       )}
-
-      {/* Actions */}
+      { }
       <div className="flex flex-col sm:flex-row gap-3 mt-2">
         <button
           onClick={reset}
@@ -75,13 +58,11 @@ export default function ErrorPage({ error, reset }) {
           Go to Store
         </Link>
       </div>
-
-      {/* Assurance */}
+      { }
       <p className="mt-12 text-xs text-gray-400">
         Your cart items are safe — no orders were affected.
       </p>
-
-      {/* Store branding */}
+      { }
       <div className="mt-6 flex items-center gap-2 text-gray-400 text-sm">
         <div className="bg-blue-600 text-white font-bold text-xs rounded-md w-6 h-6 flex items-center justify-center shrink-0">
           MK
@@ -90,4 +71,4 @@ export default function ErrorPage({ error, reset }) {
       </div>
     </main>
   );
-}
+}

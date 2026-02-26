@@ -2,16 +2,9 @@ const { UserService } = require('../services');
 const { asyncHandler } = require('../middlewares');
 const ApiResponse = require('../utils/ApiResponse');
 const { getPaginationParams } = require('../utils/helpers');
-
-/**
- * @desc    Get all users
- * @route   GET /api/v1/users
- * @access  Admin
- */
 const getUsers = asyncHandler(async (req, res) => {
   const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
   const { role, user_type, is_active, search } = req.query;
-
   const result = await UserService.getAll({
     page,
     limit,
@@ -20,126 +13,60 @@ const getUsers = asyncHandler(async (req, res) => {
     isActive: is_active !== undefined ? is_active === 'true' : null,
     search,
   });
-
   ApiResponse.paginated(res, result.users, {
     page,
     limit,
     totalItems: result.total,
   });
 });
-
-/**
- * @desc    Get user by ID
- * @route   GET /api/v1/users/:id
- * @access  Admin
- */
 const getUser = asyncHandler(async (req, res) => {
   const user = await UserService.getById(req.params.id);
   ApiResponse.success(res, user);
 });
-
-/**
- * @desc    Update user
- * @route   PUT /api/v1/users/:id
- * @access  Admin or Self
- */
 const updateUser = asyncHandler(async (req, res) => {
   const { name, address, email } = req.body;
   const userId = req.params.id;
-
-  // Check if user is updating themselves or admin is updating
   const isAdmin = req.user.role === 'admin';
   const isSelf = req.user.id === userId;
-
   if (!isAdmin && !isSelf) {
     return ApiResponse.error(res, 'Not authorized', 403);
   }
-
   const user = await UserService.update(
     userId,
     { name, address, email },
     isAdmin && !isSelf ? req.user.id : null
   );
-
   ApiResponse.success(res, user, 'User updated successfully');
 });
-
-/**
- * @desc    Delete user
- * @route   DELETE /api/v1/users/:id
- * @access  Admin
- */
 const deleteUser = asyncHandler(async (req, res) => {
   await UserService.delete(req.params.id, req.user.id);
   ApiResponse.success(res, null, 'User deleted successfully');
 });
-
-/**
- * @desc    Block user
- * @route   POST /api/v1/users/:id/block
- * @access  Admin
- */
 const blockUser = asyncHandler(async (req, res) => {
   const { reason } = req.body;
   const result = await UserService.block(req.params.id, reason, req.user.id);
   ApiResponse.success(res, result);
 });
-
-/**
- * @desc    Unblock user
- * @route   POST /api/v1/users/:id/unblock
- * @access  Admin
- */
 const unblockUser = asyncHandler(async (req, res) => {
   const result = await UserService.unblock(req.params.id, req.user.id);
   ApiResponse.success(res, result);
 });
-
-/**
- * @desc    Activate user
- * @route   POST /api/v1/users/:id/activate
- * @access  Admin
- */
 const activateUser = asyncHandler(async (req, res) => {
   const result = await UserService.activate(req.params.id, req.user.id);
   ApiResponse.success(res, result);
 });
-
-/**
- * @desc    Deactivate user
- * @route   POST /api/v1/users/:id/deactivate
- * @access  Admin
- */
 const deactivateUser = asyncHandler(async (req, res) => {
   const result = await UserService.deactivate(req.params.id, req.user.id);
   ApiResponse.success(res, result);
 });
-
-/**
- * @desc    Get customer count
- * @route   GET /api/v1/users/count
- * @access  Admin
- */
 const getCustomerCount = asyncHandler(async (req, res) => {
   const result = await UserService.getCustomerCount();
   ApiResponse.success(res, result);
 });
-
-/**
- * @desc    Get user statistics
- * @route   GET /api/v1/users/stats
- * @access  Admin
- */
 const getUserStats = asyncHandler(async (req, res) => {
   const result = await UserService.getStatistics();
   ApiResponse.success(res, result);
 });
-
-/**
- * @desc    Create new user
- * @route   POST /api/v1/users
- * @access  Admin
- */
 const createUser = asyncHandler(async (req, res) => {
   const { name, phone, email, user_type, address, role_id, password } = req.body;
   const user = await UserService.create({
@@ -148,28 +75,16 @@ const createUser = asyncHandler(async (req, res) => {
     email,
     user_type: user_type || 'retail',
     address,
-    role_id: role_id || undefined, // Will be resolved by service
+    role_id: role_id || undefined, 
     password,
   });
   ApiResponse.created(res, user, 'User created successfully');
 });
-
-/**
- * @desc    Update customer type
- * @route   PUT /api/v1/users/:id/customer-type
- * @access  Admin
- */
 const updateCustomerType = asyncHandler(async (req, res) => {
   const { customer_type } = req.body;
   const user = await UserService.updateCustomerType(req.params.id, customer_type, req.user.id);
   ApiResponse.success(res, user, 'Customer type updated successfully');
 });
-
-/**
- * @desc    Get user's order history
- * @route   GET /api/v1/users/:id/orders
- * @access  Admin
- */
 const getUserOrders = asyncHandler(async (req, res) => {
   const { OrderService } = require('../services');
   const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
@@ -180,7 +95,6 @@ const getUserOrders = asyncHandler(async (req, res) => {
     totalItems: result.total,
   });
 });
-
 module.exports = {
   getAllUsers: getUsers,
   getUserById: getUser,
@@ -195,4 +109,4 @@ module.exports = {
   updateCustomerType,
   getUserOrders,
   getCustomerCount,
-};
+};

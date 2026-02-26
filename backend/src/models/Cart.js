@@ -1,5 +1,4 @@
 const { query, queryOne, insert, modify, withTransaction } = require('../config/database');
-
 class Cart {
   static async getOrCreate(userId) {
     let cart = await queryOne('SELECT * FROM carts WHERE user_id = $1', [userId]);
@@ -9,10 +8,8 @@ class Cart {
     }
     return cart;
   }
-
   static async getWithItems(userId, lang = 'en') {
     const cart = await this.getOrCreate(userId);
-
     const items = await query(
       `SELECT ci.*,
               COALESCE(pt_req.name, pt_en.name)  AS product_name,
@@ -31,7 +28,6 @@ class Cart {
        ORDER BY ci.created_at DESC`,
       [cart.id, lang]
     );
-
     let subtotal = 0;
     let totalGst = 0;
     const formattedItems = items.map(item => {
@@ -59,7 +55,6 @@ class Cart {
         item_grand_total: itemSub + itemGst,
       };
     });
-
     return {
       id: cart.id, user_id: cart.user_id,
       items: formattedItems, item_count: items.length,
@@ -68,7 +63,6 @@ class Cart {
       total: parseFloat((subtotal + totalGst).toFixed(2)),
     };
   }
-
   static async addItem(userId, productId, quantity, unitPrice) {
     const cart = await this.getOrCreate(userId);
     const existing = await queryOne(
@@ -86,7 +80,6 @@ class Cart {
       [cart.id, productId, quantity, unitPrice]
     );
   }
-
   static async updateItem(userId, productId, quantity) {
     if (quantity <= 0) return this.removeItem(userId, productId);
     const cart = await this.getOrCreate(userId);
@@ -95,25 +88,21 @@ class Cart {
       [quantity, cart.id, productId]
     );
   }
-
   static async removeItem(userId, productId) {
     const cart = await queryOne('SELECT id FROM carts WHERE user_id = $1', [userId]);
     if (!cart) return 0;
     return modify('DELETE FROM cart_items WHERE cart_id = $1 AND product_id = $2', [cart.id, productId]);
   }
-
   static async clear(userId) {
     const cart = await queryOne('SELECT id FROM carts WHERE user_id = $1', [userId]);
     if (!cart) return 0;
     return modify('DELETE FROM cart_items WHERE cart_id = $1', [cart.id]);
   }
-
   static async getItem(userId, productId) {
     const cart = await queryOne('SELECT id FROM carts WHERE user_id = $1', [userId]);
     if (!cart) return null;
     return queryOne('SELECT * FROM cart_items WHERE cart_id = $1 AND product_id = $2', [cart.id, productId]);
   }
-
   static async syncPrices(userId) {
     const cart = await queryOne('SELECT id FROM carts WHERE user_id = $1', [userId]);
     if (!cart) return 0;
@@ -123,11 +112,9 @@ class Cart {
       [cart.id]
     );
   }
-
   static async validateItems(userId) {
     const cart = await queryOne('SELECT id FROM carts WHERE user_id = $1', [userId]);
     if (!cart) return { valid: true, issues: [] };
-
     const items = await query(
       `SELECT ci.*, p.stock_quantity, p.is_active,
               COALESCE(pt.name, 'Unknown') AS product_name
@@ -137,7 +124,6 @@ class Cart {
        WHERE ci.cart_id = $1`,
       [cart.id]
     );
-
     const issues = [];
     for (const item of items) {
       if (!item.is_active) {
@@ -151,25 +137,19 @@ class Cart {
     }
     return { valid: issues.length === 0, issues };
   }
-
-  /**
-   * Replace backend cart entirely with the provided items.
-   * Used for a reliable full-sync before order placement.
-   */
   static async replaceAll(userId, items) {
     const cart = await this.getOrCreate(userId);
     return withTransaction(async (client) => {
       await client.query('DELETE FROM cart_items WHERE cart_id = $1', [cart.id]);
       for (const item of items) {
-        // Get current price from DB (never trust client prices)
         const product = await client.query(
           'SELECT price, stock_quantity, is_active FROM products WHERE id = $1',
           [item.product_id]
         );
-        if (!product.rows.length) continue;               // product deleted
+        if (!product.rows.length) continue;               
         const p = product.rows[0];
-        if (!p.is_active) continue;                       // product deactivated
-        const qty = Math.min(item.quantity, p.stock_quantity); // cap to stock
+        if (!p.is_active) continue;                       
+        const qty = Math.min(item.quantity, p.stock_quantity); 
         if (qty <= 0) continue;
         await client.query(
           'INSERT INTO cart_items (cart_id, product_id, quantity, unit_price) VALUES ($1,$2,$3,$4)',
@@ -179,5 +159,4 @@ class Cart {
     });
   }
 }
-
-module.exports = Cart;
+module.exports = Cart;

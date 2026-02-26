@@ -1,20 +1,16 @@
 "use client";
-
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import ProductCard from "@/components/category/ProductCard";
 import ProductCardWithVariants from "@/components/category/ProductCardWithVariants";
 import { groupProductsByVariant } from "@/lib/productGrouping";
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
-
 export default function FeaturedProducts() {
   const { lang } = useLanguage();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef(null);
-
   const fetchFeatured = useCallback(async () => {
     try {
       setLoading(true);
@@ -30,16 +26,12 @@ export default function FeaturedProducts() {
       setLoading(false);
     }
   }, [lang]);
-
   useEffect(() => {
     fetchFeatured();
   }, [fetchFeatured]);
-
-  // Group products by variants
   const productGroups = useMemo(() => {
     return groupProductsByVariant(products);
   }, [products]);
-
   const scroll = (dir) => {
     if (!scrollRef.current) return;
     scrollRef.current.scrollBy({
@@ -47,14 +39,11 @@ export default function FeaturedProducts() {
       behavior: "smooth",
     });
   };
-
-  // Don't render the section at all if there are no featured products
   if (!loading && productGroups.length === 0) return null;
-
   return (
     <section className="py-10 bg-gradient-to-b from-white to-yellow-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
+        { }
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="bg-yellow-400 text-white p-2 rounded-lg">
@@ -69,8 +58,7 @@ export default function FeaturedProducts() {
               </p>
             </div>
           </div>
-
-          {/* Scroll arrows (desktop) */}
+          { }
           {!loading && productGroups.length > 0 && (
             <div className="hidden sm:flex gap-2">
               <button
@@ -90,8 +78,7 @@ export default function FeaturedProducts() {
             </div>
           )}
         </div>
-
-        {/* Loading skeletons */}
+        { }
         {loading && (
           <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
             {[...Array(6)].map((_, i) => (
@@ -103,8 +90,7 @@ export default function FeaturedProducts() {
             ))}
           </div>
         )}
-
-        {/* Products horizontal scroll */}
+        { }
         {!loading && productGroups.length > 0 && (
           <div
             ref={scrollRef}
@@ -127,4 +113,4 @@ export default function FeaturedProducts() {
       </div>
     </section>
   );
-}
+}

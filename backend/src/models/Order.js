@@ -1,6 +1,5 @@
 const { query, queryOne, insert, modify, withTransaction } = require('../config/database');
 const { generateOrderNumber } = require('../utils/helpers');
-
 class Order {
   static async findById(id, lang = 'en') {
     const order = await queryOne(
@@ -11,7 +10,6 @@ class Order {
     if (order) { const items = await this.getOrderItems(id, lang); return { ...this.formatOrder(order), items }; }
     return null;
   }
-
   static async findByOrderNumber(orderNumber, lang = 'en') {
     const order = await queryOne(
       `SELECT o.*, u.name AS customer_name, u.phone AS customer_phone, u.user_type
@@ -21,7 +19,6 @@ class Order {
     if (order) { const items = await this.getOrderItems(order.id, lang); return { ...this.formatOrder(order), items }; }
     return null;
   }
-
   static async getOrderItems(orderId, lang = 'en') {
     const items = await query(
       `SELECT oi.*, COALESCE(pt_req.name, oi.product_name_en) AS product_name
@@ -38,7 +35,6 @@ class Order {
       gst_amount: parseFloat(i.gst_amount), subtotal: parseFloat(i.subtotal), total: parseFloat(i.total),
     }));
   }
-
   static async findByUser(userId, options = {}) {
     const { page = 1, limit = 10, status = null, lang = 'en' } = options;
     const offset = (page - 1) * limit;
@@ -54,7 +50,6 @@ class Order {
     );
     return { orders: rows.map(r => this.formatOrder(r)), total: parseInt(countRow.total, 10) };
   }
-
   static async findAll(options = {}) {
     const { page = 1, limit = 10, status = null, userId = null, startDate = null, endDate = null } = options;
     const offset = (page - 1) * limit;
@@ -73,7 +68,6 @@ class Order {
     );
     return { orders: rows.map(r => this.formatOrder(r)), total: parseInt(countRow.total, 10) };
   }
-
   static async createFromCart(userId, cart, notes = null, promo = {}) {
     const { promotionId = null, promotionDiscount = 0, promotionTitle = null } = promo;
     return withTransaction(async (client) => {
@@ -105,7 +99,6 @@ class Order {
       return { orderId, orderNumber };
     });
   }
-
   static async updateStatus(id, status, notes = null) {
     const tsMap = { confirmed: 'confirmed_at', ready_for_pickup: 'ready_at', picked_up: 'picked_up_at', cancelled: 'cancelled_at' };
     let sql = 'UPDATE orders SET status = $1'; const params = [status]; let idx = 2;
@@ -115,7 +108,6 @@ class Order {
     params.push(id);
     return modify(sql, params);
   }
-
   static async cancel(id, reason = null) {
     return withTransaction(async (client) => {
       const items = await client.query('SELECT product_id, quantity FROM order_items WHERE order_id = $1', [id]);
@@ -129,7 +121,6 @@ class Order {
       return true;
     });
   }
-
   static async getStatistics(startDate = null, endDate = null) {
     const conds = ['1=1']; const params = []; let idx = 1;
     if (startDate) { conds.push(`created_at::date >= $${idx++}`); params.push(startDate); }
@@ -148,7 +139,6 @@ class Order {
       params
     );
   }
-
   static formatOrder(order) {
     return {
       id: order.id, order_number: order.order_number,
@@ -168,5 +158,4 @@ class Order {
     };
   }
 }
-
 module.exports = Order;

@@ -7,23 +7,19 @@ import FestiveBanner from "@/components/Home/FestiveBanner";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { CartProvider } from "@/context/CartContext";
 import { PromotionProvider } from "@/context/PromotionContext";
-
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
-
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
-
 export const metadata = {
   title: "MK Reddy General Store - Grocery Shopping",
   description:
     "Shop for groceries, vegetables, fruits and more at MK Reddy General Store",
 };
-
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
@@ -44,4 +40,4 @@ export default function RootLayout({ children }) {
       </body>
     </html>
   );
-}
+}

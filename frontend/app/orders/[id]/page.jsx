@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -17,14 +16,12 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import orderService from "@/services/orderService";
-
 const STATUS_STEPS = [
   { key: "pending",          label: "Order Placed",    icon: Clock },
   { key: "confirmed",        label: "Confirmed",       icon: CheckCircle2 },
   { key: "ready_for_pickup", label: "Ready",           icon: Package },
   { key: "picked_up",        label: "Picked Up",       icon: Truck },
 ];
-
 const STATUS_META = {
   pending:          { label: "Pending",    color: "text-yellow-600 bg-yellow-50 border-yellow-200" },
   confirmed:        { label: "Confirmed",  color: "text-blue-600 bg-blue-50 border-blue-200" },
@@ -32,7 +29,6 @@ const STATUS_META = {
   picked_up:        { label: "Picked Up",  color: "text-green-600 bg-green-50 border-green-200" },
   cancelled:        { label: "Cancelled",  color: "text-red-600 bg-red-50 border-red-200" },
 };
-
 export default function OrderDetailPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -40,7 +36,6 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [cancelling, setCancelling] = useState(false);
-
   const load = async () => {
     setLoading(true);
     setError(null);
@@ -53,9 +48,7 @@ export default function OrderDetailPage() {
       setLoading(false);
     }
   };
-
   useEffect(() => { load(); }, [id]);
-
   const handleCancel = async () => {
     if (!confirm("Are you sure you want to cancel this order?")) return;
     setCancelling(true);
@@ -68,8 +61,6 @@ export default function OrderDetailPage() {
       setCancelling(false);
     }
   };
-
-  // ── Loading ──
   if (loading) {
     return (
       <main className="min-h-screen bg-gray-50 py-8">
@@ -95,8 +86,6 @@ export default function OrderDetailPage() {
       </main>
     );
   }
-
-  // ── Error ──
   if (error) {
     return (
       <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 text-center">
@@ -109,22 +98,18 @@ export default function OrderDetailPage() {
       </main>
     );
   }
-
   const meta = STATUS_META[order.status] || STATUS_META.pending;
   const isCancelled = order.status === "cancelled";
   const canCancel = ["pending", "confirmed"].includes(order.status);
   const currentStepIdx = STATUS_STEPS.findIndex((s) => s.key === order.status);
-
   return (
     <main className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 space-y-4">
-
-        {/* Back */}
+        { }
         <Link href="/orders" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-blue-600 transition-colors">
           <ChevronLeft className="w-4 h-4" /> Back to Orders
         </Link>
-
-        {/* Header card */}
+        { }
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
@@ -143,8 +128,7 @@ export default function OrderDetailPage() {
               {meta.label}
             </span>
           </div>
-
-          {/* Progress tracker (skip for cancelled) */}
+          { }
           {!isCancelled && (
             <div className="mt-6 flex items-center gap-0">
               {STATUS_STEPS.map((step, idx) => {
@@ -171,8 +155,7 @@ export default function OrderDetailPage() {
               })}
             </div>
           )}
-
-          {/* Cancellation note */}
+          { }
           {isCancelled && order.cancellation_reason && (
             <div className="mt-4 bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm text-red-600 flex items-start gap-2">
               <XCircle className="w-4 h-4 mt-0.5 shrink-0" />
@@ -180,8 +163,7 @@ export default function OrderDetailPage() {
             </div>
           )}
         </div>
-
-        {/* Order items */}
+        { }
         {order.items && order.items.length > 0 && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
             <h2 className="text-base font-bold text-gray-900 mb-4">
@@ -210,8 +192,7 @@ export default function OrderDetailPage() {
             </div>
           </div>
         )}
-
-        {/* Bill summary */}
+        { }
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
           <h2 className="text-base font-bold text-gray-900 mb-4">Bill Summary</h2>
           <div className="space-y-2.5 text-sm">
@@ -222,16 +203,14 @@ export default function OrderDetailPage() {
             </div>
           </div>
         </div>
-
-        {/* Notes */}
+        { }
         {order.notes && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-4 text-sm text-gray-600 flex items-start gap-2">
             <FileText className="w-4 h-4 mt-0.5 text-gray-400 shrink-0" />
             <span>{order.notes}</span>
           </div>
         )}
-
-        {/* Actions */}
+        { }
         <div className="flex gap-3 pb-6">
           {canCancel && (
             <button
@@ -253,7 +232,6 @@ export default function OrderDetailPage() {
     </main>
   );
 }
-
 function Row({ label, value, bold }) {
   return (
     <div className={`flex justify-between ${bold ? "font-bold text-gray-900 text-base" : "text-gray-600"}`}>
@@ -261,4 +239,4 @@ function Row({ label, value, bold }) {
       <span>{value}</span>
     </div>
   );
-}
+}

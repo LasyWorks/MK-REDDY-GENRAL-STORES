@@ -1,18 +1,13 @@
 "use client";
-
 import { useState, useEffect, useCallback, memo } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import SubcategorySidebar from "./SubcategorySidebar";
 import ProductGrid from "./ProductGrid";
 import { useLanguage } from "@/context/LanguageContext";
-
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
-
-// Cache keyed by "categoryId-lang" so EN and TE are stored independently
 const productCache = new Map();
-
 async function fetchProducts(categoryId, lang) {
   const key = `${categoryId}-${lang}`;
   if (productCache.has(key)) return productCache.get(key);
@@ -26,10 +21,7 @@ async function fetchProducts(categoryId, lang) {
   productCache.set(key, data);
   return data;
 }
-
-// Cache for localised category lists
 const categoryCache = new Map();
-
 async function fetchCategoriesLang(lang) {
   if (categoryCache.has(lang)) return categoryCache.get(lang);
   const res = await fetch(
@@ -42,25 +34,19 @@ async function fetchCategoriesLang(lang) {
   categoryCache.set(lang, data);
   return data;
 }
-
 function CategoryClientView({
   mainCategory,
   subcategories,
   initialActiveSubcategory,
 }) {
   const { lang } = useLanguage();
-
-  // Display versions of categories — start with server-fetched (en),
-  // swap to localised data when lang changes
   const [displayMain, setDisplayMain] = useState(mainCategory);
   const [displaySubs, setDisplaySubs] = useState(subcategories);
   const [activeSubcategory, setActiveSubcategory] = useState(
     initialActiveSubcategory || subcategories[0] || null,
   );
-
   const [products, setProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(true);
-
   const loadProducts = useCallback(
     async (categoryId) => {
       setProductsLoading(true);
@@ -76,12 +62,9 @@ function CategoryClientView({
     },
     [lang],
   );
-
-  // Re-localise category names + reload products when lang changes
   useEffect(() => {
     let cancelled = false;
     async function localise() {
-      // For English the server props are already correct
       if (lang === "en") {
         setDisplayMain(mainCategory);
         setDisplaySubs(subcategories);
@@ -105,13 +88,10 @@ function CategoryClientView({
     localise();
     return () => { cancelled = true; };
   }, [lang, mainCategory, subcategories]);
-
-  // Reload products when active subcategory OR lang changes
   useEffect(() => {
     const targetId = activeSubcategory?.id || mainCategory?.id;
     if (targetId) loadProducts(targetId);
-  }, [activeSubcategory?.id, lang]); // eslint-disable-line react-hooks/exhaustive-deps
-
+  }, [activeSubcategory?.id, lang]); 
   const handleSubcategoryClick = useCallback(
     (subcat) => {
       setActiveSubcategory(subcat);
@@ -120,11 +100,10 @@ function CategoryClientView({
     },
     [loadProducts],
   );
-
   return (
     <div className="min-h-screen bg-gray-50 pt-4 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Breadcrumb — Home > Main Category > Subcategory */}
+        { }
         <nav className="text-sm text-gray-500 mb-4 flex items-center gap-1.5 flex-wrap">
           <Link href="/" className="hover:text-green-600 transition-colors">
             Home
@@ -149,7 +128,6 @@ function CategoryClientView({
             </span>
           )}
         </nav>
-
         <div className="flex flex-col md:flex-row gap-6">
           <SubcategorySidebar
             mainCategory={displayMain}
@@ -170,5 +148,4 @@ function CategoryClientView({
     </div>
   );
 }
-
-export default memo(CategoryClientView);
+export default memo(CategoryClientView);

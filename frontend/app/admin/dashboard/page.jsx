@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -14,13 +13,10 @@ import {
 import ImageWithFallback from "@/components/common/ImageWithFallback";
 import api from "@/lib/api";
 import secureStorage from "@/lib/secureStorage";
-
-// ── Auth guard ────────────────────────────────────────────────────────────────
 function useAdminGuard() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [admin, setAdmin] = useState(null);
-
   useEffect(() => {
     const token = secureStorage.getItem("token");
     const raw   = secureStorage.getItem("user");
@@ -34,11 +30,8 @@ function useAdminGuard() {
       setReady(true);
     } catch { router.replace("/login?redirect=/admin/dashboard"); }
   }, [router]);
-
   return { ready, admin };
 }
-
-// ── Status badge ──────────────────────────────────────────────────────────────
 const STATUS_STYLES = {
   pending:          "bg-yellow-100 text-yellow-700",
   confirmed:        "bg-blue-100 text-blue-700",
@@ -46,9 +39,7 @@ const STATUS_STYLES = {
   picked_up:        "bg-green-100 text-green-700",
   cancelled:        "bg-red-100 text-red-700",
 };
-
 function StatusBadge({ status }) {
-  // STATUS_LABELS is defined after ORDER_STATUSES below
   const label = { pending:"Pending", confirmed:"Confirmed", ready_for_pickup:"Ready for Pickup", picked_up:"Picked Up", cancelled:"Cancelled" }[status] || status;
   return (
     <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${STATUS_STYLES[status] || "bg-gray-100 text-gray-600"}`}>
@@ -56,11 +47,7 @@ function StatusBadge({ status }) {
     </span>
   );
 }
-
-// ── Status options ────────────────────────────────────────────────────────────
 const ORDER_STATUSES = ["pending","confirmed","ready_for_pickup","picked_up","cancelled"];
-
-// Mirrors backend validTransitions — only allowed next states per current state
 const VALID_TRANSITIONS = {
   pending:          ["confirmed", "cancelled"],
   confirmed:        ["ready_for_pickup", "cancelled"],
@@ -68,7 +55,6 @@ const VALID_TRANSITIONS = {
   picked_up:        [],
   cancelled:        [],
 };
-
 const STATUS_LABELS = {
   pending:          "Pending",
   confirmed:        "Confirmed",
@@ -76,21 +62,16 @@ const STATUS_LABELS = {
   picked_up:        "Picked Up",
   cancelled:        "Cancelled",
 };
-
-// ── Format helpers ────────────────────────────────────────────────────────────
 function fmtCurrency(n) {
   const num = parseFloat(n || 0);
   if (num >= 10_00_000) return `₹${(num / 10_00_000).toFixed(1)}L`;
   if (num >= 1000)      return `₹${(num / 1000).toFixed(1)}K`;
   return `₹${num.toFixed(0)}`;
 }
-
 function fmtDate(iso) {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-IN", { day:"numeric", month:"short", year:"numeric" });
 }
-
-// ── Stat card ──────────────────────────────────────────────────────────────────
 function StatCard({ label, value, sub, icon: Icon, color }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm flex gap-4 items-start">
@@ -105,17 +86,12 @@ function StatCard({ label, value, sub, icon: Icon, color }) {
     </div>
   );
 }
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// OVERVIEW TAB
-// ═══════════════════════════════════════════════════════════════════════════════
 function OverviewTab() {
   const [stats, setStats]       = useState(null);
   const [orders, setOrders]     = useState([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState("");
   const [refreshing, setRefreshing] = useState(false);
-
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     setError("");
@@ -129,19 +105,15 @@ function OverviewTab() {
     } catch (e) { setError(e.message || "Failed to load dashboard"); }
     finally { setLoading(false); setRefreshing(false); }
   }, []);
-
   const handleRefresh = async () => {
     setRefreshing(true);
     await load(true);
   };
-
   useEffect(() => {
     load();
-    // Auto-refresh every 30 seconds
     const interval = setInterval(() => load(true), 30000);
     return () => clearInterval(interval);
   }, [load]);
-
   if (loading) return (
     <div className="flex items-center justify-center py-32">
       <Loader2 className="w-8 h-8 animate-spin text-green-600" />
@@ -150,10 +122,9 @@ function OverviewTab() {
   if (error) return (
     <div className="text-center py-20 text-red-500">{error}</div>
   );
-
   return (
     <div className="space-y-8">
-      {/* Refresh button */}
+      { }
       <div className="flex justify-end">
         <button
           onClick={handleRefresh}
@@ -164,16 +135,14 @@ function OverviewTab() {
           Refresh
         </button>
       </div>
-
-      {/* Stats */}
+      { }
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Total Products"  value={stats?.products?.total  ?? "—"} sub={`Limit: ${stats?.products?.limit}`}    icon={Package}          color="bg-blue-50 text-blue-600" />
         <StatCard label="Total Orders"    value={stats?.orders?.total    ?? "—"} sub={`Today: ${stats?.today?.orders ?? 0}`} icon={ShoppingCart}      color="bg-green-50 text-green-600" />
         <StatCard label="Revenue"         value={fmtCurrency(stats?.revenue?.total)} sub={`Today: ${fmtCurrency(stats?.today?.revenue)}`} icon={CircleDollarSign} color="bg-purple-50 text-purple-600" />
         <StatCard label="Customers"       value={stats?.customers?.total ?? "—"} sub={`Limit: ${stats?.customers?.limit}`}  icon={Users}            color="bg-orange-50 text-orange-600" />
       </div>
-
-      {/* Pending / Completed chips */}
+      { }
       <div className="flex flex-wrap gap-3">
         <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-xl px-4 py-2 text-sm font-medium">
           <AlertTriangle className="w-4 h-4" />
@@ -188,8 +157,7 @@ function OverviewTab() {
           {stats?.orders?.cancelled ?? 0} Cancelled
         </div>
       </div>
-
-      {/* Recent orders table */}
+      { }
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
           <h3 className="font-bold text-gray-900 text-lg">Recent Orders</h3>
@@ -227,21 +195,14 @@ function OverviewTab() {
     </div>
   );
 }
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// PRODUCT MODAL (Add / Edit)
-// ═══════════════════════════════════════════════════════════════════════════════
 function ProductModal({ product, categories, onClose, onSaved }) {
   const isEdit = !!product;
-
-  // Build initial image list from product data
   const initImages = () => {
     if (Array.isArray(product?.image_urls) && product.image_urls.length)
       return product.image_urls.filter(Boolean);
     if (product?.image_url) return [product.image_url];
     return [""];
   };
-
   const [form, setForm] = useState({
     name_en:        product?.name      || "",
     brand:          product?.brand     || "",
@@ -257,9 +218,7 @@ function ProductModal({ product, categories, onClose, onSaved }) {
   const [imageUrls, setImageUrls] = useState(initImages);
   const [saving, setSaving]   = useState(false);
   const [error, setError]     = useState("");
-
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
-
   const setImg    = (i, val) => setImageUrls(a => a.map((u, idx) => idx === i ? val : u));
   const addImg    = () => setImageUrls(a => [...a, ""]);
   const removeImg = (i) => setImageUrls(a => a.length === 1 ? [""] : a.filter((_, idx) => idx !== i));
@@ -268,7 +227,6 @@ function ProductModal({ product, categories, onClose, onSaved }) {
     if (j < 0 || j >= b.length) return b;
     [b[i], b[j]] = [b[j], b[i]]; return b;
   });
-
   async function save(e) {
     e.preventDefault();
     if (!form.name_en.trim()) { setError("Name is required"); return; }
@@ -283,7 +241,6 @@ function ProductModal({ product, categories, onClose, onSaved }) {
     } catch (e) { setError(e.message || "Save failed"); }
     finally { setSaving(false); }
   }
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
@@ -294,7 +251,7 @@ function ProductModal({ product, categories, onClose, onSaved }) {
         <form onSubmit={save} className="p-6 space-y-4">
           {error && <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
           <div className="grid grid-cols-2 gap-4">
-            {/* ── Images ── */}
+            { }
             <div className="col-span-2">
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-semibold text-gray-600">Product Images</label>
@@ -306,7 +263,7 @@ function ProductModal({ product, categories, onClose, onSaved }) {
               <div className="space-y-2">
                 {imageUrls.map((url, i) => (
                   <div key={i} className="flex gap-2 items-center">
-                    {/* Thumbnail */}
+                    { }
                     <div className="w-12 h-12 rounded-lg border border-gray-200 bg-gray-50 flex-shrink-0 overflow-hidden flex items-center justify-center">
                       {url
                         ? <img src={url} alt={`img-${i}`}
@@ -315,29 +272,29 @@ function ProductModal({ product, categories, onClose, onSaved }) {
                             onError={e => { e.currentTarget.style.display="none"; }} />
                         : <Package className="w-4 h-4 text-gray-300" />}
                     </div>
-                    {/* Badge */}
+                    { }
                     {i === 0 && (
                       <span className="text-[10px] font-bold uppercase text-green-700 bg-green-50 px-1.5 py-0.5 rounded flex-shrink-0">
                         Primary
                       </span>
                     )}
-                    {/* URL input */}
+                    { }
                     <input
                       value={url}
                       onChange={e => setImg(i, e.target.value)}
                       placeholder="Paste image URL…"
                       className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-                    {/* Move up */}
+                    { }
                     <button type="button" disabled={i === 0} onClick={() => moveImg(i, -1)}
                       className="text-gray-300 hover:text-gray-600 disabled:opacity-20 flex-shrink-0" title="Move up">
                       ▲
                     </button>
-                    {/* Move down */}
+                    { }
                     <button type="button" disabled={i === imageUrls.length - 1} onClick={() => moveImg(i, 1)}
                       className="text-gray-300 hover:text-gray-600 disabled:opacity-20 flex-shrink-0" title="Move down">
                       ▼
                     </button>
-                    {/* Remove */}
+                    { }
                     <button type="button" onClick={() => removeImg(i)}
                       className="text-gray-300 hover:text-red-500 flex-shrink-0">
                       <X className="w-4 h-4" />
@@ -417,12 +374,6 @@ function ProductModal({ product, categories, onClose, onSaved }) {
     </div>
   );
 }
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// PRODUCTS TAB
-// ═══════════════════════════════════════════════════════════════════════════════
-
-/* Shared product-row renderer used by both views */
 function ProductRow({ p, onEdit, onDelete, deleting, onToggleFeatured, togglingFeatured }) {
   const mrp   = parseFloat(p.mrp   || 0);
   const price = parseFloat(p.price || 0);
@@ -486,7 +437,6 @@ function ProductRow({ p, onEdit, onDelete, deleting, onToggleFeatured, togglingF
     </tr>
   );
 }
-
 const TABLE_HEAD = (
   <tr className="bg-gray-50">
     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Product</th>
@@ -498,7 +448,6 @@ const TABLE_HEAD = (
     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
   </tr>
 );
-
 function ProductsTab() {
   const [products,       setProducts]       = useState([]);
   const [categories,     setCategories]     = useState([]);
@@ -510,7 +459,6 @@ function ProductsTab() {
   const [togglingFeatured, setTogglingFeatured] = useState(null);
   const [openCategories, setOpenCategories] = useState(new Set());
   const searchTimer = useRef(null);
-
   const load = useCallback(async (q = search) => {
     setLoading(true); setError("");
     try {
@@ -523,22 +471,18 @@ function ProductsTab() {
       if (cRes) {
         const cats = cRes.data || [];
         setCategories(cats);
-        // Auto-expand all main categories on first load
         const mainNames = cats.filter(c => !c.parent_id).map(c => c.name);
         setOpenCategories(new Set(mainNames));
       }
     } catch (e) { setError(e.message || "Failed to load"); }
     finally { setLoading(false); }
   }, [search, categories.length]);
-
   useEffect(() => { load(); }, []);
-
   function handleSearch(val) {
     setSearch(val);
     clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => load(val), 400);
   }
-
   async function handleDelete(id) {
     if (!confirm("Delete this product?")) return;
     setDeleting(id);
@@ -546,9 +490,7 @@ function ProductsTab() {
     catch (e) { alert(e.message || "Delete failed"); }
     finally { setDeleting(null); }
   }
-
   function onSaved() { setModal(null); load(); }
-
   async function handleToggleFeatured(p) {
     setTogglingFeatured(p.id);
     try {
@@ -557,7 +499,6 @@ function ProductsTab() {
     } catch (e) { alert(e.message || "Failed to update featured status"); }
     finally { setTogglingFeatured(null); }
   }
-
   function toggleCategory(name) {
     setOpenCategories(prev => {
       const next = new Set(prev);
@@ -565,8 +506,6 @@ function ProductsTab() {
       return next;
     });
   }
-
-  // Build a map: categoryId → main-category name (walk up parent chain)
   const mainCatName = useMemo(() => {
     const byId = {};
     for (const c of categories) byId[c.id] = c;
@@ -579,8 +518,6 @@ function ProductsTab() {
     for (const c of categories) map[c.id] = resolve(c.id);
     return map;
   }, [categories]);
-
-  // Group products under their main (top-level) category, sorted alphabetically
   const grouped = useMemo(() => {
     const map = {};
     for (const p of products) {
@@ -594,13 +531,11 @@ function ProductsTab() {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([name, items]) => ({ name, items }));
   }, [products, mainCatName]);
-
   function expandAll()   { setOpenCategories(new Set(grouped.map(g => g.name))); }
   function collapseAll() { setOpenCategories(new Set()); }
-
   return (
     <div className="space-y-5">
-      {/* Toolbar */}
+      { }
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -613,10 +548,8 @@ function ProductsTab() {
           <Plus className="w-4 h-4" /> Add Product
         </button>
       </div>
-
       {error && <p className="text-sm text-red-500">{error}</p>}
-
-      {/* Summary + expand controls */}
+      { }
       {!loading && grouped.length > 0 && (
         <div className="flex items-center gap-3 text-xs text-gray-500">
           <span className="font-medium text-gray-700">{grouped.length} categories · {products.length} products</span>
@@ -624,18 +557,15 @@ function ProductsTab() {
           <button onClick={collapseAll} className="underline hover:text-green-700">Collapse all</button>
         </div>
       )}
-
       {loading && (
         <div className="py-16 text-center">
           <Loader2 className="w-7 h-7 animate-spin text-green-600 inline" />
         </div>
       )}
-
       {!loading && grouped.length === 0 && (
         <p className="text-center text-gray-400 py-12">No products found</p>
       )}
-
-      {/* Category accordions */}
+      { }
       <div className="space-y-4">
         {!loading && grouped.map(({ name, items }) => {
           const isOpen = openCategories.has(name);
@@ -654,7 +584,6 @@ function ProductsTab() {
                   </span>
                 </div>
               </button>
-
               {isOpen && (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -673,8 +602,7 @@ function ProductsTab() {
           );
         })}
       </div>
-
-      {/* Add / Edit modal */}
+      { }
       {modal && (
         <ProductModal
           product={modal === "add" ? null : modal}
@@ -686,10 +614,6 @@ function ProductsTab() {
     </div>
   );
 }
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// ORDERS TAB
-// ═══════════════════════════════════════════════════════════════════════════════
 function OrdersTab() {
   const [orders,   setOrders]   = useState([]);
   const [page,     setPage]     = useState(1);
@@ -700,7 +624,6 @@ function OrdersTab() {
   const [updating, setUpdating] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const LIMIT = 20;
-
   const load = useCallback(async (f = filter, p = page, silent = false) => {
     if (!silent) setLoading(true);
     setError("");
@@ -713,19 +636,15 @@ function OrdersTab() {
     } catch (e) { setError(e.message || "Failed to load orders"); }
     finally { setLoading(false); setRefreshing(false); }
   }, [filter, page]);
-
   const handleRefresh = async () => {
     setRefreshing(true);
     await load(filter, page, true);
   };
-
   useEffect(() => {
     load();
-    // Auto-refresh every 30 seconds
     const interval = setInterval(() => load(filter, page, true), 30000);
     return () => clearInterval(interval);
   }, [page, filter, load]);
-
   async function updateStatus(orderId, status) {
     setUpdating(orderId);
     try {
@@ -734,13 +653,11 @@ function OrdersTab() {
     } catch (e) { alert(e.message || "Update failed"); }
     finally { setUpdating(null); }
   }
-
   const totalPages = Math.ceil(total / LIMIT);
   const filters = ["all", ...ORDER_STATUSES];
-
   return (
     <div className="space-y-5">
-      {/* Filter chips + Refresh button */}
+      { }
       <div className="flex flex-wrap items-center gap-2 justify-between">
         <div className="flex flex-wrap gap-2">
         {filters.map(f => (
@@ -760,10 +677,8 @@ function OrdersTab() {
           Refresh
         </button>
       </div>
-
       {error && <p className="text-sm text-red-500">{error}</p>}
-
-      {/* Table */}
+      { }
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -806,9 +721,9 @@ function OrdersTab() {
                         onChange={e => updateStatus(o.id, e.target.value)}
                         className="appearance-none pr-7 pl-3 py-1.5 text-xs rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 cursor-pointer"
                       >
-                        {/* Current status — always shown as selected */}
+                        { }
                         <option value={o.status}>{STATUS_LABELS[o.status] || o.status}</option>
-                        {/* Only valid next states */}
+                        { }
                         {(VALID_TRANSITIONS[o.status] || []).map(s => (
                           <option key={s} value={s}>{STATUS_LABELS[s] || s}</option>
                         ))}
@@ -840,23 +755,18 @@ function OrdersTab() {
     </div>
   );
 }
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// USERS TAB
-// ═══════════════════════════════════════════════════════════════════════════════
 function UsersTab() {
   const [users,    setUsers]    = useState([]);
   const [total,    setTotal]    = useState(0);
   const [page,     setPage]     = useState(1);
   const [search,   setSearch]   = useState("");
-  const [typeFilter, setTypeFilter] = useState("all"); // all | customer | admin
-  const [statusFilter, setStatusFilter] = useState("all"); // all | active | blocked
+  const [typeFilter, setTypeFilter] = useState("all"); 
+  const [statusFilter, setStatusFilter] = useState("all"); 
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState("");
-  const [acting,   setActing]   = useState(null); // userId being acted on
+  const [acting,   setActing]   = useState(null); 
   const searchTimer = useRef(null);
   const LIMIT = 20;
-
   const load = useCallback(async (q = search, p = page, type = typeFilter, status = statusFilter) => {
     setLoading(true); setError("");
     try {
@@ -871,15 +781,12 @@ function UsersTab() {
     } catch (e) { setError(e.message || "Failed to load users"); }
     finally { setLoading(false); }
   }, [search, page, typeFilter, statusFilter]);
-
   useEffect(() => { load(); }, [page, typeFilter, statusFilter]);
-
   function handleSearch(val) {
     setSearch(val);
     clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => { setPage(1); load(val, 1, typeFilter, statusFilter); }, 400);
   }
-
   async function toggleBlock(user) {
     setActing(user.id);
     try {
@@ -889,7 +796,6 @@ function UsersTab() {
     } catch (e) { alert(e.message || "Action failed"); }
     finally { setActing(null); }
   }
-
   async function toggleActive(user) {
     setActing(user.id);
     try {
@@ -899,7 +805,6 @@ function UsersTab() {
     } catch (e) { alert(e.message || "Action failed"); }
     finally { setActing(null); }
   }
-
   async function handleDelete(id) {
     if (!confirm("Permanently delete this user? This cannot be undone.")) return;
     setActing(id);
@@ -907,12 +812,10 @@ function UsersTab() {
     catch (e) { alert(e.message || "Delete failed"); }
     finally { setActing(null); }
   }
-
   const totalPages = Math.ceil(total / LIMIT);
-
   return (
     <div className="space-y-5">
-      {/* Toolbar */}
+      { }
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -921,7 +824,7 @@ function UsersTab() {
             className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
         </div>
         <div className="flex gap-2 flex-wrap">
-          {/* Type filter */}
+          { }
           {["all","customer","admin"].map(t => (
             <button key={t} onClick={() => { setTypeFilter(t); setPage(1); }}
               className={`capitalize px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
@@ -930,7 +833,7 @@ function UsersTab() {
             </button>
           ))}
           <div className="w-px bg-gray-200" />
-          {/* Status filter */}
+          { }
           {["all","active","blocked"].map(s => (
             <button key={s} onClick={() => { setStatusFilter(s); setPage(1); }}
               className={`capitalize px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
@@ -940,10 +843,8 @@ function UsersTab() {
           ))}
         </div>
       </div>
-
       {error && <p className="text-sm text-red-500">{error}</p>}
-
-      {/* Table */}
+      { }
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -968,7 +869,7 @@ function UsersTab() {
               )}
               {!loading && users.map(u => (
                 <tr key={u.id} className="hover:bg-gray-50 transition-colors">
-                  {/* User */}
+                  { }
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-full bg-green-100 text-green-700 font-bold text-sm flex items-center justify-center flex-shrink-0">
@@ -980,14 +881,14 @@ function UsersTab() {
                       </div>
                     </div>
                   </td>
-                  {/* Contact */}
+                  { }
                   <td className="px-4 py-3">
                     <div className="space-y-0.5">
                       {u.phone && <div className="flex items-center gap-1 text-xs text-gray-600"><Phone className="w-3 h-3 text-gray-400" />{u.phone}</div>}
                       {u.email && <div className="flex items-center gap-1 text-xs text-gray-500"><Mail className="w-3 h-3 text-gray-400" />{u.email}</div>}
                     </div>
                   </td>
-                  {/* Type */}
+                  { }
                   <td className="px-4 py-3">
                     <span className={`capitalize px-2 py-0.5 rounded-full text-xs font-semibold
                       ${u.user_type === "admin" || u.role === "admin"
@@ -996,7 +897,7 @@ function UsersTab() {
                       {u.user_type || u.role || "customer"}
                     </span>
                   </td>
-                  {/* Status */}
+                  { }
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1">
                       {u.is_blocked
@@ -1005,15 +906,15 @@ function UsersTab() {
                       {!u.is_active && <span className="bg-gray-100 text-gray-500 text-xs font-semibold px-2 py-0.5 rounded-full w-fit">Inactive</span>}
                     </div>
                   </td>
-                  {/* Joined */}
+                  { }
                   <td className="px-4 py-3 text-xs text-gray-500">{fmtDate(u.created_at)}</td>
-                  {/* Actions */}
+                  { }
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
                       {acting === u.id
                         ? <Loader2 className="w-4 h-4 animate-spin text-green-600" />
                         : (<>
-                          {/* Block / Unblock */}
+                          { }
                           <button onClick={() => toggleBlock(u)}
                             title={u.is_blocked ? "Unblock" : "Block"}
                             className={`p-1.5 rounded-lg transition-colors
@@ -1022,7 +923,7 @@ function UsersTab() {
                                 : "text-gray-400 hover:text-red-600 hover:bg-red-50"}`}>
                             {u.is_blocked ? <UserCheck className="w-4 h-4" /> : <UserX className="w-4 h-4" />}
                           </button>
-                          {/* Activate / Deactivate */}
+                          { }
                           <button onClick={() => toggleActive(u)}
                             title={u.is_active ? "Deactivate" : "Activate"}
                             className={`p-1.5 rounded-lg transition-colors
@@ -1031,7 +932,7 @@ function UsersTab() {
                                 : "text-gray-400 hover:text-green-600 hover:bg-green-50"}`}>
                             {u.is_active ? <ShieldOff className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
                           </button>
-                          {/* Delete */}
+                          { }
                           <button onClick={() => handleDelete(u.id)}
                             title="Delete"
                             className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors">
@@ -1061,11 +962,6 @@ function UsersTab() {
     </div>
   );
 }
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// PROMOTIONS TAB
-// ═══════════════════════════════════════════════════════════════════════════════
-
 const PROMO_TYPES = [
   { value: "flash_sale",   label: "Flash Sale",    color: "bg-red-100 text-red-700" },
   { value: "limited_time", label: "Limited Time",  color: "bg-orange-100 text-orange-700" },
@@ -1073,7 +969,6 @@ const PROMO_TYPES = [
   { value: "seasonal",     label: "Seasonal",      color: "bg-blue-100 text-blue-700" },
   { value: "recurring",    label: "Recurring",     color: "bg-teal-100 text-teal-700" },
 ];
-
 const QUICK_DURATIONS = [
   { label: "1 Day",    hours: 24 },
   { label: "2 Days",   hours: 48 },
@@ -1082,25 +977,20 @@ const QUICK_DURATIONS = [
   { label: "2 Weeks",  hours: 336 },
   { label: "1 Month",  hours: 720 },
 ];
-
 function promoStatus(p) {
   const now = new Date();
   if (new Date(p.ends_at) < now)   return "expired";
   if (new Date(p.starts_at) > now) return "upcoming";
   return "active";
 }
-
 function PromoStatusBadge({ promo }) {
   const s = promoStatus(promo);
   const styles = { active: "bg-green-100 text-green-700", upcoming: "bg-blue-100 text-blue-700", expired: "bg-gray-100 text-gray-500" };
   const labels = { active: "Active Now", upcoming: "Upcoming", expired: "Expired" };
   return <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${styles[s]}`}>{labels[s]}</span>;
 }
-
-/* ── Promotion Modal (create / edit) ──────────────────────────────────────── */
 function PromotionModal({ promo, onClose, onSaved }) {
   const isEdit = !!promo;
-
   const toLocal = (iso) => {
     if (!iso) return "";
     const d = new Date(iso);
@@ -1108,7 +998,6 @@ function PromotionModal({ promo, onClose, onSaved }) {
     const local = new Date(d.getTime() - off * 60000);
     return local.toISOString().slice(0, 16);
   };
-
   const [form, setForm] = useState({
     title:           promo?.title           || "",
     description:     promo?.description     || "",
@@ -1132,20 +1021,14 @@ function PromotionModal({ promo, onClose, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState("");
   const searchTimer = useRef(null);
-  
-  // Variant selector
   const [showVariantSelector, setShowVariantSelector] = useState(false);
   const [selectedProductGroup, setSelectedProductGroup] = useState(null);
   const [selectedVariants, setSelectedVariants] = useState(new Set());
-  
-  // Banner image search
   const [showImageSearch, setShowImageSearch] = useState(false);
   const [imageSearchQuery, setImageSearchQuery] = useState("");
   const [imageSearchResults, setImageSearchResults] = useState([]);
   const [imageSearchLoading, setImageSearchLoading] = useState(false);
   const [imageSearchError, setImageSearchError] = useState("");
-
-  // Fetch full promotion details when editing (to get product_ids with names/images)
   useEffect(() => {
     if (isEdit && promo?.id) {
       setLoadingProducts(true);
@@ -1158,18 +1041,13 @@ function PromotionModal({ promo, onClose, onSaved }) {
         .finally(() => setLoadingProducts(false));
     }
   }, [isEdit, promo?.id]);
-
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
-
-  // Quick duration
   const applyDuration = (hours) => {
     const start = form.starts_at ? new Date(form.starts_at) : new Date();
     const end = new Date(start.getTime() + hours * 3600000);
     set("starts_at", toLocal(start.toISOString()));
     set("ends_at", toLocal(end.toISOString()));
   };
-
-  // Product search
   const searchProducts = useCallback(async (q) => {
     if (!q || q.length < 2) { setSearchResults([]); return; }
     try {
@@ -1177,14 +1055,11 @@ function PromotionModal({ promo, onClose, onSaved }) {
       setSearchResults(res.data || []);
     } catch { setSearchResults([]); }
   }, []);
-
   const handleProductSearch = (val) => {
     setProductSearch(val);
     clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => searchProducts(val), 300);
   };
-
-  // Group products by name+brand to identify variants
   const groupedResults = useMemo(() => {
     const groups = {};
     searchResults.forEach(p => {
@@ -1196,31 +1071,25 @@ function PromotionModal({ promo, onClose, onSaved }) {
     });
     return Object.values(groups);
   }, [searchResults]);
-
   const handleProductClick = (group) => {
     if (group.variants.length === 1) {
-      // Single variant - add directly
       addProducts([group.variants[0]]);
     } else {
-      // Multiple variants - show selector
       setSelectedProductGroup(group);
       setSelectedVariants(new Set());
       setShowVariantSelector(true);
     }
   };
-
   const addProducts = (products) => {
     const newProducts = products
       .filter(p => !selectedProducts.find(x => x.id === p.id))
       .map(p => ({ id: p.id, name: p.name, image_url: p.image_url, variant: p.variant }));
-    
     if (newProducts.length > 0) {
       setSelectedProducts(prev => [...prev, ...newProducts]);
     }
     setProductSearch("");
     setSearchResults([]);
   };
-
   const addSelectedVariants = () => {
     if (selectedProductGroup && selectedVariants.size > 0) {
       const variantsToAdd = selectedProductGroup.variants.filter(v => selectedVariants.has(v.id));
@@ -1230,7 +1099,6 @@ function PromotionModal({ promo, onClose, onSaved }) {
       setSelectedVariants(new Set());
     }
   };
-
   const addAllVariants = () => {
     if (selectedProductGroup) {
       addProducts(selectedProductGroup.variants);
@@ -1239,7 +1107,6 @@ function PromotionModal({ promo, onClose, onSaved }) {
       setSelectedVariants(new Set());
     }
   };
-
   const toggleVariant = (variantId) => {
     setSelectedVariants(prev => {
       const next = new Set(prev);
@@ -1251,12 +1118,9 @@ function PromotionModal({ promo, onClose, onSaved }) {
       return next;
     });
   };
-
   const removeProduct = (pid) => {
     setSelectedProducts(prev => prev.filter(x => x.id !== pid));
   };
-
-  // Banner image search
   const searchBannerImages = async () => {
     if (!imageSearchQuery.trim() || imageSearchQuery.length < 2) return;
     setImageSearchLoading(true);
@@ -1264,9 +1128,7 @@ function PromotionModal({ promo, onClose, onSaved }) {
     try {
       const res = await fetch(`/api/banner-images?q=${encodeURIComponent(imageSearchQuery)}&num=12`);
       const data = await res.json();
-      
       if (!res.ok) {
-        // Handle error responses
         if (res.status === 429) {
           setImageSearchError(data.userMessage || "Rate limit exceeded. Please try again later or enter image URLs manually.");
         } else {
@@ -1287,7 +1149,6 @@ function PromotionModal({ promo, onClose, onSaved }) {
       setImageSearchLoading(false);
     }
   };
-
   const selectBannerImage = (url) => {
     set("banner_image_url", url);
     setShowImageSearch(false);
@@ -1295,14 +1156,12 @@ function PromotionModal({ promo, onClose, onSaved }) {
     setImageSearchResults([]);
     setImageSearchError("");
   };
-
   async function save(e) {
     e.preventDefault();
     if (!form.title.trim())    { setError("Title is required"); return; }
     if (!form.starts_at)       { setError("Start date is required"); return; }
     if (!form.ends_at)         { setError("End date is required"); return; }
     if (new Date(form.ends_at) <= new Date(form.starts_at)) { setError("End must be after start"); return; }
-
     setSaving(true); setError("");
     try {
       const payload = {
@@ -1319,7 +1178,6 @@ function PromotionModal({ promo, onClose, onSaved }) {
     } catch (e) { setError(e.message || "Save failed"); }
     finally { setSaving(false); }
   }
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
@@ -1330,11 +1188,9 @@ function PromotionModal({ promo, onClose, onSaved }) {
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
         </div>
-
         <form onSubmit={save} className="p-6 space-y-5">
           {error && <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
-
-          {/* ── Basic Info ── */}
+          { }
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <label className="block text-xs font-semibold text-gray-600 mb-1">Title *</label>
@@ -1342,13 +1198,11 @@ function PromotionModal({ promo, onClose, onSaved }) {
                 placeholder="e.g. Sankranti Special Sale"
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
             </div>
-
             <div className="col-span-2">
               <label className="block text-xs font-semibold text-gray-600 mb-1">Description</label>
               <textarea rows={2} value={form.description} onChange={e => set("description", e.target.value)}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
             </div>
-
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Type</label>
               <select value={form.type} onChange={e => set("type", e.target.value)}
@@ -1356,15 +1210,13 @@ function PromotionModal({ promo, onClose, onSaved }) {
                 {PROMO_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </div>
-
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Priority (higher = shown first)</label>
               <input type="number" value={form.priority} onChange={e => set("priority", e.target.value)}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
             </div>
           </div>
-
-          {/* ── Discount ── */}
+          { }
           <div className="bg-orange-50 rounded-xl p-4 space-y-3">
             <h3 className="text-sm font-semibold text-orange-800 flex items-center gap-1.5"><Tag className="w-4 h-4" /> Discount</h3>
             <div className="grid grid-cols-2 gap-3">
@@ -1386,8 +1238,7 @@ function PromotionModal({ promo, onClose, onSaved }) {
               </div>
             </div>
           </div>
-
-          {/* ── Scheduling ── */}
+          { }
           <div className="bg-blue-50 rounded-xl p-4 space-y-3">
             <h3 className="text-sm font-semibold text-blue-800 flex items-center gap-1.5"><CalendarClock className="w-4 h-4" /> Schedule</h3>
             <div className="flex flex-wrap gap-2 mb-2">
@@ -1419,8 +1270,7 @@ function PromotionModal({ promo, onClose, onSaved }) {
               </div>
             )}
           </div>
-
-          {/* ── Appearance ── */}
+          { }
           <div className="bg-purple-50 rounded-xl p-4 space-y-3">
             <h3 className="text-sm font-semibold text-purple-800 flex items-center gap-1.5"><Gift className="w-4 h-4" /> Appearance</h3>
             <div className="grid grid-cols-2 gap-3">
@@ -1468,8 +1318,7 @@ function PromotionModal({ promo, onClose, onSaved }) {
               </div>
             </div>
           </div>
-
-          {/* ── Product Picker ── */}
+          { }
           <div className="bg-green-50 rounded-xl p-4 space-y-3">
             <h3 className="text-sm font-semibold text-green-800 flex items-center gap-1.5">
               <Package className="w-4 h-4" /> 
@@ -1544,8 +1393,7 @@ function PromotionModal({ promo, onClose, onSaved }) {
               <p className="text-xs text-gray-400">No products linked — promotion will apply as a general banner only.</p>
             )}
           </div>
-
-          {/* ── Active toggle + Save ── */}
+          { }
           <div className="flex items-center gap-4 pt-2">
             <div className="flex items-center gap-2">
               <input type="checkbox" id="promo_active" checked={form.is_active} onChange={e => set("is_active", e.target.checked)}
@@ -1563,8 +1411,7 @@ function PromotionModal({ promo, onClose, onSaved }) {
           </div>
         </form>
       </div>
-
-      {/* ── Banner Image Search Modal ── */}
+      { }
       {showImageSearch && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4" onClick={() => setShowImageSearch(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -1577,9 +1424,8 @@ function PromotionModal({ promo, onClose, onSaved }) {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
             <div className="p-6 space-y-4">
-              {/* Search input */}
+              { }
               <div className="flex gap-2">
                 <input 
                   value={imageSearchQuery} 
@@ -1600,8 +1446,7 @@ function PromotionModal({ promo, onClose, onSaved }) {
                   )}
                 </button>
               </div>
-
-              {/* Error message */}
+              { }
               {imageSearchError && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                   <div className="flex items-start gap-2">
@@ -1616,8 +1461,7 @@ function PromotionModal({ promo, onClose, onSaved }) {
                   </div>
                 </div>
               )}
-
-              {/* Results grid */}
+              { }
               <div className="overflow-y-auto max-h-[60vh]">
                 {imageSearchResults.length === 0 && !imageSearchLoading && !imageSearchError && (
                   <div className="py-12 text-center text-gray-400">
@@ -1629,14 +1473,12 @@ function PromotionModal({ promo, onClose, onSaved }) {
                     </p>
                   </div>
                 )}
-
                 {imageSearchLoading && (
                   <div className="py-12 text-center">
                     <Loader2 className="w-8 h-8 animate-spin text-purple-600 inline mb-3" />
                     <p className="text-sm text-gray-500">Searching for images...</p>
                   </div>
                 )}
-
                 {imageSearchResults.length > 0 && (
                   <div className="grid grid-cols-3 gap-3">
                     {imageSearchResults.map((img) => (
@@ -1667,7 +1509,6 @@ function PromotionModal({ promo, onClose, onSaved }) {
                   </div>
                 )}
               </div>
-
               <div className="text-xs text-gray-400 text-center space-y-1">
                 <p>Click on an image to select it as your banner</p>
                 <p className="text-[10px]">Note: Search quota is limited. You can always paste direct image URLs instead.</p>
@@ -1676,8 +1517,7 @@ function PromotionModal({ promo, onClose, onSaved }) {
           </div>
         </div>
       )}
-
-      {/* ── Variant Selector Modal ── */}
+      { }
       {showVariantSelector && selectedProductGroup && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4" onClick={() => setShowVariantSelector(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
@@ -1690,7 +1530,6 @@ function PromotionModal({ promo, onClose, onSaved }) {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
             <div className="p-6 space-y-4">
               <div>
                 <p className="text-sm font-medium text-gray-900">{selectedProductGroup.name}</p>
@@ -1699,8 +1538,7 @@ function PromotionModal({ promo, onClose, onSaved }) {
                 )}
                 <p className="text-xs text-gray-400 mt-1">{selectedProductGroup.variants.length} variants available</p>
               </div>
-
-              {/* Quick action - Add All */}
+              { }
               <button
                 type="button"
                 onClick={addAllVariants}
@@ -1708,7 +1546,6 @@ function PromotionModal({ promo, onClose, onSaved }) {
                 <Check className="w-4 h-4" />
                 Add All {selectedProductGroup.variants.length} Variants
               </button>
-
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-200"></div>
@@ -1717,8 +1554,7 @@ function PromotionModal({ promo, onClose, onSaved }) {
                   <span className="bg-white px-2 text-gray-400">or select specific variants</span>
                 </div>
               </div>
-
-              {/* Variant list with checkboxes */}
+              { }
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {selectedProductGroup.variants.map(variant => (
                   <label
@@ -1755,8 +1591,7 @@ function PromotionModal({ promo, onClose, onSaved }) {
                   </label>
                 ))}
               </div>
-
-              {/* Action buttons */}
+              { }
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
@@ -1779,17 +1614,14 @@ function PromotionModal({ promo, onClose, onSaved }) {
     </div>
   );
 }
-
-/* ── Promotions Tab ───────────────────────────────────────────────────────── */
 function PromotionsTab() {
   const [promotions, setPromotions] = useState([]);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState("");
-  const [modal, setModal]           = useState(null);          // null | "add" | promo object
+  const [modal, setModal]           = useState(null);          
   const [deleting, setDeleting]     = useState(null);
   const [toggling, setToggling]     = useState(null);
-  const [filter, setFilter]         = useState("all");         // all | active | upcoming | expired
-
+  const [filter, setFilter]         = useState("all");         
   const load = useCallback(async () => {
     setLoading(true); setError("");
     try {
@@ -1800,9 +1632,7 @@ function PromotionsTab() {
     } catch (e) { setError(e.message || "Failed to load"); }
     finally { setLoading(false); }
   }, [filter]);
-
   useEffect(() => { load(); }, [load]);
-
   async function handleDelete(id) {
     if (!confirm("Delete this promotion?")) return;
     setDeleting(id);
@@ -1810,22 +1640,18 @@ function PromotionsTab() {
     catch (e) { alert(e.message || "Delete failed"); }
     finally { setDeleting(null); }
   }
-
   async function handleToggle(id) {
     setToggling(id);
     try { await api.put(`/promotions/${id}/toggle-active`); load(); }
     catch (e) { alert(e.message || "Toggle failed"); }
     finally { setToggling(null); }
   }
-
   function onSaved() { setModal(null); load(); }
-
   const fmtDate = (iso) => {
     const d = new Date(iso);
     return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) +
       " " + d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
   };
-
   const timeLeft = (endsAt) => {
     const diff = new Date(endsAt) - new Date();
     if (diff <= 0) return "Ended";
@@ -1835,17 +1661,15 @@ function PromotionsTab() {
     const mins = Math.floor((diff % 3600000) / 60000);
     return `${hrs}h ${mins}m left`;
   };
-
   const FILTER_CHIPS = [
     { id: "all",      label: "All" },
     { id: "active",   label: "Active" },
     { id: "upcoming", label: "Upcoming" },
     { id: "expired",  label: "Expired" },
   ];
-
   return (
     <div className="space-y-5">
-      {/* Toolbar */}
+      { }
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div className="flex gap-2 flex-wrap">
           {FILTER_CHIPS.map(c => (
@@ -1860,15 +1684,12 @@ function PromotionsTab() {
           <Plus className="w-4 h-4" /> New Promotion
         </button>
       </div>
-
       {error && <p className="text-sm text-red-500">{error}</p>}
-
       {loading && (
         <div className="py-16 text-center">
           <Loader2 className="w-7 h-7 animate-spin text-orange-600 inline" />
         </div>
       )}
-
       {!loading && promotions.length === 0 && (
         <div className="text-center py-16">
           <Megaphone className="w-12 h-12 text-gray-300 mx-auto mb-3" />
@@ -1876,8 +1697,7 @@ function PromotionsTab() {
           <p className="text-xs text-gray-300 mt-1">Create one to get started with festival offers & flash sales</p>
         </div>
       )}
-
-      {/* Promotion cards */}
+      { }
       {!loading && promotions.length > 0 && (
         <div className="grid gap-4">
           {promotions.map(p => {
@@ -1890,7 +1710,7 @@ function PromotionsTab() {
                   status === "upcoming" ? "border-blue-200" : "border-gray-100 opacity-75"
                 }`}>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5">
-                  {/* Left: color strip + info */}
+                  { }
                   <div className="flex items-start gap-4 flex-1 min-w-0">
                     <div className="w-2 h-16 rounded-full flex-shrink-0"
                       style={{ backgroundColor: p.theme_color || "#FF6B00" }} />
@@ -1924,8 +1744,7 @@ function PromotionsTab() {
                       </div>
                     </div>
                   </div>
-
-                  {/* Right: discount + actions */}
+                  { }
                   <div className="flex items-center gap-3 flex-shrink-0">
                     {parseFloat(p.discount_value) > 0 && (
                       <div className="text-center px-3 py-1.5 rounded-lg bg-orange-50">
@@ -1950,8 +1769,7 @@ function PromotionsTab() {
                     </button>
                   </div>
                 </div>
-
-                {/* Banner preview */}
+                { }
                 {p.banner_text && (
                   <div className="px-5 pb-4">
                     <div className="rounded-lg px-4 py-2 text-sm font-medium text-white"
@@ -1965,8 +1783,7 @@ function PromotionsTab() {
           })}
         </div>
       )}
-
-      {/* Modal */}
+      { }
       {modal && (
         <PromotionModal
           promo={modal === "add" ? null : modal}
@@ -1977,10 +1794,6 @@ function PromotionsTab() {
     </div>
   );
 }
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// MAIN DASHBOARD PAGE
-// ═══════════════════════════════════════════════════════════════════════════════
 const TABS = [
   { id: "overview",    label: "Overview",    icon: LayoutDashboard },
   { id: "products",    label: "Products",    icon: Package },
@@ -1988,12 +1801,10 @@ const TABS = [
   { id: "promotions",  label: "Promotions",  icon: Megaphone },
   { id: "users",       label: "Users",       icon: Users },
 ];
-
 export default function AdminDashboard() {
   const { ready, admin } = useAdminGuard();
   const router = useRouter();
   const [tab, setTab] = useState("overview");
-
   function logout() {
     secureStorage.removeItem("token");
     secureStorage.removeItem("refreshToken");
@@ -2001,7 +1812,6 @@ export default function AdminDashboard() {
     window.dispatchEvent(new Event("authChange"));
     router.push("/login");
   }
-
   if (!ready) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -2009,13 +1819,12 @@ export default function AdminDashboard() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* ── Top Header ── */}
+      { }
       <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          {/* Logo */}
+          { }
           <Link href="/" className="flex items-center gap-3">
             <div className="bg-green-600 text-white font-bold text-lg rounded-lg w-9 h-9 flex items-center justify-center">MK</div>
             <div className="hidden sm:flex flex-col">
@@ -2023,8 +1832,7 @@ export default function AdminDashboard() {
               <span className="text-[10px] text-gray-500 -mt-0.5 font-medium uppercase tracking-wide">Admin Panel</span>
             </div>
           </Link>
-
-          {/* Tabs — center */}
+          { }
           <nav className="flex items-center gap-1">
             {TABS.map(({ id, label, icon: Icon }) => (
               <button key={id} onClick={() => setTab(id)}
@@ -2035,8 +1843,7 @@ export default function AdminDashboard() {
               </button>
             ))}
           </nav>
-
-          {/* Right */}
+          { }
           <div className="flex items-center gap-3">
             <Link href="/" className="hidden md:flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700">
               <Store className="w-4 h-4" /> View Store
@@ -2053,14 +1860,12 @@ export default function AdminDashboard() {
           </div>
         </div>
       </header>
-
-      {/* ── Page content ── */}
+      { }
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
           <p className="text-sm text-gray-500 mt-1">Manage your store — products, orders and more</p>
         </div>
-
         {tab === "overview"  && <OverviewTab />}
         {tab === "products"  && <ProductsTab />}
         {tab === "orders"    && <OrdersTab />}
@@ -2069,4 +1874,4 @@ export default function AdminDashboard() {
       </main>
     </div>
   );
-}
+}

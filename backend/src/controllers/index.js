@@ -7,7 +7,6 @@ const orderController = require('./orderController');
 const invoiceController = require('./invoiceController');
 const adminController = require('./adminController');
 const promotionController = require('./promotionController');
-
 module.exports = {
   authController,
   userController,
@@ -18,4 +17,4 @@ module.exports = {
   invoiceController,
   adminController,
   promotionController,
-};
+};

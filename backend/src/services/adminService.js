@@ -1,39 +1,20 @@
 const { Order, Invoice, User, Product, Category, AdminLog, SystemConfig } = require('../models');
 const { query, queryOne, modify: dbModify } = require('../config/database');
-
-// Translation join helpers (same pattern as Product.js)
 const PROD_TRANS_JOIN = `
   LEFT JOIN product_translations  pt_en ON p.id = pt_en.product_id  AND pt_en.lang_code = 'en'
   LEFT JOIN category_translations ct_en ON c.id = ct_en.category_id AND ct_en.lang_code = 'en'
 `;
 class AdminService {
-  /**
-   * Get dashboard statistics
-   */
   static async getDashboardStats() {
-    // Get today's date range
     const today = new Date().toISOString().split('T')[0];
-    
-    // Get customer count
     const customerCount = await User.countCustomers();
-    
-    // Get product count
     const productCount = await Product.count();
-
-    // Get order statistics
     const orderStats = await Order.getStatistics();
-
-    // Today's orders
     const todayOrders = await Order.getStatistics(today, today);
-
-    // Get recent activity
     const recentActivity = await AdminLog.getRecentActivity(10);
-
-    // Get pending orders
     const pendingOrders = await query(
       `SELECT COUNT(*) as count FROM orders WHERE status IN ('pending', 'confirmed')`
     );
-
     return {
       customers: {
         total: customerCount,
@@ -61,15 +42,10 @@ class AdminService {
       recentActivity,
     };
   }
-
-  /**
-   * Get sales report
-   */
   static async getSalesReport(startDate, endDate, groupBy = 'day') {
     const today = new Date().toISOString().split('T')[0];
     const start = startDate || today;
     const end   = endDate   || today;
-
     let pgFormat;
     let groupLabel;
     switch (groupBy) {
@@ -77,7 +53,6 @@ class AdminService {
       case 'week':  pgFormat = 'IYYY-IW';     groupLabel = 'week';  break;
       default:      pgFormat = 'YYYY-MM-DD';  groupLabel = 'day';
     }
-
     const salesData = await query(
       `SELECT
          TO_CHAR(created_at, $1)                                            AS period,
@@ -92,9 +67,7 @@ class AdminService {
        ORDER BY period`,
       [pgFormat, start, end]
     );
-
     const totals = await Order.getStatistics(start, end);
-
     return {
       period: { startDate: start, endDate: end },
       groupBy: groupLabel,
@@ -116,23 +89,14 @@ class AdminService {
       })),
     };
   }
-
-  /**
-   * Get GST report
-   */
   static async getGSTReport(startDate, endDate) {
     return Invoice.getGSTReport(startDate, endDate);
   }
-
-  /**
-   * Get product performance report (top selling products)
-   */
   static async getProductReport(startDate, endDate, limit = 20) {
     const today      = new Date().toISOString().split('T')[0];
     const start      = startDate || today;
     const end        = endDate   || today;
     const safeLimit  = parseInt(limit) || 20;
-
     const topProducts = await query(
       `SELECT p.id, pt_en.name AS name_en, p.sku,
               SUM(oi.quantity)          AS total_quantity,
@@ -148,7 +112,6 @@ class AdminService {
        LIMIT $3`,
       [start, end, safeLimit]
     );
-
     const categoryWise = await query(
       `SELECT c.id AS category_id, ct_en.name AS category_name,
               SUM(oi.quantity)            AS total_quantity,
@@ -164,7 +127,6 @@ class AdminService {
        ORDER BY total_sales DESC`,
       [start, end]
     );
-
     return {
       period: { startDate: start, endDate: end },
       topProducts: topProducts.map(p => ({
@@ -182,21 +144,14 @@ class AdminService {
       })),
     };
   }
-
-  /** Alias used by adminController */
   static async getTopSellingProducts(limit, startDate, endDate) {
     return this.getProductReport(startDate, endDate, limit);
   }
-
-  /**
-   * Get customer report
-   */
   static async getCustomerReport(startDate, endDate, limit = 20) {
     const today         = new Date().toISOString().split('T')[0];
     const start         = startDate || today;
     const end           = endDate   || today;
     const safeCustLimit = parseInt(limit) || 20;
-
     const topCustomers = await query(
       `SELECT u.id, u.name, u.phone, u.user_type,
               COUNT(o.id)          AS order_count,
@@ -209,7 +164,6 @@ class AdminService {
        LIMIT $3`,
       [start, end, safeCustLimit]
     );
-
     const userTypeBreakdown = await query(
       `SELECT u.user_type,
               COUNT(DISTINCT u.id) AS customer_count,
@@ -221,7 +175,6 @@ class AdminService {
        GROUP BY u.user_type`,
       [start, end]
     );
-
     return {
       period: { startDate: start, endDate: end },
       topCustomers: topCustomers.map(c => ({
@@ -237,40 +190,22 @@ class AdminService {
       })),
     };
   }
-
-  /**
-   * Get admin activity logs
-   */
   static async getActivityLogs(options = {}) {
     return AdminLog.findAll(options);
   }
-
-  /**
-   * Get system configuration
-   */
   static async getSystemConfig() {
     return SystemConfig.getAll();
   }
-
-  /**
-   * Update system configuration — receives a single key/value pair
-   */
   static async updateSystemConfig(key, value, adminId, description, category) {
     await SystemConfig.set(key, value, description);
-
     await AdminLog.create({
       adminId,
       action:     'UPDATE_SYSTEM_CONFIG',
       entityType: 'system_config',
       newValue:   { key, value, category, description },
     });
-
     return SystemConfig.getAll();
   }
-
-  /**
-   * Get low stock products
-   */
   static async getLowStockProducts(threshold = 10) {
     const products = await query(
       `SELECT p.id, pt_en.name AS name, p.sku, ct_en.name AS category, p.stock_quantity, p.price
@@ -288,10 +223,6 @@ class AdminService {
       price: parseFloat(p.price),
     }));
   }
-
-  /**
-   * Inventory report — current stock levels grouped by category
-   */
   static async getInventoryReport() {
     const byCategory = await query(
       `SELECT ct_en.name AS category, COUNT(p.id) AS product_count,
@@ -326,10 +257,6 @@ class AdminService {
       outOfStockCount:  parseInt(outOfStock.count, 10),
     };
   }
-
-  /**
-   * Get GST configuration (product categories and their GST rates)
-   */
   static async getGSTConfig() {
     const rows = await query(
       `SELECT p.id, pt_en.name AS name_en, p.gst_percentage
@@ -346,10 +273,6 @@ class AdminService {
     });
     return { gstRates: byRate, rates: Object.keys(byRate).map(Number).sort() };
   }
-
-  /**
-   * Update GST rate for a product (id = product id)
-   */
   static async updateGSTConfig(id, data) {
     const { cgst_rate, sgst_rate } = data;
     const total = (parseFloat(cgst_rate || 0) + parseFloat(sgst_rate || 0)) || data.igst_rate || null;
@@ -358,10 +281,6 @@ class AdminService {
     }
     return this.getGSTConfig();
   }
-
-  /**
-   * Business KPI stats for a given period
-   */
   static async getBusinessStats(period = 'month') {
     const dateMap = { today: '0 days', week: '7 days', month: '30 days', year: '365 days' };
     const interval = dateMap[period] || '30 days';
@@ -376,10 +295,6 @@ class AdminService {
     );
     return { period, ...stats[0] };
   }
-
-  /**
-   * Count of pending + confirmed orders awaiting pickup
-   */
   static async getPendingOrdersStats() {
     const row = await query(
       `SELECT
@@ -390,17 +305,9 @@ class AdminService {
     );
     return row[0];
   }
-
-  /**
-   * Recent admin activity (last N log entries)
-   */
   static async getRecentActivity(limit = 20) {
     return AdminLog.getRecentActivity(parseInt(limit) || 20);
   }
-
-  /**
-   * System health status
-   */
   static async getSystemHealth() {
     const { pool } = require('../config/database');
     let dbStatus = 'ok';
@@ -426,16 +333,11 @@ class AdminService {
       env: process.env.NODE_ENV || 'development',
     };
   }
-
-  /**
-   * Export data as JSON (or CSV string)
-   */
   static async exportData(type, options = {}) {
     const { startDate, endDate, format } = options;
     const today = new Date().toISOString().split('T')[0];
     const start = startDate || '2020-01-01';
     const end   = endDate   || today;
-
     let rows;
     switch (type) {
       case 'products':
@@ -486,7 +388,6 @@ class AdminService {
       default:
         rows = [];
     }
-
     if (format === 'csv' && rows.length > 0) {
       const headers = Object.keys(rows[0]).join(',');
       const csvRows = rows.map(r =>
@@ -494,9 +395,7 @@ class AdminService {
       );
       return [headers, ...csvRows].join('\n');
     }
-
     return { type, count: rows.length, data: rows };
   }
 }
-
-module.exports = AdminService;
+module.exports = AdminService;
