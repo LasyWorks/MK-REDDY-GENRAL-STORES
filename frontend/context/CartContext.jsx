@@ -69,14 +69,14 @@ export function CartProvider({ children }) {
       setItems((prev) => {
         const existing = prev.find((i) => i.id === product.id);
         // Enforce business rules: max quantity and stock limits
-        const maxQt = product.max_order_quantity ?? 99;
+        const maxQty = product.max_order_quantity ?? 99;
         const stock = product.stock_quantity ?? 0;
         // Don't add out-of-stock items
         if (stock <= 0) return prev;
         if (existing) {
           const newQty = Math.min(existing.quantity + qty, maxQty, stock);
           return prev.map((i) =>
-            i.id === product.id ? { ...i, quantity: newQty } : i
+            i.id === product.id ? { ...i, quantity: newQty } : i,
           );
         }
         return [
@@ -99,14 +99,14 @@ export function CartProvider({ children }) {
       });
       backendSync(() => cartService.addItem(product.id, qty));
     },
-    [backendSync]
+    [backendSync],
   );
   const removeItem = useCallback(
     async (productId) => {
       setItems((prev) => prev.filter((i) => i.id !== productId));
       backendSync(() => cartService.removeItem(productId));
     },
-    [backendSync]
+    [backendSync],
   );
   const updateQty = useCallback(
     async (productId, qty) => {
@@ -120,14 +120,14 @@ export function CartProvider({ children }) {
           const bounded = Math.min(
             qty,
             i.max_order_quantity ?? 99,
-            i.stock_quantity ?? 99
+            i.stock_quantity ?? 99,
           );
           return { ...i, quantity: bounded };
-        })
+        }),
       );
       backendSync(() => cartService.updateItem(productId, qty));
     },
-    [removeItem, backendSync]
+    [removeItem, backendSync],
   );
   const clearCartLocal = useCallback(() => {
     setItems([]);
@@ -138,14 +138,14 @@ export function CartProvider({ children }) {
   }, [backendSync]);
   const syncCartToBackend = useCallback(async () => {
     if (!isLoggedIn()) return null;
-    const currentItems = load(); 
+    const currentItems = load();
     if (currentItems.length === 0) return null;
     const mapped = currentItems.map((i) => ({
       product_id: i.id,
       quantity: i.quantity,
     }));
     const res = await cartService.syncAll(mapped);
-    return res.data; 
+    return res.data;
   }, []);
   const openCart = useCallback(() => setIsCartOpen(true), []);
   const closeCart = useCallback(() => setIsCartOpen(false), []);
