@@ -7,8 +7,7 @@ const pool = new Pool({
   user:     config.database.user,
   password: config.database.password,
   database: config.database.name,
-  // Connection pool prevents creating new DB connection for every request (performance)
-  max:      config.database.connectionLimit,
+  max:      Math.max(20, config.database.connectionLimit),
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
   ssl: config.database.ssl,

@@ -63,13 +63,19 @@ const errorHandler = (err, req, res, next) => {
     message: error.message,
     timestamp: new Date().toISOString(),
   };
+
+  if (config.env === 'production' && error.statusCode >= 500) {
+    response.message = 'Internal server error';
+  }
+
   if (error.errors) {
     response.errors = error.errors;
   }
-  // Show stack traces in development only - never expose in production for security
+
   if (config.env === 'development') {
     response.stack = err.stack;
   }
+
   res.status(error.statusCode).json(response);
 };
 const notFoundHandler = (req, res, next) => {

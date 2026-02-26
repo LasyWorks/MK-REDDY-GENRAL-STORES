@@ -1,11 +1,12 @@
 const rateLimit = require('express-rate-limit');
 const config = require('../config');
 const ApiError = require('../utils/ApiError');
+
 const isDev = process.env.NODE_ENV === 'development';
+
 const apiLimiter = rateLimit({
   windowMs: config.rateLimit.windowMs, 
-  // Disable rate limiting in development for easier testing
-  max: isDev ? 10000 : config.rateLimit.maxRequests, 
+  max: isDev ? Math.min(1000, config.rateLimit.maxRequests) : config.rateLimit.maxRequests, 
   message: {
     success: false,
     status: 'fail',
@@ -20,7 +21,7 @@ const apiLimiter = rateLimit({
 });
 const otpLimiter = rateLimit({
   windowMs: config.rateLimit.otpWindowMs, 
-  max: isDev ? 10000 : config.rateLimit.otpMaxRequests, 
+  max: isDev ? Math.min(100, config.rateLimit.otpMaxRequests) : config.rateLimit.otpMaxRequests, 
   message: {
     success: false,
     status: 'fail',

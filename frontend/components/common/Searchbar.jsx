@@ -180,9 +180,17 @@ function SearchResultItem({ product, query, onSelect }) {
 }
 function highlightMatch(text, query) {
   if (!query.trim()) return text;
+  
+  const safeText = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+  
   const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return text.replace(
+  return safeText.replace(
     new RegExp(`(${escaped})`, "gi"),
     `<mark class="bg-yellow-100 text-yellow-800 rounded px-0.5">$1</mark>`
   );
-}
+}

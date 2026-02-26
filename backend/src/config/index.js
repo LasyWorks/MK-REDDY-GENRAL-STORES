@@ -15,9 +15,9 @@ const config = {
       : false,
   },
   jwt: {
-    secret: process.env.JWT_SECRET || 'default_jwt_secret_change_in_production',
+    secret: process.env.JWT_SECRET,
     expiresIn: process.env.JWT_EXPIRES_IN || '24h',
-    refreshSecret: process.env.JWT_REFRESH_SECRET || 'default_refresh_secret_change_in_production',
+    refreshSecret: process.env.JWT_REFRESH_SECRET,
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
   otp: {
@@ -70,10 +70,27 @@ const config = {
     namespace:   process.env.WA_360_NAMESPACE      || '',
   },
   cors: {
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: process.env.CORS_ORIGIN,
     credentials: true,
   },
 };
+
+if (!config.jwt.secret || !config.jwt.refreshSecret) {
+  throw new Error('CRITICAL: JWT_SECRET and JWT_REFRESH_SECRET must be set in environment variables');
+}
+
+if (config.jwt.secret.includes('default') || config.jwt.refreshSecret.includes('default')) {
+  throw new Error('CRITICAL: Default JWT secrets detected. Generate secure secrets immediately');
+}
+
+if (!config.cors.origin) {
+  throw new Error('CRITICAL: CORS_ORIGIN must be explicitly set (use specific domain, not wildcard)');
+}
+
+if (config.cors.origin === '*') {
+  throw new Error('CRITICAL: CORS_ORIGIN cannot be wildcard (*). Set your frontend URL explicitly');
+}
+
 if (config.env === 'production') {
   const requiredEnvVars = [
     'JWT_SECRET',
@@ -83,6 +100,7 @@ if (config.env === 'production') {
     'SMTP_PASSWORD',
     'STORE_GST_NUMBER',
     'FAST2SMS_API_KEY',
+    'CORS_ORIGIN',
   ];
   requiredEnvVars.forEach((envVar) => {
     if (!process.env[envVar]) {
@@ -90,4 +108,4 @@ if (config.env === 'production') {
     }
   });
 }
-module.exports = config;
+module.exports = config;
