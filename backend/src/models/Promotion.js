@@ -42,10 +42,12 @@ class Promotion {
       params.push(isActive);
     }
     const now = new Date().toISOString();
+    // Filter by time status to show different promo lists (upcoming, active, expired)
     if (status === 'upcoming') {
       conds.push(`p.starts_at > $${idx++}`);
       params.push(now);
     } else if (status === 'active') {
+      // Active means current time is within promotion window
       conds.push(`p.starts_at <= $${idx} AND p.ends_at >= $${idx + 1}`);
       params.push(now, now);
       idx += 2;
@@ -252,4 +254,4 @@ class Promotion {
     return map;
   }
 }
-module.exports = Promotion;
+module.exports = Promotion;

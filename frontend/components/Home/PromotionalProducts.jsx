@@ -16,6 +16,7 @@ export default function PromotionalProducts() {
   const scrollRef = useRef(null);
   const promo = activePromos.find(p => {
     const linked = p.products || [];
+    // Only show promotions that have products attached
     return linked.length > 0;
   });
   const fetchProducts = useCallback(async () => {
@@ -34,6 +35,7 @@ export default function PromotionalProducts() {
       const json = await res.json();
       const fetchedProducts = json.data || [];
       console.log('[PromotionalProducts] Fetched products:', fetchedProducts.length, fetchedProducts.map(p => p.name));
+      // Double-filter to handle edge cases where API returns extra products
       const filtered = fetchedProducts.length > 0 
         ? fetchedProducts.filter(p => productIds.includes(p.id))
         : [];
@@ -50,6 +52,7 @@ export default function PromotionalProducts() {
     if (!promoLoading) fetchProducts();
   }, [promoLoading, fetchProducts]);
   const productGroups = useMemo(() => {
+    // Group variants together for cleaner display (e.g., show "Vim" with size options)
     return groupProductsByVariant(products);
   }, [products]);
   const scroll = (dir) => {
@@ -57,6 +60,7 @@ export default function PromotionalProducts() {
     scrollRef.current.scrollBy({ left: dir === "left" ? -320 : 320, behavior: "smooth" });
   };
   if (!promoLoading && !loading && productGroups.length === 0) return null;
+  // Use promotion's theme color for branding consistency
   const themeColor = promo?.theme_color || "#FF6B00";
   const title = promo?.title || "Limited Time Offers";
   const endsAt = promo?.ends_at;
@@ -121,4 +125,4 @@ export default function PromotionalProducts() {
       </div>
     </section>
   );
-}
+}

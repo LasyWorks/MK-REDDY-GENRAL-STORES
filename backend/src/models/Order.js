@@ -86,14 +86,17 @@ class Order {
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
           [orderId, item.product_id, nameEn, item.quantity, item.unit_type, item.unit_price, item.gst_percentage, item.item_gst, item.item_total, item.item_grand_total]
         );
+        // Critical: Decrement stock atomically within transaction to prevent overselling
         const stockRes = await client.query(
           'UPDATE products SET stock_quantity = stock_quantity - $1 WHERE id = $2 AND stock_quantity >= $1',
           [item.quantity, item.product_id]
         );
+        // Fail entire order if any item has insufficient stock (race condition protection)
         if (stockRes.rowCount === 0) {
           throw new Error(`Insufficient stock for "${item.product_name_en || item.product_name}". Only limited quantity available — please update your cart.`);
         }
       }
+      // Clean up cart after successful order - user starts fresh
       const cartRow = await client.query('SELECT id FROM carts WHERE user_id = $1', [userId]);
       if (cartRow.rows.length) { await client.query('DELETE FROM cart_items WHERE cart_id = $1', [cartRow.rows[0].id]); }
       return { orderId, orderNumber };

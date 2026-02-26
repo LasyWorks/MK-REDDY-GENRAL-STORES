@@ -25,9 +25,11 @@ class PromotionService {
   static async create(data, adminId) {
     const starts = new Date(data.starts_at);
     const ends   = new Date(data.ends_at);
+    // Validate dates early to prevent creating invalid promotions
     if (isNaN(starts.getTime()) || isNaN(ends.getTime())) {
       throw ApiError.badRequest('Invalid start or end date');
     }
+    // Prevent overlapping or backwards time ranges that confuse customers
     if (ends <= starts) {
       throw ApiError.badRequest('End date must be after start date');
     }
@@ -77,6 +79,7 @@ class PromotionService {
     const promo = await this.getById(id);
     const newStatus = !promo.is_active;
     await Promotion.update(id, { is_active: newStatus });
+    // Log activation/deactivation for audit trail (promotional compliance)
     await AdminLog.create({
       adminId,
       action: newStatus ? 'ACTIVATE_PROMOTION' : 'DEACTIVATE_PROMOTION',
@@ -86,4 +89,4 @@ class PromotionService {
     return { ...promo, is_active: newStatus };
   }
 }
-module.exports = PromotionService;
+module.exports = PromotionService;

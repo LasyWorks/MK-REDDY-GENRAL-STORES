@@ -30,10 +30,12 @@ class InvoiceService {
     if (!invoice) {
       throw ApiError.notFound('Invoice not found');
     }
+    // Idempotent - safe to call multiple times without side effects
     if (invoice.is_paid) {
       return invoice;
     }
     await Invoice.markPaid(invoiceId, paymentMethod);
+    // Audit trail for financial compliance - track who marked invoice as paid
     await AdminLog.create({
       adminId,
       action: 'MARK_INVOICE_PAID',
@@ -136,4 +138,4 @@ class InvoiceService {
     };
   }
 }
-module.exports = InvoiceService;
+module.exports = InvoiceService;

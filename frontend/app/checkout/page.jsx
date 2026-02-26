@@ -31,6 +31,7 @@ export default function CheckoutPage() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null); 
   useEffect(() => {
+    // Redirect to login if not authenticated - checkout requires account
     if (!authService.isAuthenticated()) {
       router.replace(`/login?redirect=${encodeURIComponent("/checkout")}`);
       return;
@@ -39,6 +40,7 @@ export default function CheckoutPage() {
     setAuthChecked(true);
   }, [router]);
   useEffect(() => {
+    // Redirect to home if cart is empty (nothing to checkout)
     if (authChecked && items.length === 0 && !success) {
       router.replace("/");
     }
@@ -48,6 +50,7 @@ export default function CheckoutPage() {
   const hasSavings = totalSavings > 0.01;
   let promoDiscount = 0;
   let promoLabel = null;
+  // Calculate best promotion discount client-side for instant preview (server validates)
   (() => {
     if (!productPromoMap || !Object.keys(productPromoMap).length) return;
     const promoTotals = {};
@@ -65,9 +68,11 @@ export default function CheckoutPage() {
       if (info.discount_type === 'flat') {
         d = Math.min(info.discount_value, info.qualifyingTotal);
       } else {
+        // Percentage discount - capped at item total to prevent negative prices
         d = parseFloat(((info.qualifyingTotal * info.discount_value) / 100).toFixed(2));
         d = Math.min(d, info.qualifyingTotal);
       }
+      // Use best promotion for customer (highest discount)
       if (d > promoDiscount) {
         promoDiscount = parseFloat(d.toFixed(2));
         promoLabel = info.title;
@@ -311,4 +316,4 @@ export default function CheckoutPage() {
       </div>
     </main>
   );
-}
+}

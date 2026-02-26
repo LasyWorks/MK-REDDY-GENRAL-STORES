@@ -11,6 +11,7 @@ function ProductCardWithVariants({ variants }) {
   const { productPromoMap } = usePromotions();
   const hasAnyPromo = variants.some(v => productPromoMap[v.id]);
   const displayVariants = useMemo(() => {
+    // If any variant has promotion, only show those variants (hide non-discounted sizes)
     if (hasAnyPromo) {
       return variants.filter(v => productPromoMap[v.id]);
     }
@@ -34,10 +35,12 @@ function ProductCardWithVariants({ variants }) {
   const handleAddClick = (e) => {
     e.preventDefault();
     if (isOutOfStock) return;
+    // Skip modal if only one size - add directly for faster checkout
     if (displayVariants.length === 1) {
       addItem(displayVariants[0], 1);
       return;
     }
+    // Multiple sizes - show size picker modal
     setShowModal(true);
   };
   const handleModalAddToCart = async (variantId) => {
@@ -290,4 +293,4 @@ function ProductCardWithVariants({ variants }) {
     </>
   );
 }
-export default memo(ProductCardWithVariants);
+export default memo(ProductCardWithVariants);

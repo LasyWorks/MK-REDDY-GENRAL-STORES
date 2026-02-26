@@ -3,12 +3,14 @@ const { v7: uuidv7 } = require('uuid');
 const generateOTP = (length = 6) => {
   const digits = '0123456789';
   let otp = '';
+  // Use crypto.randomInt for cryptographically secure randomness (not Math.random)
   for (let i = 0; i < length; i++) {
     otp += digits[crypto.randomInt(0, digits.length)];
   }
   return otp;
 };
 const hashOTP = (otp) => {
+  // Hash OTP before storing to protect users if database is compromised
   return crypto.createHash('sha256').update(otp).digest('hex');
 };
 const generateInvoiceNumber = () => {
@@ -39,6 +41,7 @@ const formatPhone = (phone) => {
 };
 const calculateGST = (amount, gstPercentage) => {
   const gstAmount = (amount * gstPercentage) / 100;
+  // Split GST equally between CGST and SGST (Indian tax structure)
   const cgst = gstAmount / 2;
   const sgst = gstAmount / 2;
   return {
@@ -55,6 +58,7 @@ const getPaginationParams = (page = 1, limit = 10, maxLimit = 100) => {
   const requestedLimit = parseInt(limit, 10) || 10;
   const limitNum = Math.min(maxLimit, Math.max(1, requestedLimit));
   const offset = (pageNum - 1) * limitNum;
+  // Warn if client requests too much data - helps catch bugs and potential DoS attempts
   if (requestedLimit > maxLimit) {
     console.warn(`Requested limit ${requestedLimit} exceeds max limit ${maxLimit}. Using ${maxLimit}.`);
   }
@@ -167,4 +171,4 @@ module.exports = {
   getRoleId,
   getRoleIdByUserType,
   resetRoleCache,
-};
+};

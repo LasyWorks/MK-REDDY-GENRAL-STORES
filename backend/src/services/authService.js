@@ -6,9 +6,11 @@ const { generateOTP, hashOTP, getRoleIdByUserType } = require('../utils/helpers'
 const SmsService = require('./smsService');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
+// Prevent OTP spam attacks by limiting resend frequency
 const OTP_RESEND_COOLDOWN_SECS = 30; 
 class AuthService {
   static async sendOTP(phone, purpose = 'login') {
+    // Check if user is trying to request OTPs too quickly (potential abuse)
     const recentCount = await OTP.countRecent(phone, OTP_RESEND_COOLDOWN_SECS);
     if (recentCount > 0) {
       throw ApiError.tooManyRequests(
@@ -16,6 +18,7 @@ class AuthService {
       );
     }
     const otp = generateOTP(6);
+    // Never store plain OTP - hash it to protect users if database is compromised
     const hashedOTP = hashOTP(otp);
     await OTP.create(phone, hashedOTP, purpose, config.otp.expiryMinutes);
     const smsResult = await SmsService.sendOtp(phone, otp);
@@ -25,6 +28,7 @@ class AuthService {
     return {
       message: 'OTP sent successfully',
       expiresIn: config.otp.expiryMinutes * 60,
+      // Only reveal OTP in development for testing - never in production for security
       ...(config.env === 'development' && { otp }),
     };
   }
@@ -57,6 +61,7 @@ class AuthService {
     if (!otpRecord) {
       throw ApiError.badRequest('OTP expired or not found');
     }
+    // Prevent brute force attacks by limiting guess attempts per OTP
     if (otpRecord.attempts >= config.otp.maxAttempts) {
       await OTP.delete(otpRecord.id);
       throw ApiError.tooManyRequests('Maximum OTP attempts exceeded. Please request a new OTP.');
@@ -69,6 +74,7 @@ class AuthService {
     await OTP.markVerified(otpRecord.id);
     await OTP.delete(otpRecord.id);
     let user = await User.findByPhone(phone);
+    // User verified phone but hasn't registered yet - allow them to complete signup
     if (!user) {
       return {
         authenticated: false,
@@ -254,4 +260,4 @@ class AuthService {
     };
   }
 }
-module.exports = AuthService;
+module.exports = AuthService;

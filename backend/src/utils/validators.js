@@ -3,6 +3,7 @@ const ApiError = require('./ApiError');
 const validate = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    // Transform validation errors into consistent API error format
     const extractedErrors = errors.array().map((err) => ({
       field: err.path,
       message: err.msg,
@@ -27,6 +28,7 @@ const commonRules = {
   phone: (field = 'phone') =>
     body(field)
       .trim()
+      // Indian mobile format: starts with 6-9, followed by 9 more digits
       .matches(/^[6-9]\d{9}$/)
       .withMessage('Phone number must be a valid 10-digit Indian mobile number'),
   email: (field = 'email') =>
@@ -45,6 +47,7 @@ const commonRules = {
     body(field)
       .isLength({ min: 8 })
       .withMessage('Password must be at least 8 characters')
+      // Enforce strong passwords to protect customer accounts
       .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
       .withMessage('Password must contain uppercase, lowercase, number, and special character'),
   name: (field = 'name', minLength = 2, maxLength = 100) =>
@@ -503,4 +506,4 @@ module.exports = {
   validateMarkAsPaid,
   validateSystemConfig,
   validateGSTConfig,
-};
+};

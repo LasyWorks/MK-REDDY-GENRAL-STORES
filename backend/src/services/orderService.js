@@ -13,17 +13,21 @@ class OrderService {
     if (cart.items.length === 0) {
       throw ApiError.badRequest('Cart is empty');
     }
+    // Final safety check before order creation - prices/stock may have changed
     const validation = await Cart.validateItems(userId);
     if (!validation.valid) {
       throw ApiError.badRequest('Cart has issues', validation.issues);
     }
+    // Sync prices one last time to ensure customer pays current market price
     await Cart.syncPrices(userId);
     const updatedCart = await Cart.getWithItems(userId, lang);
+    // Calculate best promotion discount for this order
     let promoDiscount = 0;
     let promoId = null;
     let promoTitle = null;
     try {
       const promoMap = await Promotion.getActiveProductMap();
+      // Group items by promotion to calculate total discount per promotion
       const promoTotals = {};  
       for (const item of updatedCart.items) {
         const p = promoMap[item.product_id];
@@ -39,6 +43,7 @@ class OrderService {
         }
         promoTotals[key].qualifyingTotal += item.item_total;
       }
+      // Calculate discount for each promotion and choose the best one for customer
       for (const [pid, info] of Object.entries(promoTotals)) {
         let d = 0;
         if (info.discount_type === 'flat') {
@@ -54,6 +59,7 @@ class OrderService {
         }
       }
     } catch (err) {
+      // Never fail order creation due to promotion errors - customer experience comes first
       logger.error('Promotion discount calc failed (order will proceed without discount):', err);
     }
     const { orderId, orderNumber } = await Order.createFromCart(userId, updatedCart, notes, {
@@ -63,6 +69,7 @@ class OrderService {
     await Invoice.create(order, user);
     logger.info(`Order created: ${orderNumber} by user ${userId}`);
     try {
+      // Send email confirmation but don't fail order if email service is down
       if (user.email) {
         await EmailService.sendOrderConfirmation(order, user);
       }
@@ -101,12 +108,13 @@ class OrderService {
     if (!order) {
       throw ApiError.notFound('Order not found');
     }
+    // Define allowed status transitions to prevent invalid states (e.g., can't unpick a picked_up order)
     const validTransitions = {
       pending: ['confirmed', 'cancelled'],
       confirmed: ['ready_for_pickup', 'cancelled'],
       ready_for_pickup: ['picked_up', 'cancelled'],
-      picked_up: [], 
-      cancelled: [], 
+      picked_up: [], // Final state - cannot change
+      cancelled: [], // Final state - cannot change
     };
     if (!validTransitions[order.status].includes(status)) {
       throw ApiError.badRequest(
@@ -168,4 +176,4 @@ class OrderService {
     return Order.getStatistics(startDate, endDate);
   }
 }
-module.exports = OrderService;
+module.exports = OrderService;

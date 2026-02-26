@@ -7,12 +7,14 @@ const pool = new Pool({
   user:     config.database.user,
   password: config.database.password,
   database: config.database.name,
+  // Connection pool prevents creating new DB connection for every request (performance)
   max:      config.database.connectionLimit,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
   ssl: config.database.ssl,
 });
 pool.on('error', (err) => {
+  // Log unexpected errors to prevent silent failures
   logger.error('Unexpected PG pool error', err);
 });
 const testConnection = async () => {
@@ -33,6 +35,7 @@ const withTransaction = async (callback) => {
   try {
     await client.query('BEGIN');
     const result = await callback(client);
+    // All queries must succeed or all fail - prevents partial order creation
     await client.query('COMMIT');
     return result;
   } catch (error) {

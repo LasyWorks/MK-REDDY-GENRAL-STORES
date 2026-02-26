@@ -8,6 +8,7 @@ import {
   useCallback,
 } from "react";
 import cartService from "@/services/cartService";
+// Store cart locally so users don't lose items if they close browser or logout
 const STORAGE_KEY = "mk-reddy-cart";
 const CartContext = createContext({
   items: [],
@@ -28,6 +29,7 @@ function load() {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
   } catch {
+    // Return empty cart if storage is corrupted - don't crash app
     return [];
   }
 }
@@ -42,19 +44,23 @@ function isLoggedIn() {
 export function CartProvider({ children }) {
   const [items, setItems] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  // Load cart from localStorage on mount - works offline
   useEffect(() => {
     setItems(load());
   }, []);
+  // Auto-save cart to localStorage whenever it changes
   useEffect(() => {
     save(items);
   }, [items]);
   const totalCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const totalPrice = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const backendSync = useCallback(async (fn) => {
+    // Only sync to server if user is logged in - guest users keep cart locally
     if (!isLoggedIn()) return;
     try {
       await fn();
     } catch (e) {
+      // Cart works offline - don't fail if server is down
       console.warn("[cart] API sync failed:", e.message);
     }
   }, []);
@@ -62,8 +68,10 @@ export function CartProvider({ children }) {
     async (product, qty = 1) => {
       setItems((prev) => {
         const existing = prev.find((i) => i.id === product.id);
-        const maxQty = product.max_order_quantity ?? 99;
+        // Enforce business rules: max quantity and stock limits
+        const maxQt = product.max_order_quantity ?? 99;
         const stock = product.stock_quantity ?? 0;
+        // Don't add out-of-stock items
         if (stock <= 0) return prev;
         if (existing) {
           const newQty = Math.min(existing.quantity + qty, maxQty, stock);
@@ -164,4 +172,4 @@ export function CartProvider({ children }) {
 }
 export function useCart() {
   return useContext(CartContext);
-}
+}

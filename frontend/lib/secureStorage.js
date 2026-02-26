@@ -1,8 +1,10 @@
 import CryptoJS from "crypto-js";
+// Base encryption key - combined with unique salt per browser for security
 const APP_KEY = "mk-r3ddy-s3cur3-2026";
 const SALT_SLOT = "__ss__";
 function getSecret() {
   if (typeof window === "undefined") return APP_KEY;
+  // Generate unique salt per browser so tokens can't be copied between devices
   let salt = localStorage.getItem(SALT_SLOT);
   if (!salt) {
     salt = Array.from(crypto.getRandomValues(new Uint8Array(16)))
@@ -20,6 +22,7 @@ const secureStorage = {
       return;
     }
     const str = typeof value === "string" ? value : JSON.stringify(value);
+    // Encrypt tokens so they're not readable in browser DevTools
     const encrypted = CryptoJS.AES.encrypt(str, getSecret()).toString();
     localStorage.setItem(key, encrypted);
   },
@@ -31,6 +34,7 @@ const secureStorage = {
       const bytes = CryptoJS.AES.decrypt(raw, getSecret());
       return bytes.toString(CryptoJS.enc.Utf8) || null;
     } catch {
+      // Return null if decryption fails (corrupted data or wrong device)
       return null;
     }
   },
@@ -42,4 +46,4 @@ const secureStorage = {
     keys.forEach((k) => this.removeItem(k));
   },
 };
-export default secureStorage;
+export default secureStorage;

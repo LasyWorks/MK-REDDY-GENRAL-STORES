@@ -5,6 +5,7 @@ const { query } = require('../config/database');
 const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
+    // Only accept Bearer token format to prevent security issues with other auth schemes
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw ApiError.unauthorized('Access token is required');
     }
@@ -45,6 +46,7 @@ const authenticate = async (req, res, next) => {
 const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
+    // Don't fail request if no token - useful for public endpoints that offer extra features when authenticated
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return next();
     }
@@ -70,6 +72,7 @@ const optionalAuth = async (req, res, next) => {
     }
     next();
   } catch (error) {
+    // Silently continue even if token is invalid - this is optional auth
     next();
   }
 };
@@ -78,12 +81,14 @@ const authorize = (...allowedRoles) => {
     if (!req.user) {
       return next(ApiError.unauthorized('Authentication required'));
     }
+    // Block access if user's role doesn't match any of the allowed roles for this endpoint
     if (!allowedRoles.includes(req.user.role)) {
       return next(ApiError.forbidden('You do not have permission to perform this action'));
     }
     next();
   };
 };
+// Convenience shortcuts for common role checks to avoid typing role names repeatedly
 const adminOnly = authorize('admin');
 const customerOnly = authorize('retail_customer', 'wholesale_customer');
 const verifyRefreshToken = async (req, res, next) => {
@@ -93,6 +98,7 @@ const verifyRefreshToken = async (req, res, next) => {
       throw ApiError.badRequest('Refresh token is required');
     }
     const decoded = jwt.verify(refreshToken, config.jwt.refreshSecret);
+    // Verify refresh token exists in database and hasn't been revoked (security measure for logout)
     const tokenRecord = await query(
       `SELECT * FROM refresh_tokens 
        WHERE token = $1 AND user_id = $2 AND expires_at > NOW() AND revoked = FALSE`,
@@ -121,4 +127,4 @@ module.exports = {
   adminOnly,
   customerOnly,
   verifyRefreshToken,
-};
+};

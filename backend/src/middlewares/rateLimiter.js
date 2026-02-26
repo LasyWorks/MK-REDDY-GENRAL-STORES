@@ -4,6 +4,7 @@ const ApiError = require('../utils/ApiError');
 const isDev = process.env.NODE_ENV === 'development';
 const apiLimiter = rateLimit({
   windowMs: config.rateLimit.windowMs, 
+  // Disable rate limiting in development for easier testing
   max: isDev ? 10000 : config.rateLimit.maxRequests, 
   message: {
     success: false,
@@ -29,6 +30,7 @@ const otpLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
+    // Track OTP requests by phone number to prevent abuse of specific numbers
     return req.body.phone || req.ip;
   },
   handler: (req, res, next, options) => {
@@ -36,8 +38,8 @@ const otpLimiter = rateLimit({
   },
 });
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, 
-  max: 100, 
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // More lenient than OTP to avoid locking out legitimate users
   message: {
     success: false,
     status: 'fail',
@@ -73,4 +75,4 @@ module.exports = {
   otpLimiter,
   loginLimiter,
   uploadLimiter,
-};
+};

@@ -25,6 +25,7 @@ class ProductService {
     });
   }
   static async create(productData, adminId) {
+    // Enforce catalog size limit to prevent database bloat and performance issues
     const productCount = await Product.count();
     if (productCount >= config.limits.maxProducts) {
       throw ApiError.forbidden(`Maximum product limit (${config.limits.maxProducts}) reached`);
@@ -34,8 +35,10 @@ class ProductService {
       throw ApiError.badRequest('Invalid category');
     }
     if (!productData.sku) {
+      // Auto-generate SKU if admin doesn't provide one (prevents duplicate entry errors)
       productData.sku = generateSku(productData);
     }
+    // SKU must be unique across all products for inventory tracking
     const existingSku = await Product.findBySku(productData.sku);
     if (existingSku) {
       throw ApiError.conflict('SKU already exists');
@@ -48,6 +51,7 @@ class ProductService {
       entityId: productId,
       newValue: productData,
     });
+    // Trigger frontend cache refresh so new product appears immediately on website
     await revalidatePages({
       tags: ['products', `category-${productData.category_id}`],
       paths: [`/categories/${productData.category_id}`],
@@ -93,6 +97,7 @@ class ProductService {
     if (!product) {
       throw ApiError.notFound('Product not found');
     }
+    // Soft delete: keep product in database for order history, just hide from customers
     await Product.update(id, { is_active: false });
     await AdminLog.create({
       adminId,
@@ -269,4 +274,4 @@ class ProductService {
     return { ...product, is_active: newStatus };
   }
 }
-module.exports = ProductService;
+module.exports = ProductService;

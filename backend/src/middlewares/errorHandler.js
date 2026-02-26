@@ -2,9 +2,11 @@ const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
 const config = require('../config');
 const normalizeError = (err) => {
+  // Convert all errors to ApiError format for consistent API responses
   if (err instanceof ApiError) {
     return err;
   }
+  // Database errors need friendly messages - don't expose internal DB structure
   if (err.code) {
     switch (err.code) {
       case 'ER_DUP_ENTRY':
@@ -14,6 +16,7 @@ const normalizeError = (err) => {
         return ApiError.badRequest('Referenced resource does not exist.');
       case 'ER_ROW_IS_REFERENCED':
       case 'ER_ROW_IS_REFERENCED_2':
+        // Prevent cascade delete issues (e.g., can't delete category with products)
         return ApiError.conflict('Cannot delete. Resource is referenced by other records.');
       case 'ECONNREFUSED':
         return ApiError.internal('Database connection failed.');
@@ -48,6 +51,7 @@ const errorHandler = (err, req, res, next) => {
     statusCode: error.statusCode,
     message: error.message,
   };
+  // 500+ errors are server issues (log with stack), 400s are client mistakes (warn only)
   if (error.statusCode >= 500) {
     logger.error('Server Error:', { ...logData, stack: err.stack });
   } else {
@@ -62,6 +66,7 @@ const errorHandler = (err, req, res, next) => {
   if (error.errors) {
     response.errors = error.errors;
   }
+  // Show stack traces in development only - never expose in production for security
   if (config.env === 'development') {
     response.stack = err.stack;
   }
@@ -77,4 +82,4 @@ module.exports = {
   errorHandler,
   notFoundHandler,
   asyncHandler,
-};
+};
