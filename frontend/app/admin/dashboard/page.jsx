@@ -49,6 +49,7 @@ import RecentOrders from "@/components/admin/RecentOrders";
 import QuickActions from "@/components/admin/QuickActions";
 import TopProducts from "@/components/admin/TopProducts";
 import RecentActivity from "@/components/admin/RecentActivity";
+import CategoriesTab from "@/components/admin/CategoriesTab";
 function useAdminGuard() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
@@ -286,9 +287,18 @@ function ProductModal({ product, categories, onClose, onSaved }) {
     if (product?.image_url) return [product.image_url];
     return [""];
   };
+
+  // Get parent category for existing product
+  const getParentCategoryId = () => {
+    if (!product?.category_id) return "";
+    const category = categories.find(c => c.id === product.category_id);
+    return category?.parent_id || product.category_id;
+  };
+
   const [form, setForm] = useState({
     name_en: product?.name || "",
     brand: product?.brand || "",
+    sku: product?.sku || "",
     mrp: product?.mrp || "",
     price: product?.price || "",
     stock_quantity: product?.stock_quantity ?? "",
@@ -298,6 +308,8 @@ function ProductModal({ product, categories, onClose, onSaved }) {
     is_active: product?.is_active !== false,
     is_featured: product?.is_featured || false,
   });
+
+  const [parentCategoryId, setParentCategoryId] = useState(getParentCategoryId());
   const [imageUrls, setImageUrls] = useState(initImages);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -320,11 +332,15 @@ function ProductModal({ product, categories, onClose, onSaved }) {
   async function save(e) {
     e.preventDefault();
     if (!form.name_en.trim()) {
-      setError("Name is required");
+      setError("Product name is required");
       return;
     }
     if (!form.price || !form.mrp) {
       setError("Price and MRP are required");
+      return;
+    }
+    if (!form.category_id) {
+      setError("Please select a category and subcategory");
       return;
     }
     setSaving(true);
@@ -336,7 +352,15 @@ function ProductModal({ product, categories, onClose, onSaved }) {
       else await api.post("/products", payload);
       onSaved();
     } catch (e) {
-      setError(e.message || "Save failed");
+      // Show clearer error messages for common issues
+      const errorMsg = e.message || "Save failed";
+      if (errorMsg.includes("SKU")) {
+        setError(`SKU conflict: ${errorMsg}`);
+      } else if (errorMsg.includes("category")) {
+        setError(`Category error: ${errorMsg}`);
+      } else {
+        setError(errorMsg);
+      }
     } finally {
       setSaving(false);
     }
@@ -455,6 +479,20 @@ function ProductModal({ product, categories, onClose, onSaved }) {
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">
+                SKU (Stock Keeping Unit)
+              </label>
+              <input
+                value={form.sku}
+                onChange={(e) => set("sku", e.target.value)}
+                placeholder="Auto-generated if empty"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                {isEdit ? "Change carefully - must be unique" : "Leave empty to auto-generate"}
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">
                 Brand
               </label>
               <input
@@ -509,20 +547,44 @@ function ProductModal({ product, categories, onClose, onSaved }) {
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Category
+                Parent Category
               </label>
               <select
-                value={form.category_id}
-                onChange={(e) => set("category_id", e.target.value)}
+                value={parentCategoryId}
+                onChange={(e) => {
+                  setParentCategoryId(e.target.value);
+                  set("category_id", ""); // Reset subcategory
+                }}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
               >
-                <option value="">— select —</option>
-                {categories.map((c) => (
+                <option value="">— select parent —</option>
+                {categories.filter(c => !c.parent_id).map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">
+                Subcategory *
+              </label>
+              <select
+                value={form.category_id}
+                onChange={(e) => set("category_id", e.target.value)}
+                disabled={!parentCategoryId}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-50 disabled:text-gray-400"
+              >
+                <option value="">— select subcategory —</option>
+                {categories.filter(c => c.parent_id === parentCategoryId).map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              {!parentCategoryId && (
+                <p className="text-xs text-gray-400 mt-1">Select parent category first</p>
+              )}
             </div>
             <div className="col-span-2">
               <label className="block text-xs font-semibold text-gray-600 mb-1">
@@ -1253,6 +1315,48 @@ function UsersTab() {
       setActing(null);
     }
   }
+  async function handlePromoteDemote(user) {
+    const isCurrentlyRetail = user.user_type === "retail";
+    const newType = isCurrentlyRetail ? "wholesale" : "retail";
+    const action = isCurrentlyRetail ? "Promote to Wholesale" : "Demote to Retail";
+    
+    if (!confirm(`${action} customer: ${user.name || user.phone}?`)) return;
+    
+    setActing(user.id);
+    try {
+      await api.put(`/users/${user.id}/customer-type`, { customer_type: newType });
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === user.id ? { ...u, user_type: newType } : u,
+        ),
+      );
+    } catch (e) {
+      alert(e.message || "Failed to update customer type");
+    } finally {
+      setActing(null);
+    }
+  }
+  async function handlePromoteDemote(user) {
+    const isCurrentlyRetail = user.user_type === "retail";
+    const newType = isCurrentlyRetail ? "wholesale" : "retail";
+    const action = isCurrentlyRetail ? "Promote to Wholesale" : "Demote to Retail";
+    
+    if (!confirm(`${action} customer: ${user.name || user.phone}?`)) return;
+    
+    setActing(user.id);
+    try {
+      await api.put(`/users/${user.id}/customer-type`, { customer_type: newType });
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === user.id ? { ...u, user_type: newType } : u,
+        ),
+      );
+    } catch (e) {
+      alert(e.message || "Failed to update customer type");
+    } finally {
+      setActing(null);
+    }
+  }
   const totalPages = Math.ceil(total / LIMIT);
   return (
     <div className="space-y-5">
@@ -1411,6 +1515,12 @@ function UsersTab() {
                             Inactive
                           </span>
                         )}
+                        {(u.user_type === "retail" || u.user_type === "wholesale") && (
+                          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded w-fit
+                            ${u.user_type === "wholesale" ? "bg-amber-50 text-amber-700" : "bg-blue-50 text-blue-600"}`}>
+                            {u.user_type === "wholesale" ? "Wholesale" : "Retail"}
+                          </span>
+                        )}
                       </div>
                     </td>
                     {}
@@ -1424,6 +1534,24 @@ function UsersTab() {
                           <Loader2 className="w-4 h-4 animate-spin text-green-600" />
                         ) : (
                           <>
+                            {/* Promote/Demote (only for retail/wholesale customers) */}
+                            {(u.user_type === "retail" || u.user_type === "wholesale") && (
+                              <button
+                                onClick={() => handlePromoteDemote(u)}
+                                title={u.user_type === "retail" ? "Promote to Wholesale" : "Demote to Retail"}
+                                className={`p-1.5 rounded-lg transition-colors
+                                  ${u.user_type === "wholesale"
+                                    ? "text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+                                    : "text-gray-400 hover:text-amber-600 hover:bg-amber-50"
+                                  }`}
+                              >
+                                {u.user_type === "retail" ? (
+                                  <ArrowUpRight className="w-4 h-4" />
+                                ) : (
+                                  <ArrowDownRight className="w-4 h-4" />
+                                )}
+                              </button>
+                            )}
                             {}
                             <button
                               onClick={() => toggleBlock(u)}
@@ -2725,7 +2853,9 @@ function PromotionsTab() {
 const TABS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "products", label: "Products", icon: Package },
+  { id: "categories", label: "Categories", icon: Tag },
   { id: "orders", label: "Orders", icon: ShoppingCart },
+  { id: "billing", label: "Billing", icon: CircleDollarSign },
   { id: "promotions", label: "Promotions", icon: Megaphone },
   { id: "users", label: "Users", icon: Users },
 ];
@@ -2733,6 +2863,15 @@ export default function AdminDashboard() {
   const { ready, admin } = useAdminGuard();
   const router = useRouter();
   const [tab, setTab] = useState("overview");
+  
+  function handleTabChange(tabId) {
+    if (tabId === "billing") {
+      router.push("/admin/billing");
+    } else {
+      setTab(tabId);
+    }
+  }
+  
   function logout() {
     secureStorage.removeItem("token");
     secureStorage.removeItem("refreshToken");
@@ -2783,7 +2922,7 @@ export default function AdminDashboard() {
             {TABS.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
-                onClick={() => setTab(id)}
+                onClick={() => handleTabChange(id)}
                 className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-200
                   ${
                     tab === id
@@ -2850,6 +2989,7 @@ export default function AdminDashboard() {
 
         {tab === "overview" && <OverviewTab onSwitchTab={setTab} />}
         {tab === "products" && <ProductsTab />}
+        {tab === "categories" && <CategoriesTab />}
         {tab === "orders" && <OrdersTab />}
         {tab === "promotions" && <PromotionsTab />}
         {tab === "users" && <UsersTab />}

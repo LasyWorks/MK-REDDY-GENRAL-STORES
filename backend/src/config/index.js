@@ -48,6 +48,8 @@ const config = {
   limits: {
     maxCustomers: parseInt(process.env.MAX_CUSTOMERS, 10) || 50,
     maxProducts: parseInt(process.env.MAX_PRODUCTS, 10) || 500,
+    retailCustomerMaxQuantity: parseInt(process.env.RETAIL_MAX_QUANTITY, 10) || 10,
+    wholesaleCustomerMaxQuantity: parseInt(process.env.WHOLESALE_MAX_QUANTITY, 10) || 100,
   },
   defaultLanguage: process.env.DEFAULT_LANGUAGE || 'en',
   supportedLanguages: ['en', 'te'],

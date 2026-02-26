@@ -8,7 +8,7 @@ export default function FestiveBanner() {
   const primary = banners[0];
   const bgColor = primary.theme_color || "#FF6B00";
   return (
-    <div className="relative overflow-hidden" style={{ backgroundColor: bgColor }}>
+    <div className="relative overflow-hidden print:hidden" style={{ backgroundColor: bgColor }}>
       { }
       <div className="absolute inset-0 opacity-20 pointer-events-none"
         style={{
@@ -40,4 +40,4 @@ export default function FestiveBanner() {
       </div>
     </div>
   );
-}
+}

@@ -4,7 +4,8 @@ const { cartController } = require('../controllers');
 const { authenticate, authorize } = require('../middlewares/auth');
 const { validateAddToCart, validateUpdateCartItem } = require('../utils/validators');
 router.use(authenticate);
-router.use(authorize('retail_customer', 'wholesale_customer'));
+// Allow admins to use cart features (for testing or personal purchases)
+router.use(authorize('retail_customer', 'wholesale_customer', 'admin'));
 router.get('/', cartController.getCart);
 router.post('/items', validateAddToCart, cartController.addItem);
 router.put('/items/:productId', validateUpdateCartItem, cartController.updateItem);
@@ -13,4 +14,4 @@ router.delete('/', cartController.clearCart);
 router.post('/sync-prices', cartController.syncPrices);
 router.post('/sync-all', cartController.syncAll);
 router.get('/validate', cartController.validateCart);
-module.exports = router;
+module.exports = router;

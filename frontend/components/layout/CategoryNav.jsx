@@ -74,7 +74,7 @@ export default function CategoryNav() {
 
   return (
     // overflow-visible on the sticky bar so the dropdown escapes it
-    <div className="bg-white border-b border-gray-100 sticky top-20 z-40 overflow-visible">
+    <div className="bg-white border-b border-gray-100 sticky top-20 z-40 overflow-visible print:hidden">
       <div className="max-w-7xl mx-auto px-6">
         {/* Outer wrapper: position:relative is the dropdown's anchor */}
         <div

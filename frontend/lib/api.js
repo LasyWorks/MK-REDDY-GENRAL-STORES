@@ -31,7 +31,16 @@ class ApiClient {
       const response = await fetch(url, config);
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.message || "Something went wrong");
+        const errorMessage = data.message || "Something went wrong";
+        console.error("API Error:", {
+          status: response.status,
+          statusText: response.statusText,
+          endpoint,
+          message: errorMessage,
+          url,
+          hasToken: !!config.headers["Authorization"],
+        });
+        throw new Error(errorMessage);
       }
       return data;
     } catch (error) {
@@ -63,4 +72,4 @@ class ApiClient {
   }
 }
 export const api = new ApiClient();
-export default api;
+export default api;

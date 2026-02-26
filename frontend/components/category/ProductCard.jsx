@@ -1,11 +1,12 @@
 "use client";
-import { memo, useState } from "react";
+import { memo, useState, useEffect } from "react";
 import Link from "next/link";
 import { Plus, Minus, Star, Eye, ShoppingCart } from "lucide-react";
 import ImageWithFallback from "../common/ImageWithFallback";
 import CountdownTimer from "../common/CountdownTimer";
 import { useCart } from "@/context/CartContext";
 import { usePromotions } from "@/context/PromotionContext";
+import secureStorage from "@/lib/secureStorage";
 
 /* Inline star rating — no extra dependency */
 function StarRating({ value = 0, count = 0 }) {
@@ -64,6 +65,24 @@ function ProductCard({ product }) {
   const cartItem = items.find((i) => i.id === product.id);
   const qty = cartItem?.quantity ?? 0;
   const [adding, setAdding] = useState(false);
+  const [isWholesale, setIsWholesale] = useState(false);
+  
+  // Check if user is wholesale customer (no max limit for wholesale)
+  useEffect(() => {
+    const userRaw = secureStorage.getItem("user");
+    if (userRaw) {
+      try {
+        const user = JSON.parse(userRaw);
+        setIsWholesale(user.user_type === "wholesale" || user.role === "wholesale_customer");
+      } catch (e) {
+        setIsWholesale(false);
+      }
+    }
+  }, []);
+  
+  // Max quantity limits - no limit for wholesale, default 10 for retail customers
+  const maxQuantity = isWholesale ? 999999 : (product.max_order_quantity || 10);
+  const atMaxQuantity = !isWholesale && qty >= maxQuantity;
 
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -202,34 +221,42 @@ function ProductCard({ product }) {
               ADD
             </button>
           ) : (
-            <div
-              onClick={(e) => e.preventDefault()}
-              className="flex items-center gap-0 bg-blue-500 rounded-lg overflow-hidden shadow-sm"
-            >
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  updateQty(product.id, qty - 1);
-                }}
-                className="px-2 py-1.5 hover:bg-blue-600 text-white transition-colors"
-                aria-label="Decrease"
+            <div className="flex flex-col gap-1">
+              <div
+                onClick={(e) => e.preventDefault()}
+                className="flex items-center gap-0 bg-blue-500 rounded-lg overflow-hidden shadow-sm"
               >
-                <Minus className="w-3 h-3" />
-              </button>
-              <span className="text-xs font-bold text-white min-w-[22px] text-center py-1.5">
-                {qty}
-              </span>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  updateQty(product.id, qty + 1);
-                }}
-                disabled={qty >= (product.stock_quantity ?? 99)}
-                className="px-2 py-1.5 hover:bg-blue-600 text-white transition-colors disabled:opacity-40"
-                aria-label="Increase"
-              >
-                <Plus className="w-3 h-3" />
-              </button>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    updateQty(product.id, qty - 1);
+                  }}
+                  className="px-2 py-1.5 hover:bg-blue-600 text-white transition-colors"
+                  aria-label="Decrease"
+                >
+                  <Minus className="w-3 h-3" />
+                </button>
+                <span className="text-xs font-bold text-white min-w-[22px] text-center py-1.5">
+                  {qty}
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    updateQty(product.id, qty + 1);
+                  }}
+                  disabled={atMaxQuantity || qty >= (product.stock_quantity ?? 99)}
+                  className="px-2 py-1.5 hover:bg-blue-600 text-white transition-colors disabled:opacity-40"
+                  aria-label="Increase"
+                  title={atMaxQuantity ? `Max ${maxQuantity} per order` : ''}
+                >
+                  <Plus className="w-3 h-3" />
+                </button>
+              </div>
+              {atMaxQuantity && (
+                <span className="text-[9px] text-orange-500 font-medium text-center">
+                  Max {maxQuantity} per order
+                </span>
+              )}
             </div>
           )}
         </div>
