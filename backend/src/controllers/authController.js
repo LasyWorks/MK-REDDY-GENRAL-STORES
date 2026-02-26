@@ -27,8 +27,9 @@ const register = asyncHandler(async (req, res) => {
 });
 const adminLogin = asyncHandler(async (req, res) => {
   const { identifier, password } = req.body;
-  const result = await AuthService.adminLoginWithPassword(identifier, password);
-  ApiResponse.success(res, result, 'OTP sent to registered phone');
+  const ipAddress = req.ip || req.connection.remoteAddress;
+  const result = await AuthService.adminLoginWithPassword(identifier, password, ipAddress);
+  ApiResponse.success(res, result, 'Admin login successful');
 });
 const adminVerifyOTP = asyncHandler(async (req, res) => {
   const { email, phone, otp } = req.body;
@@ -37,7 +38,9 @@ const adminVerifyOTP = asyncHandler(async (req, res) => {
 });
 const refreshToken = asyncHandler(async (req, res) => {
   const { refresh_token: refreshToken } = req.body;
-  const result = await AuthService.refreshTokens(refreshToken);
+  const deviceInfo = req.headers['user-agent'];
+  const ipAddress = req.ip || req.connection.remoteAddress;
+  const result = await AuthService.refreshTokens(refreshToken, deviceInfo, ipAddress);
   ApiResponse.success(res, result, 'Token refreshed successfully');
 });
 const logout = asyncHandler(async (req, res) => {
@@ -65,8 +68,9 @@ const updateMe = asyncHandler(async (req, res) => {
 });
 const changePassword = asyncHandler(async (req, res) => {
   const { currentPassword, newPassword } = req.body;
-  await AuthService.changePassword(req.user.id, currentPassword, newPassword);
-  ApiResponse.success(res, null, 'Password changed successfully');
+  const { PasswordService } = require('../services');
+  const result = await PasswordService.changePassword(req.user.id, currentPassword, newPassword);
+  ApiResponse.success(res, result, result.message);
 });
 module.exports = {
   sendOTP,
@@ -82,4 +86,4 @@ module.exports = {
   getMe,
   updateMe,
   changePassword,
-};
+};

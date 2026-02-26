@@ -1,6 +1,8 @@
 const { Pool } = require('pg');
 const config = require('../config');
 const logger = require('../utils/logger');
+const DatabaseMonitor = require('../utils/databaseMonitor');
+
 const pool = new Pool({
   host:     config.database.host,
   port:     config.database.port,
@@ -12,10 +14,24 @@ const pool = new Pool({
   connectionTimeoutMillis: 5000,
   ssl: config.database.ssl,
 });
+
 pool.on('error', (err) => {
   // Log unexpected errors to prevent silent failures
   logger.error('Unexpected PG pool error', err);
 });
+
+// Initialize database monitoring
+const dbMonitor = new DatabaseMonitor(pool, {
+  slowQueryThreshold: 1000,    // 1 second
+  checkInterval: 60000,         // 1 minute
+  maxIdleConnections: 5,
+  minAvailableConnections: 2,
+});
+
+// Start monitoring in production
+if (process.env.NODE_ENV === 'production') {
+  dbMonitor.start();
+}
 const testConnection = async () => {
   const client = await pool.connect();
   try {
@@ -62,6 +78,7 @@ const modify = async (sql, params = []) => {
 };
 module.exports = {
   pool,
+  dbMonitor,
   testConnection,
   withTransaction,
   query,

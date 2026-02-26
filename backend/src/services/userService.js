@@ -164,13 +164,15 @@ class UserService {
   }
   static async create({ name, phone, email, user_type = 'retail', address, role_id, password }) {
     const bcrypt = require('bcryptjs');
+    const securityConfig = require('../config/security');
     const { getRoleIdByUserType } = require('../utils/helpers');
     const existing = await User.findByPhone(phone);
     if (existing) {
       throw ApiError.conflict('Phone number already registered');
     }
     const resolvedRoleId = role_id || await getRoleIdByUserType(user_type);
-    const password_hash = password ? await bcrypt.hash(password, 10) : null;
+    // Using bcrypt factor 12 (OWASP recommendation) for better security against brute force
+    const password_hash = password ? await bcrypt.hash(password, securityConfig.password.bcryptRounds) : null;
     const newId = await User.create({ name, phone, email, user_type, address, role_id: resolvedRoleId, password_hash });
     const fullUser = await User.findById(newId);
     return this.sanitizeUser(fullUser);
@@ -210,4 +212,4 @@ class UserService {
     };
   }
 }
-module.exports = UserService;
+module.exports = UserService;

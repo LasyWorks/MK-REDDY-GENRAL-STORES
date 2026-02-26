@@ -5,29 +5,44 @@ const morgan = require('morgan');
 const path = require('path');
 const xssClean = require('xss-clean');
 const config = require('./config');
+const securityConfig = require('./config/security');
 const routes = require('./routes');
-const { errorHandler, requestLogger, languageMiddleware, apiLimiter } = require('./middlewares');
+const { errorHandler, requestLogger, languageMiddleware, apiLimiter, authenticate } = require('./middlewares');
 const logger = require('./utils/logger');
 const app = express();
 app.set('trust proxy', 1);
 if (config.env === 'production') {
   app.use((req, res, next) => {
     if (req.headers['x-forwarded-proto'] && req.headers['x-forwarded-proto'] !== 'https') {
-      return res.redirect(301, `https://${req.headers.host}${req.url}`);
+      // Validate redirect host to prevent open redirect vulnerability
+      const allowedHosts = securityConfig.redirect.allowedHosts.map(url => new URL(url).host);
+      const requestHost = req.headers.host;
+      
+      if (!allowedHosts.includes(requestHost) && securityConfig.redirect.strictMode) {
+        logger.warn(`Blocked redirect to untrusted host: ${requestHost}`);
+        return res.status(400).json({ error: 'Invalid host' });
+      }
+      
+      return res.redirect(301, `https://${requestHost}${req.url}`);
     }
     next();
   });
 }
+// Enhanced Helmet security configuration with strict CSP
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", 'data:', 'https:'],
-    },
-  },
-  crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: securityConfig.contentSecurityPolicy,
+  crossOriginEmbedderPolicy: securityConfig.securityHeaders.crossOriginEmbedderPolicy,
+  crossOriginOpenerPolicy: securityConfig.securityHeaders.crossOriginOpenerPolicy,
+  crossOriginResourcePolicy: securityConfig.securityHeaders.crossOriginResourcePolicy,
+  dnsPrefetchControl: securityConfig.securityHeaders.dnsPrefetchControl,
+  frameguard: securityConfig.securityHeaders.frameguard,
+  hidePoweredBy: securityConfig.securityHeaders.hidePoweredBy,
+  hsts: securityConfig.securityHeaders.strictTransportSecurity,
+  ieNoOpen: securityConfig.securityHeaders.ieNoOpen,
+  noSniff: securityConfig.securityHeaders.noSniff,
+  permittedCrossDomainPolicies: securityConfig.securityHeaders.permittedCrossDomainPolicies,
+  referrerPolicy: securityConfig.securityHeaders.referrerPolicy,
+  xssFilter: securityConfig.securityHeaders.xssFilter,
 }));
 app.use(cors({
   origin: config.cors.origin,
@@ -46,7 +61,13 @@ if (config.env === 'development') {
 }
 app.use(languageMiddleware);
 app.use('/api', apiLimiter);
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Secure uploads directory - require authentication
+if (securityConfig.uploads.requireAuth) {
+  app.use('/uploads', authenticate, express.static(path.join(__dirname, '../uploads')));
+} else {
+  // Development only - consider enabling auth in production
+  app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+}
 app.use('/api/v1', routes);
 app.get('/', (req, res) => {
   res.json({
@@ -90,4 +111,4 @@ process.on('uncaughtException', (error) => {
   logger.error('Uncaught Exception:', error);
   process.exit(1);
 });
-module.exports = app;
+module.exports = app;

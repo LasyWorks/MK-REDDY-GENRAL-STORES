@@ -12,6 +12,7 @@ const orderRoutes = require('./orderRoutes');
 const invoiceRoutes = require('./invoiceRoutes');
 const adminRoutes = require('./adminRoutes');
 const promotionRoutes = require('./promotionRoutes');
+const healthRoutes = require('./healthRoutes');
 router.get('/health', async (req, res) => {
   const startAt = process.hrtime.bigint();
   const checks = { database: 'unknown' };
@@ -86,4 +87,5 @@ router.use('/orders', orderRoutes);
 router.use('/invoices', invoiceRoutes);
 router.use('/admin', adminRoutes);
 router.use('/promotions', promotionRoutes);
-module.exports = router;
+router.use('/health-check', healthRoutes);
+module.exports = router;

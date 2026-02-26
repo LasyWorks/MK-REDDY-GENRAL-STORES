@@ -1,11 +1,14 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const config = require('../config');
+const securityConfig = require('../config/security');
 const { User, OTP, RefreshToken } = require('../models');
 const { generateOTP, hashOTP, getRoleIdByUserType } = require('../utils/helpers');
 const SmsService = require('./smsService');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
+const AccountLockout = require('../utils/accountLockout');
+const { sendSecurityAlert } = require('../utils/alerting');
 // Prevent OTP spam attacks by limiting resend frequency
 const OTP_RESEND_COOLDOWN_SECS = 30; 
 class AuthService {
@@ -121,7 +124,15 @@ class AuthService {
       ...tokens,
     };
   }
-  static async adminLoginWithPassword(identifier, password) {
+  static async adminLoginWithPassword(identifier, password, ipAddress = null) {
+    // Check if account is locked
+    const lockStatus = await AccountLockout.isLocked(identifier);
+    if (lockStatus.locked) {
+      throw ApiError.forbidden(
+        `Account temporarily locked due to multiple failed login attempts. Try again after ${lockStatus.lockedUntil.toLocaleString()}`
+      );
+    }
+
     let user = null;
     if (identifier.includes('@')) {
       user = await User.findByEmail(identifier);
@@ -129,9 +140,11 @@ class AuthService {
       user = await User.findByPhone(identifier);
     }
     if (!user) {
+      await AccountLockout.recordFailedAttempt(identifier, ipAddress);
       throw ApiError.unauthorized('Invalid credentials');
     }
     if (user.role_name !== 'admin') {
+      await AccountLockout.recordFailedAttempt(identifier, ipAddress);
       throw ApiError.forbidden('Access denied');
     }
     if (!user.is_active) {
@@ -142,9 +155,19 @@ class AuthService {
     }
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     if (!isPasswordValid) {
-      throw ApiError.unauthorized('Invalid credentials');
+      const lockResult = await AccountLockout.recordFailedAttempt(identifier, ipAddress);
+      if (lockResult.locked) {
+        throw ApiError.forbidden(
+          `Account locked after ${securityConfig.accountLockout.maxFailedAttempts} failed attempts. Locked until ${lockResult.lockedUntil.toLocaleString()}`
+        );
+      }
+      throw ApiError.unauthorized(`Invalid credentials. ${lockResult.attemptsRemaining} attempt(s) remaining.`);
     }
-    const tokens = await this.generateTokens(user);
+
+    // Reset failed attempts on successful login
+    await AccountLockout.resetAttempts(identifier);
+
+    const tokens = await this.generateTokens(user, null, ipAddress);
     await User.updateLastLogin(user.id);
     return {
       user: this.sanitizeUser(user),
@@ -214,7 +237,7 @@ class AuthService {
       expiresIn: config.jwt.expiresIn,
     };
   }
-  static async refreshTokens(refreshToken) {
+  static async refreshTokens(refreshToken, deviceInfo = null, ipAddress = null) {
     let decoded;
     try {
       decoded = jwt.verify(refreshToken, config.jwt.refreshSecret);
@@ -225,12 +248,30 @@ class AuthService {
     if (!tokenRecord) {
       throw ApiError.unauthorized('Invalid or expired refresh token');
     }
+
+    // Check if token is within grace period (for rotation)
+    const gracePeriodEnd = new Date(tokenRecord.revoked_at);
+    gracePeriodEnd.setSeconds(gracePeriodEnd.getSeconds() + securityConfig.refreshToken.gracePeriodSeconds);
+    
+    if (tokenRecord.revoked && new Date() > gracePeriodEnd) {
+      throw ApiError.unauthorized('Refresh token has been revoked');
+    }
+
     const user = await User.findById(decoded.userId);
     if (!user || !user.is_active) {
       throw ApiError.unauthorized('User not found or inactive');
     }
-    await RefreshToken.revoke(tokenRecord.id);
-    return this.generateTokens(user);
+
+    // Refresh Token Rotation: Revoke old token and issue new one
+    if (securityConfig.refreshToken.rotationEnabled) {
+      // Mark old token as revoked (but keep for grace period)
+      await RefreshToken.revoke(tokenRecord.id);
+      
+      logger.info(`Refresh token rotated for user ${user.id}`);
+    }
+
+    // Generate new tokens
+    return this.generateTokens(user, deviceInfo, ipAddress);
   }
   static async logout(userId, refreshToken = null) {
     if (refreshToken) {

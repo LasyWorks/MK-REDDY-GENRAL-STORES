@@ -83,7 +83,10 @@ const authorize = (...allowedRoles) => {
     }
     // Block access if user's role doesn't match any of the allowed roles for this endpoint
     if (!allowedRoles.includes(req.user.role)) {
-      return next(ApiError.forbidden('You do not have permission to perform this action'));
+      const rolesList = allowedRoles.join(', ');
+      return next(ApiError.forbidden(
+        `You do not have permission to perform this action. Required role(s): ${rolesList}. Your role: ${req.user.role}`
+      ));
     }
     next();
   };

@@ -105,6 +105,47 @@ class Category {
     return catId;
   }
   static async update(id, data) {
+    // Validate parent_id changes to prevent circular references and enforce hierarchy
+    if (data.parent_id !== undefined) {
+      if (data.parent_id === id) {
+        throw new Error('A category cannot be its own parent');
+      }
+      
+      if (data.parent_id) {
+        // Check if new parent exists
+        const newParent = await this.findById(data.parent_id);
+        if (!newParent) {
+          throw new Error('Parent category not found');
+        }
+        
+        // Prevent circular reference: new parent cannot be a child of this category
+        const children = await query(
+          'SELECT id FROM categories WHERE parent_id = $1',
+          [id]
+        );
+        const childIds = children.map(c => c.id);
+        if (childIds.includes(data.parent_id)) {
+          throw new Error('Cannot set a child category as parent (circular reference)');
+        }
+        
+        // Enforce 2-level hierarchy: new parent must not have a parent itself
+        if (newParent.parent_id) {
+          throw new Error('Cannot create more than 2 levels of categories. Selected parent is already a subcategory.');
+        }
+      }
+      
+      // Check if this category has children - if so, cannot become a subcategory
+      if (data.parent_id) {
+        const hasChildren = await queryOne(
+          'SELECT COUNT(*) as count FROM categories WHERE parent_id = $1',
+          [id]
+        );
+        if (parseInt(hasChildren.count, 10) > 0) {
+          throw new Error('Cannot convert a parent category with subcategories into a subcategory');
+        }
+      }
+    }
+
     const baseAllowed = [
       "image_url",
       "display_order",

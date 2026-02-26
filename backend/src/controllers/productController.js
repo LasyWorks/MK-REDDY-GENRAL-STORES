@@ -2,6 +2,7 @@ const { ProductService } = require('../services');
 const { asyncHandler } = require('../middlewares');
 const ApiResponse = require('../utils/ApiResponse');
 const { getPaginationParams } = require('../utils/helpers');
+const ExcelJS = require('exceljs');
 const getProducts = asyncHandler(async (req, res) => {
   // Protect against loading too many products at once to prevent server overload
   const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
@@ -117,12 +118,78 @@ const toggleActive = asyncHandler(async (req, res) => {
   ApiResponse.success(res, product, 'Product status updated');
 });
 const downloadTemplate = asyncHandler(async (req, res) => {
+  // Create a new workbook and worksheet
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Products');
+  
+  // Define columns with headers and example data
+  worksheet.columns = [
+    { header: 'sku', key: 'sku', width: 15 },
+    { header: 'name_en', key: 'name_en', width: 30 },
+    { header: 'name_te', key: 'name_te', width: 30 },
+    { header: 'category_id', key: 'category_id', width: 40 },
+    { header: 'unit_type', key: 'unit_type', width: 12 },
+    { header: 'price', key: 'price', width: 10 },
+    { header: 'wholesale_price', key: 'wholesale_price', width: 15 },
+    { header: 'gst_percentage', key: 'gst_percentage', width: 15 },
+    { header: 'stock_quantity', key: 'stock_quantity', width: 15 },
+    { header: 'description_en', key: 'description_en', width: 40 },
+    { header: 'description_te', key: 'description_te', width: 40 }
+  ];
+  
+  // Add example row with sample data
+  worksheet.addRow({
+    sku: 'SAMPLE-001',
+    name_en: 'Sample Product',
+    name_te: 'నమూనా ఉత్పత్తి',
+    category_id: 'Enter category UUID',
+    unit_type: 'kg',
+    price: 100.00,
+    wholesale_price: 90.00,
+    gst_percentage: 18,
+    stock_quantity: 50,
+    description_en: 'Sample description',
+    description_te: 'నమూనా వివరణ'
+  });
+  
+  // Add notes row
+  worksheet.addRow({
+    sku: 'Note: Valid unit_types are: kg, piece, case, litre, gram, pack',
+    name_en: 'Required field',
+    name_te: 'Optional',
+    category_id: 'Required - must be valid UUID',
+    unit_type: 'Required',
+    price: 'Required - positive number',
+    wholesale_price: 'Optional',
+    gst_percentage: 'Optional - defaults to 18',
+    stock_quantity: 'Optional - defaults to 0',
+    description_en: 'Optional',
+    description_te: 'Optional'
+  });
+  
+  // Style the header row
+  worksheet.getRow(1).font = { bold: true };
+  worksheet.getRow(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFD3D3D3' }
+  };
+  
+  // Style the notes row
+  worksheet.getRow(3).font = { italic: true, size: 9 };
+  worksheet.getRow(3).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFFFEFD5' }
+  };
+  
+  // Set response headers
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', 'attachment; filename="product-template.xlsx"');
-  const template = {
-    headers: ['sku', 'name_en', 'name_te', 'category_id', 'unit_type', 'price', 'wholesale_price', 'gst_percentage', 'stock_quantity', 'description_en', 'description_te'],
-  };
-  ApiResponse.success(res, template, 'Template structure - use Excel to create file with these columns');
+  
+  // Write workbook to response
+  await workbook.xlsx.write(res);
+  res.end();
 });
 module.exports = {
   getAllProducts: getProducts,

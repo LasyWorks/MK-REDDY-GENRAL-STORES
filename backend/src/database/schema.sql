@@ -42,6 +42,12 @@ CREATE INDEX idx_otps_phone ON otps(phone); CREATE INDEX idx_otps_expires ON otp
 CREATE TABLE refresh_tokens (id UUID PRIMARY KEY DEFAULT uuid_generate_v7(), user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, token TEXT NOT NULL, device_info VARCHAR(255), ip_address VARCHAR(45), expires_at TIMESTAMPTZ NOT NULL, revoked BOOLEAN DEFAULT FALSE, revoked_at TIMESTAMPTZ, created_at TIMESTAMPTZ DEFAULT NOW());
 CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id); CREATE INDEX idx_refresh_tokens_token ON refresh_tokens(token); CREATE INDEX idx_refresh_tokens_expires ON refresh_tokens(expires_at);
 
+-- FAILED LOGIN ATTEMPTS (Brute Force Protection)
+CREATE TABLE failed_login_attempts (id UUID PRIMARY KEY DEFAULT uuid_generate_v7(), phone VARCHAR(15) NOT NULL, ip_address VARCHAR(45), attempts INT DEFAULT 1, locked_until TIMESTAMPTZ, last_attempt_at TIMESTAMPTZ DEFAULT NOW(), created_at TIMESTAMPTZ DEFAULT NOW());
+CREATE INDEX idx_failed_login_phone ON failed_login_attempts(phone);
+CREATE INDEX idx_failed_login_ip ON failed_login_attempts(ip_address);
+CREATE INDEX idx_failed_login_locked ON failed_login_attempts(locked_until);
+
 -- CATEGORIES
 CREATE TABLE categories (id UUID PRIMARY KEY DEFAULT uuid_generate_v7(), parent_id UUID REFERENCES categories(id) ON DELETE CASCADE, image_url VARCHAR(500), display_order INT DEFAULT 0, is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW());
 CREATE INDEX idx_categories_active ON categories(is_active);

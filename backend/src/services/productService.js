@@ -3,7 +3,7 @@ const config = require('../config');
 const ApiError = require('../utils/ApiError');
 const { generateSku } = require('../utils/helpers');
 const { revalidatePages } = require('../utils/revalidate');
-const xlsx = require('xlsx');
+const ExcelJS = require('exceljs');
 const path = require('path');
 const fs = require('fs');
 class ProductService {
@@ -38,10 +38,10 @@ class ProductService {
       // Auto-generate SKU if admin doesn't provide one (prevents duplicate entry errors)
       productData.sku = generateSku(productData);
     }
-    // SKU must be unique across all products for inventory tracking
+    // SKU must be unique across all products for inventory tracking and order management
     const existingSku = await Product.findBySku(productData.sku);
     if (existingSku) {
-      throw ApiError.conflict('SKU already exists');
+      throw ApiError.conflict(`SKU '${productData.sku}' already exists. Please use a unique SKU.`);
     }
     const productId = await Product.create(productData);
     await AdminLog.create({
@@ -63,16 +63,22 @@ class ProductService {
     if (!product) {
       throw ApiError.notFound('Product not found');
     }
+    // Validate category_id changes - ensure category exists and is active
     if (productData.category_id) {
       const category = await Category.findById(productData.category_id);
       if (!category) {
         throw ApiError.badRequest('Invalid category');
       }
+      // Optionally warn if assigning to inactive category
+      if (!category.is_active) {
+        console.warn(`Product ${id} assigned to inactive category ${productData.category_id}`);
+      }
     }
+    // Validate SKU changes - must remain unique
     if (productData.sku && productData.sku !== product.sku) {
       const existingSku = await Product.findBySku(productData.sku);
-      if (existingSku) {
-        throw ApiError.conflict('SKU already exists');
+      if (existingSku && existingSku.id !== id) {
+        throw ApiError.conflict(`SKU '${productData.sku}' already exists. Please use a unique SKU.`);
       }
     }
     const oldData = { ...product };
@@ -145,10 +151,43 @@ class ProductService {
   static async bulkUpload(filePath, adminId) {
     const currentCount = await Product.count();
     const remainingSlots = config.limits.maxProducts - currentCount;
-    const workbook = xlsx.readFile(filePath);
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    const data = xlsx.utils.sheet_to_json(sheet);
+    
+    // Read Excel file using exceljs
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(filePath);
+    const worksheet = workbook.worksheets[0]; // Get first worksheet
+    
+    if (!worksheet) {
+      throw ApiError.badRequest('Excel file has no worksheets');
+    }
+    
+    // Convert worksheet to JSON-like array of objects
+    const data = [];
+    const headers = [];
+    
+    // Get headers from first row
+    worksheet.getRow(1).eachCell((cell, colNumber) => {
+      headers[colNumber] = cell.value;
+    });
+    
+    // Process data rows (starting from row 2)
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // Skip header row
+      
+      const rowData = {};
+      row.eachCell((cell, colNumber) => {
+        const header = headers[colNumber];
+        if (header) {
+          rowData[header] = cell.value;
+        }
+      });
+      
+      // Only add row if it has some data
+      if (Object.keys(rowData).length > 0) {
+        data.push(rowData);
+      }
+    });
+    
     if (data.length === 0) {
       throw ApiError.badRequest('Excel file is empty');
     }

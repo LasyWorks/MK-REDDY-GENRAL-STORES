@@ -1,4 +1,6 @@
 const logger = require('./logger');
+const { createSignedHeaders } = require('./requestSigning');
+
 const revalidatePages = async ({ tags = [], paths = [] } = {}) => {
   const frontendUrl = process.env.FRONTEND_URL;
   const secret = process.env.REVALIDATION_SECRET;
@@ -6,10 +8,16 @@ const revalidatePages = async ({ tags = [], paths = [] } = {}) => {
     return;
   }
   try {
+    const requestData = { tags, paths };
+    const signedHeaders = createSignedHeaders(requestData, secret);
+    
     const res = await fetch(`${frontendUrl}/api/revalidate`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ secret, tags, paths }),
+      headers: { 
+        'Content-Type': 'application/json',
+        ...signedHeaders,
+      },
+      body: JSON.stringify(requestData),
       signal: AbortSignal.timeout(5000),
     });
     if (res.ok) {
@@ -21,4 +29,4 @@ const revalidatePages = async ({ tags = [], paths = [] } = {}) => {
     logger.warn(`[ISR] Revalidation ping failed: ${err.message}`);
   }
 };
-module.exports = { revalidatePages };
+module.exports = { revalidatePages };
