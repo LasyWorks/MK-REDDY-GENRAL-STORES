@@ -2,6 +2,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import CategoryNav from "@/components/layout/CategoryNav";
+import Footer from "@/components/layout/Footer";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { CartProvider } from "@/context/CartContext";
 import { PromotionProvider } from "@/context/PromotionContext";
@@ -30,6 +31,7 @@ export default function RootLayout({ children }) {
               <Navbar />
               <CategoryNav />
               {children}
+              <Footer />
             </PromotionProvider>
           </CartProvider>
         </LanguageProvider>

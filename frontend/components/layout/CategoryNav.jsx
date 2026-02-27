@@ -14,6 +14,7 @@ const toSlug = (name) =>
 export default function CategoryNav() {
   const scrollContainerRef = useRef(null);
   const itemRefs = useRef({});
+  const closeTimer = useRef(null);
   const [allCategories, setAllCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openMenu, setOpenMenu] = useState(null);
@@ -49,13 +50,28 @@ export default function CategoryNav() {
     });
   };
 
+  const cancelClose = () => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  };
+
+  const scheduleClose = () => {
+    cancelClose();
+    closeTimer.current = setTimeout(() => setOpenMenu(null), 300);
+  };
+
   const handleMouseEnter = (parentId) => {
+    cancelClose();
     const subs = subMap[parentId] || [];
-    if (!subs.length) return;
+    if (!subs.length) {
+      scheduleClose();
+      return;
+    }
     const el = itemRefs.current[parentId];
     const container = scrollContainerRef.current;
     if (el && container) {
-      // Position dropdown relative to the outer `relative` div
       const left = el.offsetLeft - container.scrollLeft + container.offsetLeft;
       setDropdownLeft(left);
     }
@@ -79,7 +95,7 @@ export default function CategoryNav() {
         {/* Outer wrapper: position:relative is the dropdown's anchor */}
         <div
           className="relative flex items-center"
-          onMouseLeave={() => setOpenMenu(null)}
+          onMouseLeave={scheduleClose}
         >
           {/* Left scroll button */}
           {!loading && parents.length > 0 && (
@@ -130,6 +146,7 @@ export default function CategoryNav() {
                     }}
                     className="flex-shrink-0"
                     onMouseEnter={() => handleMouseEnter(parent.id)}
+                    onMouseLeave={scheduleClose}
                   >
                     <Link
                       href={`/category/${parentSlug}`}
@@ -158,8 +175,12 @@ export default function CategoryNav() {
           {openMenu && openParent && openSubs.length > 0 && (
             <div
               className="absolute top-full mt-3 bg-white border border-gray-200 rounded-xl shadow-xl z-[100] min-w-[200px] max-w-[260px] py-2 overflow-hidden"
-              style={{ left: dropdownLeft }}
-              onMouseEnter={() => setOpenMenu(openMenu)}
+              style={{
+                left: dropdownLeft,
+                animation: 'dropdownFadeIn 0.2s ease forwards',
+              }}
+              onMouseEnter={cancelClose}
+              onMouseLeave={scheduleClose}
             >
               {openSubs.map((sub) => {
                 const subSlug = toSlug(sub.name);

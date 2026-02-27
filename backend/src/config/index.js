@@ -72,7 +72,9 @@ const config = {
     namespace:   process.env.WA_360_NAMESPACE      || '',
   },
   cors: {
-    origin: process.env.CORS_ORIGIN,
+    origin: (process.env.CORS_ORIGIN && process.env.CORS_ORIGIN !== '*')
+      ? process.env.CORS_ORIGIN
+      : (process.env.FRONTEND_URL || 'http://localhost:3000'),
     credentials: true,
   },
 };
@@ -87,10 +89,6 @@ if (config.jwt.secret.includes('default') || config.jwt.refreshSecret.includes('
 
 if (!config.cors.origin) {
   throw new Error('CRITICAL: CORS_ORIGIN must be explicitly set (use specific domain, not wildcard)');
-}
-
-if (config.cors.origin === '*') {
-  throw new Error('CRITICAL: CORS_ORIGIN cannot be wildcard (*). Set your frontend URL explicitly');
 }
 
 if (config.env === 'production') {

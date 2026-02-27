@@ -3,6 +3,7 @@ import HotDeals from "@/components/Home/HotDeals";
 import CategorySection from "@/components/Home/CategorySection";
 import FeaturedProducts from "@/components/Home/FeaturedProducts";
 import PromotionalProducts from "@/components/Home/PromotionalProducts";
+import SnacksSection from "@/components/Home/SnacksSection";
 export default function Home() {
   return (
     <main className="min-h-screen bg-gray-50">
@@ -11,6 +12,7 @@ export default function Home() {
       <PromotionalProducts />
       <HotDeals />
       <FeaturedProducts />
+      <SnacksSection />
     </main>
   );
-}
+}

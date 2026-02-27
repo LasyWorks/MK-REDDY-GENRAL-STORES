@@ -114,7 +114,7 @@ export default function HeroSection() {
             {/* Emoji illustration */}
             <div className="hidden md:flex items-center justify-center">
               <div className="grid grid-cols-3 gap-4 text-5xl select-none">
-                {slide.pattern.split("").map((ch, i) =>
+                {Array.from(slide.pattern).map((ch, i) =>
                   ch.trim() ? (
                     <span
                       key={i}
