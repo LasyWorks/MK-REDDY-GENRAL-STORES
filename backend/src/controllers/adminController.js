@@ -128,6 +128,16 @@ const getSystemHealth = asyncHandler(async (req, res) => {
   const health = await AdminService.getSystemHealth();
   ApiResponse.success(res, health);
 });
+
+const getFrequentlyBoughtProducts = asyncHandler(async (req, res) => {
+  const { limit, start_date, end_date } = req.query;
+  const report = await AdminService.getMostFrequentlyBoughtProducts(
+    parseInt(limit) || 10,
+    start_date,
+    end_date
+  );
+  ApiResponse.success(res, report);
+});
 module.exports = {
   getDashboard,
   getSalesReport,
@@ -145,4 +155,5 @@ module.exports = {
   getPendingOrdersCount,
   getRecentActivity,
   getSystemHealth,
-};
+  getFrequentlyBoughtProducts,
+};

@@ -48,6 +48,7 @@ import RevenueChart from "@/components/admin/RevenueChart";
 import RecentOrders from "@/components/admin/RecentOrders";
 import QuickActions from "@/components/admin/QuickActions";
 import TopProducts from "@/components/admin/TopProducts";
+import FrequentlyBoughtProducts from "@/components/admin/FrequentlyBoughtProducts";
 import RecentActivity from "@/components/admin/RecentActivity";
 import CategoriesTab from "@/components/admin/CategoriesTab";
 function useAdminGuard() {
@@ -257,6 +258,9 @@ function OverviewTab({ onSwitchTab }) {
 
       {/* Revenue Chart */}
       <RevenueChart />
+
+      {/* Frequently Bought Products */}
+      <FrequentlyBoughtProducts />
 
       {/* Two column layout: Orders + Sidebar */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">

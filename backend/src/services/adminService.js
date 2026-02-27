@@ -174,6 +174,54 @@ class AdminService {
   static async getTopSellingProducts(limit, startDate, endDate) {
     return this.getProductReport(startDate, endDate, limit);
   }
+
+  /**
+   * Get most frequently bought products ordered by quantity
+   */
+  static async getMostFrequentlyBoughtProducts(limit = 10, startDate, endDate) {
+    const today = new Date().toISOString().split("T")[0];
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
+    const start = startDate || thirtyDaysAgo;
+    const end = endDate || today;
+    const safeLimit = parseInt(limit) || 10;
+
+    const products = await query(
+      `SELECT 
+        p.id, 
+        COALESCE(pt_en.name, p.sku) AS name_en, 
+        p.sku,
+        p.image_url,
+        p.price,
+        p.mrp,
+        SUM(oi.quantity) AS total_quantity,
+        SUM(oi.subtotal) AS total_sales,
+        COUNT(DISTINCT oi.order_id) AS order_count
+       FROM order_items oi
+       JOIN products p ON oi.product_id = p.id
+       LEFT JOIN product_translations pt_en ON p.id = pt_en.product_id AND pt_en.lang_code = 'en'
+       JOIN orders o ON oi.order_id = o.id
+       WHERE o.status = 'picked_up' AND o.created_at::date BETWEEN $1 AND $2
+       GROUP BY p.id, pt_en.name
+       ORDER BY total_quantity DESC, order_count DESC
+       LIMIT $3`,
+      [start, end, safeLimit],
+    );
+
+    return {
+      period: { startDate: start, endDate: end },
+      products: products.map((p) => ({
+        id: p.id,
+        name: p.name_en,
+        sku: p.sku,
+        imageUrl: p.image_url,
+        price: parseFloat(p.price || 0),
+        mrp: parseFloat(p.mrp || 0),
+        quantitySold: parseInt(p.total_quantity, 10) || 0,
+        totalSales: parseFloat(p.total_sales || 0),
+        orderCount: parseInt(p.order_count, 10) || 0,
+      })),
+    };
+  }
   static async getCustomerReport(startDate, endDate, limit = 20) {
     const today = new Date().toISOString().split("T")[0];
     const start = startDate || today;

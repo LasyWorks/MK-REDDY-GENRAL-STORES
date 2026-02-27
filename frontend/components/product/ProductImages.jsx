@@ -16,10 +16,11 @@ export default function ProductImages({
   images = [],
   productName = "",
   isOutOfStock = false,
+  onZoomChange,
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const [zoomed, setZoomed] = useState(false);
-  const [origin, setOrigin] = useState({ x: 50, y: 50 });
+  const [hovered, setHovered] = useState(false);
+  const [cursorPosition, setCursorPosition] = useState({ x: 50, y: 50 });
   const imgRef = useRef(null);
 
   const safeImages = images.length > 0 ? images : [null];
@@ -30,8 +31,32 @@ export default function ProductImages({
     if (!rect) return;
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    setOrigin({ x, y });
+    setCursorPosition({ x, y });
+    
+    // Send zoom data to parent
+    if (onZoomChange) {
+      onZoomChange({
+        isZoomed: true,
+        image: mainSrc,
+        position: { x, y },
+      });
+    }
+  }, [mainSrc, onZoomChange]);
+
+  const handleMouseEnter = useCallback(() => {
+    setHovered(true);
   }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setHovered(false);
+    if (onZoomChange) {
+      onZoomChange({
+        isZoomed: false,
+        image: null,
+        position: { x: 50, y: 50 },
+      });
+    }
+  }, [onZoomChange]);
 
   const goPrev = () =>
     setActiveIndex((i) => (i - 1 + safeImages.length) % safeImages.length);
@@ -44,8 +69,8 @@ export default function ProductImages({
         ref={imgRef}
         className="relative flex items-center justify-center bg-white rounded-2xl border border-gray-100 overflow-hidden cursor-zoom-in group"
         style={{ minHeight: 360 }}
-        onMouseEnter={() => setZoomed(true)}
-        onMouseLeave={() => setZoomed(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         onMouseMove={handleMouseMove}
       >
         {/* Out-of-stock overlay */}
@@ -58,7 +83,7 @@ export default function ProductImages({
         )}
 
         {/* Zoom hint */}
-        {!isOutOfStock && !zoomed && (
+        {!isOutOfStock && !hovered && (
           <div className="absolute bottom-3 right-3 z-10 bg-black/30 text-white rounded-full p-1.5 pointer-events-none">
             <ZoomIn className="w-4 h-4" />
           </div>
@@ -89,18 +114,9 @@ export default function ProductImages({
           </div>
         )}
 
-        {/* Image with magnification */}
+        {/* Main Image (no in-place zoom) */}
         <div
-          className={`w-full h-80 sm:h-96 lg:h-112 p-4 transition-transform duration-200 ${isOutOfStock ? "opacity-50 grayscale" : ""}`}
-          style={
-            zoomed && !isOutOfStock
-              ? {
-                  transform: "scale(2.5)",
-                  transformOrigin: `${origin.x}% ${origin.y}%`,
-                  transition: "transform-origin 0s",
-                }
-              : { transform: "scale(1)", transformOrigin: "center" }
-          }
+          className={`w-full h-80 sm:h-96 lg:h-112 p-4 ${isOutOfStock ? "opacity-50 grayscale" : ""}`}
         >
           <ImageWithFallback
             src={mainSrc}

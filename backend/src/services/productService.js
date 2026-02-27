@@ -312,5 +312,71 @@ class ProductService {
     });
     return { ...product, is_active: newStatus };
   }
+
+  /**
+   * Get products frequently bought together with the given product
+   * Based on order history - finds products that appear in orders with this product
+   */
+  static async getFrequentlyBoughtTogether(productId, options = {}) {
+    const { lang = 'en', limit = 12 } = options;
+    
+    // Simplified query that matches the product list format
+    const query = `
+      SELECT 
+        p.id,
+        p.category_id,
+        p.brand,
+        p.variant,
+        p.unit_type,
+        p.unit_pack_size,
+        p.hsn_code,
+        p.price,
+        p.mrp,
+        p.wholesale_price,
+        p.gst_percentage,
+        p.stock_quantity,
+        p.min_order_quantity,
+        p.max_order_quantity,
+        p.image_url,
+        p.is_active,
+        p.is_featured,
+        COALESCE(pt_req.name, pt_en.name) as name,
+        COALESCE(pt_req.description, pt_en.description) as description,
+        pt_en.name as name_en,
+        pt_en.description as description_en,
+        COALESCE(ct_req.name, ct_en.name) as category_name,
+        c.parent_id as category_parent_id,
+        COALESCE(pct_req.name, pct_en.name) as parent_category_name,
+        COUNT(DISTINCT oi2.order_id) as purchase_frequency
+      FROM order_items oi1
+      INNER JOIN order_items oi2 ON oi1.order_id = oi2.order_id AND oi2.product_id != $1
+      INNER JOIN products p ON oi2.product_id = p.id
+      LEFT JOIN product_translations pt_req ON p.id = pt_req.product_id AND pt_req.lang_code = $2
+      LEFT JOIN product_translations pt_en ON p.id = pt_en.product_id AND pt_en.lang_code = 'en'
+      LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN category_translations ct_req ON c.id = ct_req.category_id AND ct_req.lang_code = $2
+      LEFT JOIN category_translations ct_en ON c.id = ct_en.category_id AND ct_en.lang_code = 'en'
+      LEFT JOIN categories pc ON c.parent_id = pc.id
+      LEFT JOIN category_translations pct_req ON pc.id = pct_req.category_id AND pct_req.lang_code = $2
+      LEFT JOIN category_translations pct_en ON pc.id = pct_en.category_id AND pct_en.lang_code = 'en'
+      WHERE oi1.product_id = $1 
+        AND p.is_active = true 
+        AND p.stock_quantity > 0
+      GROUP BY 
+        p.id, p.category_id, p.brand, p.variant, p.unit_type, p.unit_pack_size,
+        p.hsn_code, p.price, p.mrp, p.wholesale_price, p.gst_percentage, 
+        p.stock_quantity, p.min_order_quantity, p.max_order_quantity, 
+        p.image_url, p.is_active, p.is_featured,
+        pt_req.name, pt_req.description, pt_en.name, pt_en.description,
+        ct_req.name, ct_en.name, c.parent_id, pct_req.name, pct_en.name
+      ORDER BY purchase_frequency DESC, p.id DESC
+      LIMIT $3
+    `;
+    
+    // Use the database query function
+    const { query: dbQuery } = require('../config/database');
+    const result = await dbQuery(query, [productId, lang, limit]);
+    return result || [];
+  }
 }
 module.exports = ProductService;

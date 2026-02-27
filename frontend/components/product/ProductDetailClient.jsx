@@ -22,7 +22,6 @@ import { useLanguage } from "@/context/LanguageContext";
 import ProductCard from "@/components/category/ProductCard";
 import ProductImages from "./ProductImages";
 import WishlistButton from "./WishlistButton";
-import ReviewSection from "./ReviewSection";
 import StickyCartBar from "./StickyCartBar";
 
 const API_URL =
@@ -168,9 +167,15 @@ export default function ProductDetailClient({
   const [localVariants, setLocalVariants] = useState(initialVariants);
   const [selectedId, setSelectedId] = useState(product.id);
   const [related, setRelated] = useState([]);
+  const [peopleAlsoBought, setPeopleAlsoBought] = useState([]);
   const [relatedCatName, setRelatedCatName] = useState("");
   const [relatedCatId, setRelatedCatId] = useState("");
   const [fading, setFading] = useState(false);
+  const [zoomData, setZoomData] = useState({
+    isZoomed: false,
+    image: null,
+    position: { x: 50, y: 50 },
+  });
   const [galleryImages, setGalleryImages] = useState(() => {
     const imgs = product.image_urls?.length
       ? product.image_urls
@@ -230,12 +235,16 @@ export default function ProductDetailClient({
           ? `parent_category_id=${parentId}`
           : `category_id=${product.category_id}`;
         const res = await fetch(
-          `${API_URL}/products₹${param}&limit=24&is_active=true&lang=${lang}`,
+          `${API_URL}/products?${param}&limit=24&is_active=true&lang=${lang}`,
           { cache: "no-store" },
         );
-        if (!res.ok || cancelled) return;
+        if (!res.ok || cancelled) {
+          console.log('Related products fetch failed:', res.status);
+          return;
+        }
         const json = await res.json();
         const all = json.data || [];
+        console.log('Related products fetched:', all.length);
         const filtered = all.filter(
           (p) =>
             p.id !== product.id &&
@@ -244,11 +253,14 @@ export default function ProductDetailClient({
               p.brand.toLowerCase() !== product.brand.toLowerCase()),
         );
         if (!cancelled) {
+          console.log('Setting related products:', filtered.length);
           setRelated(filtered.slice(0, 8));
           setRelatedCatName(catName);
           setRelatedCatId(parentId || product.category_id);
         }
-      } catch {}
+      } catch (err) {
+        console.error('Related products error:', err);
+      }
     }
     fetchRelated();
     return () => {
@@ -261,6 +273,34 @@ export default function ProductDetailClient({
     product.brand,
     localProduct.category_parent_id,
   ]);
+
+  /* -- People also bought (frequently bought together) -- */
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchPeopleAlsoBought() {
+      try {
+        const url = `${API_URL}/products/${product.id}/frequently-bought-together?lang=${lang}&limit=12`;
+        console.log('Fetching people also bought:', url);
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok || cancelled) {
+          console.log('People also bought fetch failed:', res.status);
+          return;
+        }
+        const json = await res.json();
+        const items = json.data || [];
+        console.log('People also bought fetched:', items.length, items);
+        if (!cancelled) {
+          setPeopleAlsoBought(items);
+        }
+      } catch (err) {
+        console.error('People also bought error:', err);
+      }
+    }
+    fetchPeopleAlsoBought();
+    return () => {
+      cancelled = true;
+    };
+  }, [lang, product.id]);
 
   useEffect(() => {
     setSelectedId(product.id);
@@ -376,7 +416,7 @@ export default function ProductDetailClient({
 
       {/* -- Main card -- */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="flex flex-col lg:flex-row gap-0">
+        <div className="flex flex-col lg:flex-row gap-0 relative">
           {/* � LEFT � Images (55%, sticky #9) */}
           <div className="lg:w-[55%] bg-gray-50 p-4 sm:p-6 shrink-0">
             <div className="lg:sticky lg:top-25">
@@ -384,14 +424,30 @@ export default function ProductDetailClient({
                 images={galleryImages}
                 productName={selected.name}
                 isOutOfStock={isOutOfStock}
+                onZoomChange={setZoomData}
               />
             </div>
           </div>
 
           {/* � RIGHT � Info (45%) */}
           <div
-            className={`lg:w-[45%] p-6 sm:p-8 flex flex-col gap-4 transition-opacity duration-150 ${fading ? "opacity-0" : "opacity-100"}`}
+            className={`lg:w-[45%] p-6 sm:p-8 flex flex-col gap-4 transition-opacity duration-150 ${fading ? "opacity-0" : "opacity-100"} relative`}
           >
+            {/* Blinkit-style Zoom Overlay */}
+            {zoomData.isZoomed && !isOutOfStock && (
+              <div className="hidden lg:block absolute inset-0 z-50 bg-white border-l-2 border-blue-500 shadow-2xl overflow-hidden pointer-events-none">
+                <div
+                  className="w-full h-full"
+                  style={{
+                    backgroundImage: `url(${zoomData.image})`,
+                    backgroundSize: '250%',
+                    backgroundPosition: `${zoomData.position.x}% ${zoomData.position.y}%`,
+                    backgroundRepeat: 'no-repeat',
+                  }}
+                />
+              </div>
+            )}
+
             {/* Brand + Title + Wishlist inline (#5) */}
             <div>
               {selected.brand && (
@@ -613,7 +669,6 @@ export default function ProductDetailClient({
               {selected.hsn_code && (
                 <Detail label="HSN Code" value={selected.hsn_code} />
               )}
-              {selected.sku && <Detail label="SKU" value={selected.sku} />}
               {selected.min_order_quantity > 1 && (
                 <Detail
                   label="Min Order"
@@ -637,44 +692,54 @@ export default function ProductDetailClient({
         </div>
       )}
 
-      {/* -- Reviews (#6, #7) -- */}
-      <div id="reviews">
-        <ReviewSection
-          productId={selected.id}
-          productName={selected.name}
-          averageRating={rating}
-          reviewCount={reviewCount}
-        />
-      </div>
-
-      {/* -- Related products (#11) -- */}
-      {related.length > 0 && (
+      {/* -- Similar Products -- */}
+      {related.length > 0 ? (
         <section className="mt-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-gray-900">
-              More from{" "}
-              <Link
-                href={`/categories/${relatedCatId}`}
-                className="text-blue-600 hover:underline"
-              >
-                {relatedCatName ||
-                  localProduct.category_name ||
-                  "this category"}
-              </Link>
+              Similar Products
             </h2>
             <Link
               href={`/categories/${relatedCatId}`}
               className="text-sm text-blue-600 hover:underline font-medium"
             >
-              View all ?
+              View all
             </Link>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {related.map((p) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+            {related.slice(0, 12).map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
           </div>
         </section>
+      ) : (
+        <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-sm text-yellow-800">
+            Debug: No similar products found. Related count: {related.length}
+          </p>
+        </div>
+      )}
+
+      {/* -- People Also Bought -- */}
+      {peopleAlsoBought.length > 0 ? (
+        <section className="mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-gray-900">
+              People Also Bought
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+            {peopleAlsoBought.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </section>
+      ) : (
+        <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-sm text-yellow-800">
+            Debug: No "People Also Bought" data. Count: {peopleAlsoBought.length}. Check console for API response.
+          </p>
+        </div>
       )}
 
       {/* -- Sticky cart bar (#1, #12) -- */}

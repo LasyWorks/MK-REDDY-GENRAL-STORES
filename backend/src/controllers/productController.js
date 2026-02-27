@@ -191,6 +191,19 @@ const downloadTemplate = asyncHandler(async (req, res) => {
   await workbook.xlsx.write(res);
   res.end();
 });
+
+const getFrequentlyBoughtTogether = asyncHandler(async (req, res) => {
+  const lang = req.language || 'en';
+  const limit = req.query.limit ? parseInt(req.query.limit) : 12;
+  
+  const products = await ProductService.getFrequentlyBoughtTogether(req.params.id, {
+    lang,
+    limit,
+  });
+  
+  ApiResponse.success(res, products);
+});
+
 module.exports = {
   getAllProducts: getProducts,
   getProductById: getProduct,
@@ -205,4 +218,5 @@ module.exports = {
   bulkUpload,
   downloadTemplate,
   getProductCount,
+  getFrequentlyBoughtTogether,
 };
