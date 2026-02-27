@@ -5,7 +5,8 @@ import { useLanguage } from "@/context/LanguageContext";
 import ProductCard from "@/components/category/ProductCard";
 import ProductCardWithVariants from "@/components/category/ProductCardWithVariants";
 import { groupProductsByVariant } from "@/lib/productGrouping";
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
 export default function HotDeals() {
   const { lang } = useLanguage();
   const [products, setProducts] = useState([]);
@@ -15,7 +16,7 @@ export default function HotDeals() {
     try {
       setLoading(true);
       const res = await fetch(
-        `${API_URL}/products?has_discount=true&is_active=true&in_stock=true&sort_by=discount&sort_order=DESC&limit=20&lang=${lang}`
+        `${API_URL}/products?has_discount=true&is_active=true&in_stock=true&sort_by=discount&sort_order=DESC&limit=20&lang=${lang}`,
       );
       if (!res.ok) throw new Error("failed");
       const json = await res.json();
@@ -34,13 +35,16 @@ export default function HotDeals() {
   }, [products]);
   const scroll = (dir) => {
     if (!scrollRef.current) return;
-    scrollRef.current.scrollBy({ left: dir === "left" ? -320 : 320, behavior: "smooth" });
+    scrollRef.current.scrollBy({
+      left: dir === "left" ? -320 : 320,
+      behavior: "smooth",
+    });
   };
   if (!loading && productGroups.length === 0) return null;
   return (
-    <section className="py-10 bg-gradient-to-b from-orange-50 to-white">
+    <section className="py-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        { }
+        {}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="bg-orange-500 text-white p-2 rounded-lg">
@@ -55,7 +59,7 @@ export default function HotDeals() {
               </p>
             </div>
           </div>
-          { }
+          {}
           {!loading && productGroups.length > 0 && (
             <div className="hidden sm:flex gap-2">
               <button
@@ -75,7 +79,7 @@ export default function HotDeals() {
             </div>
           )}
         </div>
-        { }
+        {}
         {loading && (
           <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
             {[...Array(6)].map((_, i) => (
@@ -87,7 +91,7 @@ export default function HotDeals() {
             ))}
           </div>
         )}
-        { }
+        {}
         {!loading && productGroups.length > 0 && (
           <div
             ref={scrollRef}
@@ -110,4 +114,4 @@ export default function HotDeals() {
       </div>
     </section>
   );
-}
+}

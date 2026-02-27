@@ -1,96 +1,166 @@
-import {
-  Clock,
-  Truck,
-  CheckCircle,
-  ShoppingBag,
-  ArrowRight,
-} from "lucide-react";
-import Image from "next/image";
+"use client";
+import { useState, useEffect, useCallback } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import Link from "next/link";
+
+const slides = [
+  {
+    id: 1,
+    bg: "from-green-400 to-emerald-600",
+    badge: "🥦 Fresh & Organic",
+    title: "Farm Fresh",
+    subtitle: "Vegetables",
+    desc: "Locally sourced vegetables delivered straight from the farm to your door.",
+    cta: "Shop Vegetables",
+    href: "/category/vegetables",
+    accent: "bg-green-700",
+    pattern: "🥦🥕🌽🧅🥬🍅",
+  },
+  {
+    id: 2,
+    bg: "from-orange-400 to-amber-500",
+    badge: "🍎 Seasonal Picks",
+    title: "Juicy Fresh",
+    subtitle: "Fruits",
+    desc: "Hand-picked seasonal fruits bursting with flavour and nutrients.",
+    cta: "Shop Fruits",
+    href: "/category/fruits",
+    accent: "bg-orange-700",
+    pattern: "🍎🍌🍇🍊🍋🍓",
+  },
+  {
+    id: 3,
+    bg: "from-blue-400 to-indigo-600",
+    badge: "🥛 Daily Essentials",
+    title: "Pure & Fresh",
+    subtitle: "Dairy & More",
+    desc: "Quality dairy products, eggs, and everyday staples at the best prices.",
+    cta: "Shop Dairy",
+    href: "/category/dairy",
+    accent: "bg-blue-800",
+    pattern: "🥛🧀🥚🧈🍦🥜",
+  },
+  {
+    id: 4,
+    bg: "from-purple-500 to-pink-500",
+    badge: "⚡ Best Deals",
+    title: "Save More",
+    subtitle: "Every Day",
+    desc: "Free delivery above ₹199. Exclusive discounts on groceries you love.",
+    cta: "View Offers",
+    href: "/products",
+    accent: "bg-purple-800",
+    pattern: "🛒🎁💰🛍️🏷️✨",
+  },
+];
+
 export default function HeroSection() {
+  const [current, setCurrent] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  const prev = useCallback(
+    () => setCurrent((c) => (c === 0 ? slides.length - 1 : c - 1)),
+    [],
+  );
+  const next = useCallback(
+    () => setCurrent((c) => (c === slides.length - 1 ? 0 : c + 1)),
+    [],
+  );
+
+  useEffect(() => {
+    if (paused) return;
+    const t = setInterval(next, 4000);
+    return () => clearInterval(t);
+  }, [paused, next]);
+
+  const slide = slides[current];
+
   return (
-    <section className="bg-gradient-to-br from-blue-50/50 to-indigo-50/30 py-12 md:py-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
-          { }
-          <div className="space-y-6">
-            { }
-            <div className="inline-flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-full border border-green-200">
-              <Clock className="w-4 h-4" />
-              <span className="text-sm font-medium">
-                Delivery in 10 minutes
+    <section
+      className="relative overflow-hidden"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      {/* Slide */}
+      <div
+        className={`bg-gradient-to-br ${slide.bg} transition-all duration-700 ease-in-out`}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-2 gap-8 items-center min-h-[380px] py-12">
+            {/* Text */}
+            <div className="space-y-5 text-white">
+              <span className="inline-block bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm font-medium">
+                {slide.badge}
               </span>
-            </div>
-            { }
-            <div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
-                Fresh Groceries
-              </h1>
-              <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-blue-600 leading-tight">
-                Delivered Fast
-              </h2>
-            </div>
-            { }
-            <p className="text-gray-600 text-lg md:text-xl leading-relaxed max-w-lg">
-              Get your daily essentials delivered to your doorstep in minutes.
-              Fresh vegetables, fruits, dairy, and more at the best prices.
-            </p>
-            { }
-            <div className="flex flex-col sm:flex-row gap-4">
-              <button className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-base hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30">
-                Shop Now
-                <ArrowRight className="w-5 h-5" />
-              </button>
-              <button className="inline-flex items-center justify-center gap-2 bg-white text-gray-900 px-8 py-4 rounded-lg font-semibold text-base border-2 border-gray-200 hover:border-blue-600 hover:text-blue-600 transition-colors">
-                Explore Fruits
-              </button>
-            </div>
-            { }
-            <div className="flex flex-col sm:flex-row gap-6 pt-4">
-              <div className="flex items-center gap-2 text-gray-600">
-                <Truck className="w-5 h-5 text-blue-600" />
-                <span className="text-sm font-medium">
-                  Free delivery above ₹199
-                </span>
+              <div>
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight drop-shadow">
+                  {slide.title}
+                </h1>
+                <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight text-white/80 drop-shadow">
+                  {slide.subtitle}
+                </h2>
               </div>
-              <div className="flex items-center gap-2 text-gray-600">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-                <span className="text-sm font-medium">
-                  100% fresh guarantee
-                </span>
-              </div>
+              <p className="text-white/90 text-lg max-w-md leading-relaxed">
+                {slide.desc}
+              </p>
+              <Link
+                href={slide.href}
+                className={`inline-block ${slide.accent} text-white px-8 py-3 rounded-lg font-semibold text-base hover:opacity-90 transition-opacity shadow-lg`}
+              >
+                {slide.cta} →
+              </Link>
             </div>
-          </div>
-          { }
-          <div className="relative">
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-              { }
-              <div className="aspect-[4/3] bg-gradient-to-br from-amber-100 to-amber-50 flex items-center justify-center">
-                <div className="bg-amber-200/80 px-8 py-4 rounded-lg rotate-[-5deg] shadow-lg">
-                  <span className="text-3xl font-bold text-amber-900">
-                    Order Online
-                  </span>
-                </div>
-              </div>
-              { }
-              <div className="absolute bottom-6 left-6 bg-white rounded-lg shadow-xl px-6 py-4 max-w-[240px]">
-                <div className="flex items-start gap-3">
-                  <div className="bg-green-100 p-2 rounded-lg">
-                    <ShoppingBag className="w-6 h-6 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-900 text-lg">
-                      2000+ Products
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Across 11 categories
-                    </p>
-                  </div>
-                </div>
+
+            {/* Emoji illustration */}
+            <div className="hidden md:flex items-center justify-center">
+              <div className="grid grid-cols-3 gap-4 text-5xl select-none">
+                {slide.pattern.split("").map((ch, i) =>
+                  ch.trim() ? (
+                    <span
+                      key={i}
+                      className="flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-2xl w-20 h-20 shadow-lg hover:scale-110 transition-transform duration-200"
+                    >
+                      {ch}
+                    </span>
+                  ) : null,
+                )}
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Prev / Next */}
+      <button
+        onClick={prev}
+        className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/60 text-white hover:text-gray-800 backdrop-blur-sm rounded-full p-2 transition-all shadow"
+        aria-label="Previous slide"
+      >
+        <ChevronLeft className="w-6 h-6" />
+      </button>
+      <button
+        onClick={next}
+        className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/60 text-white hover:text-gray-800 backdrop-blur-sm rounded-full p-2 transition-all shadow"
+        aria-label="Next slide"
+      >
+        <ChevronRight className="w-6 h-6" />
+      </button>
+
+      {/* Dots */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+        {slides.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setCurrent(i)}
+            className={`rounded-full transition-all duration-300 ${
+              i === current
+                ? "bg-white w-6 h-2.5"
+                : "bg-white/50 w-2.5 h-2.5 hover:bg-white/80"
+            }`}
+            aria-label={`Go to slide ${i + 1}`}
+          />
+        ))}
+      </div>
     </section>
   );
-}
+}

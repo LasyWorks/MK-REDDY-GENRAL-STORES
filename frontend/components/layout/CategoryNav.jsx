@@ -74,28 +74,30 @@ export default function CategoryNav() {
 
   return (
     // overflow-visible on the sticky bar so the dropdown escapes it
-    <div className="bg-white border-b border-gray-100 sticky top-20 z-40 overflow-visible print:hidden">
+    <div className="bg-white border-b border-gray-100 sticky top-20 z-40 overflow-visible print:hidden py-3">
       <div className="max-w-7xl mx-auto px-6">
         {/* Outer wrapper: position:relative is the dropdown's anchor */}
         <div
-          className="relative flex items-center h-14"
+          className="relative flex items-center"
           onMouseLeave={() => setOpenMenu(null)}
         >
           {/* Left scroll button */}
           {!loading && parents.length > 0 && (
-            <button
-              onClick={() => scroll("left")}
-              className="hidden md:flex absolute left-0 z-10 h-14 w-10 items-center justify-center bg-white hover:bg-gray-50 transition-colors"
-              aria-label="Scroll left"
-            >
-              <ChevronLeft className="w-5 h-5 text-gray-800" />
-            </button>
+            <div className="absolute left-0 z-10 flex items-center h-full bg-gradient-to-r from-white via-white to-transparent pr-8">
+              <button
+                onClick={() => scroll("left")}
+                className="hidden md:flex h-9 w-9 rounded-full border border-gray-200 items-center justify-center bg-white hover:bg-gray-50 transition-colors shadow-sm"
+                aria-label="Scroll left"
+              >
+                <ChevronLeft className="w-5 h-5 text-gray-800" />
+              </button>
+            </div>
           )}
 
           {/* Scrollable nav row — overflow-x only, NOT overflow-y */}
           <div
             ref={scrollContainerRef}
-            className="flex gap-1 overflow-x-auto scrollbar-hide scroll-smooth md:pl-12 md:pr-12"
+            className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth md:px-12 items-center"
             style={{
               scrollbarWidth: "none",
               msOverflowStyle: "none",
@@ -103,16 +105,16 @@ export default function CategoryNav() {
             }}
           >
             {loading ? (
-              <div className="flex gap-6 py-4">
+              <div className="flex gap-3">
                 {[...Array(8)].map((_, i) => (
                   <div
                     key={i}
-                    className="h-5 w-28 bg-gray-200 rounded animate-pulse"
+                    className="h-10 w-32 bg-gray-100 rounded-full animate-pulse"
                   />
                 ))}
               </div>
             ) : parents.length === 0 ? (
-              <div className="text-gray-500 text-sm py-4">
+              <div className="text-gray-500 text-sm py-2">
                 No categories available
               </div>
             ) : (
@@ -131,16 +133,16 @@ export default function CategoryNav() {
                   >
                     <Link
                       href={`/category/${parentSlug}`}
-                      className={`flex items-center gap-1 px-3 h-14 text-[14px] font-medium whitespace-nowrap transition-all border-b-2 ${
+                      className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[14px] font-medium whitespace-nowrap transition-all ${
                         active
-                          ? "text-blue-600 border-blue-600"
-                          : "text-gray-700 border-transparent hover:text-blue-600 hover:border-blue-400"
+                          ? "bg-blue-600 text-white"
+                          : "bg-[#f4f6f8] text-gray-800 hover:bg-gray-200"
                       }`}
                     >
                       {parent.name}
                       {subs.length > 0 && (
                         <ChevronDown
-                          className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                          className={`w-4 h-4 transition-transform duration-200 ${
                             openMenu === parent.id ? "rotate-180" : ""
                           }`}
                         />
@@ -155,7 +157,7 @@ export default function CategoryNav() {
           {/* Dropdown rendered OUTSIDE the overflow container, inside the relative div */}
           {openMenu && openParent && openSubs.length > 0 && (
             <div
-              className="absolute top-full bg-white border border-gray-200 rounded-b-xl shadow-2xl z-[100] min-w-[200px] max-w-[260px] py-2"
+              className="absolute top-full mt-3 bg-white border border-gray-200 rounded-xl shadow-xl z-[100] min-w-[200px] max-w-[260px] py-2 overflow-hidden"
               style={{ left: dropdownLeft }}
               onMouseEnter={() => setOpenMenu(openMenu)}
             >
@@ -170,7 +172,7 @@ export default function CategoryNav() {
                     className={`flex items-center px-4 py-2.5 text-sm transition-colors ${
                       subActive
                         ? "bg-blue-50 text-blue-700 font-semibold"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                        : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
                     }`}
                   >
                     {sub.name}
@@ -182,13 +184,15 @@ export default function CategoryNav() {
 
           {/* Right scroll button */}
           {!loading && parents.length > 0 && (
-            <button
-              onClick={() => scroll("right")}
-              className="hidden md:flex absolute right-0 z-10 h-14 w-10 items-center justify-center bg-white hover:bg-gray-50 transition-colors"
-              aria-label="Scroll right"
-            >
-              <ChevronRight className="w-5 h-5 text-gray-800" />
-            </button>
+            <div className="absolute right-0 z-10 flex items-center h-full bg-gradient-to-l from-white via-white to-transparent pl-8">
+              <button
+                onClick={() => scroll("right")}
+                className="hidden md:flex h-9 w-9 rounded-full border border-gray-200 items-center justify-center bg-white hover:bg-gray-50 transition-colors shadow-sm"
+                aria-label="Scroll right"
+              >
+                <ChevronRight className="w-5 h-5 text-gray-800" />
+              </button>
+            </div>
           )}
         </div>
       </div>

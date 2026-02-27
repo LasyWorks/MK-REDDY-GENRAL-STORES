@@ -20,7 +20,9 @@ async function fetchProducts(categoryId, searchParams) {
   const PAGE_SIZE = 20;
   const page = Math.max(1, parseInt(searchParams.page || "1"));
   const params = new URLSearchParams();
-  params.append("category_id", categoryId);
+  // Use parent_category_id so the backend returns products from ALL subcategories
+  // (products are stored against subcategory IDs, not the parent category ID)
+  params.append("parent_category_id", categoryId);
   params.append("limit", PAGE_SIZE);
   params.append("page", page);
   params.append("is_active", "true");
