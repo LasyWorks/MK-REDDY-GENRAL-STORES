@@ -1,6 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
-import { X, Loader2, Plus, Trash2, Pencil, Check } from "lucide-react";
+import {
+  XMarkIcon as X,
+  ArrowPathIcon as Loader2,
+  PlusIcon as Plus,
+  TrashIcon as Trash2,
+  PencilIcon as Pencil,
+  CheckIcon as Check,
+} from "@heroicons/react/24/outline";
 import api from "@/lib/api";
 
 /**
@@ -10,7 +17,12 @@ import api from "@/lib/api";
  * @param {Function} onClose - Close modal callback
  * @param {Function} onSaved - Success callback
  */
-export default function CategoryModal({ category, categories, onClose, onSaved }) {
+export default function CategoryModal({
+  category,
+  categories,
+  onClose,
+  onSaved,
+}) {
   const isEdit = !!category;
   const isSubcategory = !!category?.parent_id;
 
@@ -27,7 +39,7 @@ export default function CategoryModal({ category, categories, onClose, onSaved }
 
   // For new parent categories, track subcategories
   const [subcategories, setSubcategories] = useState([
-    { name_en: "", name_te: "", description_en: "", temp_id: 1 }
+    { name_en: "", name_te: "", description_en: "", temp_id: 1 },
   ]);
 
   const [saving, setSaving] = useState(false);
@@ -57,7 +69,7 @@ export default function CategoryModal({ category, categories, onClose, onSaved }
 
   const updateSubcategory = (index, field, value) => {
     setSubcategories((prev) =>
-      prev.map((sub, i) => (i === index ? { ...sub, [field]: value } : sub))
+      prev.map((sub, i) => (i === index ? { ...sub, [field]: value } : sub)),
     );
   };
 
@@ -73,18 +85,25 @@ export default function CategoryModal({ category, categories, onClose, onSaved }
 
     // If editing a parent category with children, don't allow parent_id change
     if (isEdit && category && !category.parent_id) {
-      const hasChildren = categories.filter(c => c.parent_id === category.id).length > 0;
+      const hasChildren =
+        categories.filter((c) => c.parent_id === category.id).length > 0;
       if (hasChildren && form.parent_id) {
-        setError("Cannot convert a parent category with subcategories into a subcategory. Please delete or move subcategories first.");
+        setError(
+          "Cannot convert a parent category with subcategories into a subcategory. Please delete or move subcategories first.",
+        );
         return;
       }
     }
 
     // If creating a new parent category, validate subcategories
     if (isParentCategory) {
-      const validSubcategories = subcategories.filter((sub) => sub.name_en.trim());
+      const validSubcategories = subcategories.filter((sub) =>
+        sub.name_en.trim(),
+      );
       if (validSubcategories.length === 0) {
-        setError("At least one subcategory is required when creating a new category");
+        setError(
+          "At least one subcategory is required when creating a new category",
+        );
         return;
       }
     }
@@ -107,7 +126,9 @@ export default function CategoryModal({ category, categories, onClose, onSaved }
         const parentId = parentRes.data.id;
 
         // Create all subcategories
-        const validSubcategories = subcategories.filter((sub) => sub.name_en.trim());
+        const validSubcategories = subcategories.filter((sub) =>
+          sub.name_en.trim(),
+        );
         for (const [index, sub] of validSubcategories.entries()) {
           await api.post("/categories", {
             ...sub,
@@ -134,8 +155,8 @@ export default function CategoryModal({ category, categories, onClose, onSaved }
             {isEdit
               ? `Edit ${isSubcategory ? "Subcategory" : "Category"}`
               : form.parent_id
-              ? "Add Subcategory"
-              : "Add New Category"}
+                ? "Add Subcategory"
+                : "Add New Category"}
           </h2>
           <button
             onClick={onClose}
@@ -278,7 +299,8 @@ export default function CategoryModal({ category, categories, onClose, onSaved }
               </div>
 
               <p className="text-xs text-gray-500 mb-4">
-                Add at least one subcategory. These will be created automatically when you save the parent category.
+                Add at least one subcategory. These will be created
+                automatically when you save the parent category.
               </p>
 
               <div className="space-y-3">
@@ -328,7 +350,11 @@ export default function CategoryModal({ category, categories, onClose, onSaved }
                       <textarea
                         value={sub.description_en || ""}
                         onChange={(e) =>
-                          updateSubcategory(index, "description_en", e.target.value)
+                          updateSubcategory(
+                            index,
+                            "description_en",
+                            e.target.value,
+                          )
                         }
                         placeholder="Description (optional)"
                         rows={1}

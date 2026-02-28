@@ -1,6 +1,10 @@
 "use client";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import {
+  ChevronLeftIcon as ChevronLeft,
+  ChevronRightIcon as ChevronRight,
+  ChevronDownIcon as ChevronDown,
+} from "@heroicons/react/24/outline";
 import { useRef, useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import categoryService from "../../services/categoryService";
@@ -177,7 +181,7 @@ export default function CategoryNav() {
               className="absolute top-full mt-3 bg-white border border-gray-200 rounded-xl shadow-xl z-[100] min-w-[200px] max-w-[260px] py-2 overflow-hidden"
               style={{
                 left: dropdownLeft,
-                animation: 'dropdownFadeIn 0.2s ease forwards',
+                animation: "dropdownFadeIn 0.2s ease forwards",
               }}
               onMouseEnter={cancelClose}
               onMouseLeave={scheduleClose}

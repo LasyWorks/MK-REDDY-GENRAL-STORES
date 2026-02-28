@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ChevronLeftIcon as ChevronLeft,
+  ChevronRightIcon as ChevronRight,
+} from "@heroicons/react/24/outline";
 import CategoryHeader from "./CategoryHeader";
 import Sidebar from "./Sidebar";
 import ProductGrid from "./ProductGrid";

@@ -3,17 +3,17 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  User,
-  Phone,
-  MapPin,
-  Mail,
-  ShoppingBag,
-  LogOut,
-  ChevronRight,
-  Edit3,
-  Shield,
-  Package,
-} from "lucide-react";
+  UserIcon as User,
+  PhoneIcon as Phone,
+  MapPinIcon as MapPin,
+  EnvelopeIcon as Mail,
+  ShoppingBagIcon as ShoppingBag,
+  ArrowLeftOnRectangleIcon as LogOut,
+  ChevronRightIcon as ChevronRight,
+  PencilIcon as Edit3,
+  ShieldCheckIcon as Shield,
+  CubeIcon as Package,
+} from "@heroicons/react/24/outline";
 import authService from "@/services/authService";
 import orderService from "@/services/orderService";
 export default function ProfilePage() {
@@ -51,25 +51,26 @@ export default function ProfilePage() {
     router.replace("/");
   };
   if (!authChecked || !user) return null;
-  const initials = user.name
-    ?.trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join("") || "?";
+  const initials =
+    user.name
+      ?.trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((w) => w[0].toUpperCase())
+      .join("") || "?";
   const userTypeLabel =
     user.user_type === "wholesale"
       ? "Wholesale"
       : user.user_type === "admin"
-      ? "Admin"
-      : "Retail";
+        ? "Admin"
+        : "Retail";
   return (
     <main className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-lg mx-auto px-4 sm:px-6 space-y-4">
-        { }
+        {}
         <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl shadow-lg shadow-blue-200 p-6 text-white">
           <div className="flex items-center gap-4">
-            { }
+            {}
             <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center text-2xl font-extrabold text-white ring-4 ring-white/30 shrink-0">
               {initials}
             </div>
@@ -89,7 +90,7 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-          { }
+          {}
           <div className="grid grid-cols-2 gap-3 mt-5 pt-5 border-t border-white/20">
             <div className="bg-white/10 rounded-xl px-4 py-3 text-center">
               <p className="text-2xl font-extrabold">
@@ -102,14 +103,14 @@ export default function ProfilePage() {
               <p className="text-xs text-blue-100 font-medium mt-0.5">Orders</p>
             </div>
             <div className="bg-white/10 rounded-xl px-4 py-3 text-center">
-              <p className="text-2xl font-extrabold">
-                {userTypeLabel}
+              <p className="text-2xl font-extrabold">{userTypeLabel}</p>
+              <p className="text-xs text-blue-100 font-medium mt-0.5">
+                Account Type
               </p>
-              <p className="text-xs text-blue-100 font-medium mt-0.5">Account Type</p>
             </div>
           </div>
         </div>
-        { }
+        {}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-50">
           <p className="px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest">
             Contact Details
@@ -129,14 +130,23 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
-        { }
+        {}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-50">
           <p className="px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-widest">
             Account
           </p>
-          <NavLink href="/orders" icon={Package} label="My Orders" sub={orderCount !== null ? `${orderCount} order${orderCount !== 1 ? "s" : ""}` : undefined} />
+          <NavLink
+            href="/orders"
+            icon={Package}
+            label="My Orders"
+            sub={
+              orderCount !== null
+                ? `${orderCount} order${orderCount !== 1 ? "s" : ""}`
+                : undefined
+            }
+          />
         </div>
-        { }
+        {}
         <div className="bg-white rounded-2xl border border-red-100 shadow-sm overflow-hidden">
           <button
             onClick={handleLogout}
@@ -149,7 +159,7 @@ export default function ProfilePage() {
             </span>
           </button>
         </div>
-        { }
+        {}
         <p className="text-center text-xs text-gray-400 pb-4">
           MK Reddy General Store · Your daily essentials
         </p>
@@ -165,7 +175,9 @@ function InfoRow({ icon: Icon, label, value }) {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-xs text-gray-400 font-medium">{label}</p>
-        <p className="text-sm font-semibold text-gray-800 mt-0.5 break-words">{value}</p>
+        <p className="text-sm font-semibold text-gray-800 mt-0.5 break-words">
+          {value}
+        </p>
       </div>
     </div>
   );
@@ -186,4 +198,4 @@ function NavLink({ href, icon: Icon, label, sub }) {
       <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-blue-500 transition-colors" />
     </Link>
   );
-}
+}

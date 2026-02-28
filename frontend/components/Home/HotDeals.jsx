@@ -1,6 +1,10 @@
 "use client";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Flame } from "lucide-react";
+import {
+  ChevronLeftIcon as ChevronLeft,
+  ChevronRightIcon as ChevronRight,
+  FireIcon as Flame,
+} from "@heroicons/react/24/outline";
 import { useLanguage } from "@/context/LanguageContext";
 import ProductCard from "@/components/category/ProductCard";
 import ProductCardWithVariants from "@/components/category/ProductCardWithVariants";
@@ -47,9 +51,7 @@ export default function HotDeals() {
         {}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="bg-orange-500 text-white p-2 rounded-lg">
-              <Flame className="w-5 h-5" />
-            </div>
+            
             <div>
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
                 Hot Deals

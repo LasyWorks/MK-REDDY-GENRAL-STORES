@@ -1,6 +1,6 @@
 "use client";
 import { useEffect } from "react";
-import { RefreshCw } from "lucide-react";
+import { ArrowPathIcon as RefreshCw } from "@heroicons/react/24/outline";
 export default function GlobalError({ error, reset }) {
   useEffect(() => {
     console.error("[GlobalError]", error);
@@ -27,7 +27,7 @@ export default function GlobalError({ error, reset }) {
             textAlign: "center",
           }}
         >
-          { }
+          {}
           <div
             style={{
               display: "inline-flex",
@@ -52,15 +52,19 @@ export default function GlobalError({ error, reset }) {
             >
               MK
             </div>
-            <span style={{ fontWeight: 700, fontSize: "1.1rem", color: "#111827" }}>
+            <span
+              style={{ fontWeight: 700, fontSize: "1.1rem", color: "#111827" }}
+            >
               MK Reddy General Store
             </span>
           </div>
-          { }
-          <div style={{ fontSize: "6rem", lineHeight: 1, marginBottom: "1.5rem" }}>
+          {}
+          <div
+            style={{ fontSize: "6rem", lineHeight: 1, marginBottom: "1.5rem" }}
+          >
             🏪
           </div>
-          { }
+          {}
           <div
             style={{
               display: "inline-block",
@@ -99,7 +103,7 @@ export default function GlobalError({ error, reset }) {
             We're experiencing an unexpected issue. Our team has been notified
             and we'll be back up shortly. Thank you for your patience!
           </p>
-          { }
+          {}
           {process.env.NODE_ENV === "development" && error?.message && (
             <pre
               style={{
@@ -118,7 +122,7 @@ export default function GlobalError({ error, reset }) {
               {error.message}
             </pre>
           )}
-          { }
+          {}
           <button
             onClick={reset}
             style={{
@@ -139,7 +143,7 @@ export default function GlobalError({ error, reset }) {
             onMouseOver={(e) => (e.currentTarget.style.background = "#1d4ed8")}
             onMouseOut={(e) => (e.currentTarget.style.background = "#2563eb")}
           >
-            { }
+            {}
             <svg
               width={16}
               height={16}
@@ -155,7 +159,9 @@ export default function GlobalError({ error, reset }) {
             </svg>
             Reload Store
           </button>
-          <p style={{ marginTop: "2rem", fontSize: "0.8rem", color: "#9ca3af" }}>
+          <p
+            style={{ marginTop: "2rem", fontSize: "0.8rem", color: "#9ca3af" }}
+          >
             Need help?{" "}
             <a
               href="tel:+919346586105"
@@ -168,4 +174,4 @@ export default function GlobalError({ error, reset }) {
       </body>
     </html>
   );
-}
+}

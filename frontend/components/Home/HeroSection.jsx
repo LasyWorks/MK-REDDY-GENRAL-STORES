@@ -1,59 +1,301 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ChevronLeftIcon as ChevronLeft,
+  ChevronRightIcon as ChevronRight,
+} from "@heroicons/react/24/outline";
 import Link from "next/link";
 
+/* ── Slide data ─────────────────────────────────────── */
+const NOW = Date.now();
 const slides = [
   {
     id: 1,
-    bg: "from-green-400 to-emerald-600",
-    badge: "🥦 Fresh & Organic",
-    title: "Farm Fresh",
-    subtitle: "Vegetables",
-    desc: "Locally sourced vegetables delivered straight from the farm to your door.",
-    cta: "Shop Vegetables",
-    href: "/category/vegetables",
-    accent: "bg-green-700",
-    pattern: "🥦🥕🌽🧅🥬🍅",
+    type: "standard",
+    bg: "#f9f6ef",
+    badge: "⚡ SUPER SAVER",
+    badgeStyle: "bg-gray-900 text-white",
+    headingLine1: "Organic Essentials:",
+    headingLine2: "Flat 25% Off",
+    headingColor: "text-gray-900",
+    desc: "Pesticide-free grains, pulses, and cold-pressed oils for your family.",
+    primaryBtn: { label: "Shop Organic", href: "/category/organic" },
+    secondaryBtn: { label: "View Bundles →", href: "/products" },
+    accentColor: "#1a4731",
+    timerMode: "dhm",
+    timerEnd: NOW + 12 * 3600_000 + 30 * 60_000 + 45_000,
+    illustration: "🌾🫙🫒🌿🥜🌾",
+    illustrationBg: "#e8f5e9",
   },
   {
     id: 2,
-    bg: "from-orange-400 to-amber-500",
-    badge: "🍎 Seasonal Picks",
-    title: "Juicy Fresh",
-    subtitle: "Fruits",
-    desc: "Hand-picked seasonal fruits bursting with flavour and nutrients.",
-    cta: "Shop Fruits",
-    href: "/category/fruits",
-    accent: "bg-orange-700",
-    pattern: "🍎🍌🍇🍊🍋🍓",
+    type: "festival",
+    bg: "#fff4e6",
+    badge: "🪔 FESTIVAL SPECIAL",
+    badgeStyle: "bg-orange-100 text-orange-700 border border-orange-200",
+    heading: [
+      { text: "Diwali ", color: "text-gray-900" },
+      { text: "Mega", color: "text-orange-500" },
+      { text: "\nSale", color: "text-orange-500" },
+      { text: "\nUp to 50% Off", color: "text-gray-900" },
+    ],
+    desc: "Celebrate the festival of lights with our exclusive collection. Get the best deals on sweets, snacks, and festive essentials.",
+    primaryBtn: { label: "Shop Now →", href: "/products" },
+    secondaryBtn: { label: "View Offers", href: "/products" },
+    accentColor: "#c05621",
+    timerMode: "hms",
+    timerEnd: NOW + 12 * 3600_000 + 30 * 60_000 + 45_000,
+    illustration: "🪔🍬🎇🥳🎆🪅",
+    illustrationBg: "#fff3cd",
   },
   {
     id: 3,
-    bg: "from-blue-400 to-indigo-600",
-    badge: "🥛 Daily Essentials",
-    title: "Pure & Fresh",
-    subtitle: "Dairy & More",
-    desc: "Quality dairy products, eggs, and everyday staples at the best prices.",
-    cta: "Shop Dairy",
-    href: "/category/dairy",
-    accent: "bg-blue-800",
-    pattern: "🥛🧀🥚🧈🍦🥜",
+    type: "standard",
+    bg: "#f0fdf4",
+    badge: "🥦 FARM FRESH",
+    badgeStyle: "bg-green-800 text-white",
+    headingLine1: "Fresh Vegetables",
+    headingLine2: "Buy 2 Get 1 Free",
+    headingColor: "text-gray-900",
+    desc: "Locally sourced, hand-picked seasonal vegetables delivered straight from farms to your door.",
+    primaryBtn: { label: "Shop Vegetables", href: "/category/vegetables" },
+    secondaryBtn: { label: "View All →", href: "/products" },
+    accentColor: "#14532d",
+    timerMode: "dhm",
+    timerEnd: NOW + 24 * 3600_000 + 8 * 3600_000,
+    illustration: "🥦🥕🌽🧅🥬🍅",
+    illustrationBg: "#dcfce7",
   },
   {
     id: 4,
-    bg: "from-purple-500 to-pink-500",
-    badge: "⚡ Best Deals",
-    title: "Save More",
-    subtitle: "Every Day",
-    desc: "Free delivery above ₹199. Exclusive discounts on groceries you love.",
-    cta: "View Offers",
-    href: "/products",
-    accent: "bg-purple-800",
-    pattern: "🛒🎁💰🛍️🏷️✨",
+    type: "standard",
+    bg: "#eff6ff",
+    badge: "🥛 DAILY ESSENTIALS",
+    badgeStyle: "bg-blue-900 text-white",
+    headingLine1: "Pure & Fresh Dairy",
+    headingLine2: "Flat 30% Off",
+    headingColor: "text-gray-900",
+    desc: "Quality dairy products, eggs, and everyday staples at the lowest prices guaranteed.",
+    primaryBtn: { label: "Shop Dairy", href: "/category/dairy" },
+    secondaryBtn: { label: "View Offers →", href: "/products" },
+    accentColor: "#1e3a8a",
+    timerMode: "dhm",
+    timerEnd: NOW + 20 * 3600_000,
+    illustration: "🥛🧀🥚🧈🍶🥜",
+    illustrationBg: "#dbeafe",
   },
 ];
 
+/* ── Countdown hook ──────────────────────────────────── */
+function useCountdown(endTime) {
+  const calc = () => {
+    const diff = Math.max(0, endTime - Date.now());
+    return {
+      d: Math.floor(diff / 86_400_000),
+      h: Math.floor((diff % 86_400_000) / 3_600_000),
+      m: Math.floor((diff % 3_600_000) / 60_000),
+      s: Math.floor((diff % 60_000) / 1_000),
+    };
+  };
+  const [t, setT] = useState(calc);
+  useEffect(() => {
+    const id = setInterval(() => setT(calc()), 1000);
+    return () => clearInterval(id);
+  }, [endTime]);
+  return t;
+}
+const pad = (n) => String(n).padStart(2, "0");
+
+/* ── Timer D/H/M ─────────────────────────────────────── */
+function TimerDHM({ endTime, accentColor }) {
+  const { d, h, m } = useCountdown(endTime);
+  return (
+    <div className="flex items-end gap-3 mt-4">
+      {[
+        { val: pad(d), label: "Days" },
+        { val: pad(h), label: "Hours" },
+        { val: pad(m), label: "Mins" },
+      ].map(({ val, label }) => (
+        <div key={label} className="flex flex-col items-center">
+          <div
+            className="w-14 h-14 rounded-xl flex items-center justify-center text-xl font-bold border-2 bg-white text-gray-800"
+            style={{ borderColor: accentColor }}
+          >
+            {val}
+          </div>
+          <span className="text-[11px] text-gray-500 mt-1 font-medium uppercase tracking-wide">
+            {label}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Timer H:M:S ─────────────────────────────────────── */
+function TimerHMS({ endTime }) {
+  const { h, m, s } = useCountdown(endTime);
+  const timerItems = [
+    { val: pad(h), label: "HOURS", accent: false },
+    { val: pad(m), label: "MINS", accent: false },
+    { val: pad(s), label: "SECS", accent: true },
+  ];
+  return (
+    <div className="flex items-center gap-1 mt-4">
+      {timerItems.map(({ val, label, accent }, i) => (
+        <div key={label} className="flex items-center gap-1">
+          <div className="flex flex-col items-center">
+            <div
+              className={`w-14 h-14 rounded-lg flex items-center justify-center text-2xl font-bold border border-gray-200 bg-white shadow-sm ${
+                accent ? "text-green-500" : "text-gray-800"
+              }`}
+            >
+              {val}
+            </div>
+            <span className="text-[10px] text-gray-500 mt-1 font-semibold tracking-widest">
+              {label}
+            </span>
+          </div>
+          {i < timerItems.length - 1 && (
+            <span className="text-2xl font-bold text-gray-400 mb-5 select-none">
+              :
+            </span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Illustration panel ──────────────────────────────── */
+function Illustration({ slide }) {
+  const emojis = Array.from(slide.illustration).filter((c) => c.trim());
+  return (
+    <div
+      className="hidden md:flex items-center justify-center rounded-3xl"
+      style={{ background: slide.illustrationBg, minHeight: 300 }}
+    >
+      <div className="grid grid-cols-3 gap-4 p-8">
+        {emojis.map((ch, i) => (
+          <span
+            key={i}
+            className="flex items-center justify-center text-5xl w-20 h-20 bg-white/70 rounded-2xl shadow-sm hover:scale-110 transition-transform duration-200 select-none"
+          >
+            {ch}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Standard slide ──────────────────────────────────── */
+function StandardSlide({ slide }) {
+  return (
+    <div className="w-full" style={{ background: slide.bg }}>
+      <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16">
+        <div className="grid md:grid-cols-2 gap-6 items-center min-h-100 py-10">
+          <div className="flex flex-col gap-4">
+            <span
+              className={`inline-flex items-center gap-1.5 text-[11px] font-bold tracking-widest px-3 py-1.5 rounded-full w-fit ${slide.badgeStyle}`}
+            >
+              {slide.badge}
+            </span>
+            <div>
+              <h1
+                className={`text-4xl md:text-5xl font-extrabold leading-tight ${slide.headingColor}`}
+              >
+                {slide.headingLine1}
+              </h1>
+              <h2
+                className={`text-4xl md:text-5xl font-extrabold leading-tight ${slide.headingColor}`}
+              >
+                {slide.headingLine2}
+              </h2>
+            </div>
+            <p className="text-gray-500 text-[15px] max-w-md leading-relaxed">
+              {slide.desc}
+            </p>
+            <TimerDHM
+              endTime={slide.timerEnd}
+              accentColor={slide.accentColor}
+            />
+            <div className="flex items-center gap-4 mt-1">
+              <Link
+                href={slide.primaryBtn.href}
+                className="inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-bold text-white shadow-md hover:opacity-90 transition-opacity"
+                style={{ background: slide.accentColor }}
+              >
+                {slide.primaryBtn.label}
+              </Link>
+              <Link
+                href={slide.secondaryBtn.href}
+                className="inline-flex items-center gap-1 px-2 py-3 text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                {slide.secondaryBtn.label}
+              </Link>
+            </div>
+          </div>
+          <Illustration slide={slide} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Festival slide ──────────────────────────────────── */
+function FestivalSlide({ slide }) {
+  return (
+    <div className="w-full" style={{ background: slide.bg }}>
+      <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16">
+        <div className="grid md:grid-cols-2 gap-6 items-center min-h-105 py-10">
+          <div className="flex flex-col gap-4">
+            <span
+              className={`inline-flex items-center gap-1.5 text-[11px] font-bold tracking-widest px-3 py-1.5 rounded-full w-fit ${slide.badgeStyle}`}
+            >
+              {slide.badge}
+            </span>
+            <div className="leading-tight">
+              <p className="text-4xl md:text-5xl font-extrabold">
+                <span className="text-gray-900">Diwali </span>
+                <span className="text-orange-500">Mega</span>
+              </p>
+              <p className="text-4xl md:text-5xl font-extrabold text-orange-500">
+                Sale
+              </p>
+              <p className="text-4xl md:text-5xl font-extrabold text-gray-900">
+                Up to 50% Off
+              </p>
+            </div>
+            <p className="text-gray-600 text-[14px] max-w-sm leading-relaxed">
+              {slide.desc}
+            </p>
+            <TimerHMS endTime={slide.timerEnd} />
+            <div className="flex items-center gap-3 mt-1">
+              <Link
+                href={slide.primaryBtn.href}
+                className="inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-bold text-white shadow-md hover:opacity-90 transition-opacity"
+                style={{ background: slide.accentColor }}
+              >
+                {slide.primaryBtn.label}
+              </Link>
+              <Link
+                href={slide.secondaryBtn.href}
+                className="inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-semibold border-2 text-gray-700 hover:bg-white/60 transition-colors"
+                style={{ borderColor: slide.accentColor }}
+              >
+                {slide.secondaryBtn.label}
+              </Link>
+            </div>
+          </div>
+          <Illustration slide={slide} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Main carousel ───────────────────────────────────── */
 export default function HeroSection() {
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -69,97 +311,58 @@ export default function HeroSection() {
 
   useEffect(() => {
     if (paused) return;
-    const t = setInterval(next, 4000);
+    const t = setInterval(next, 5000);
     return () => clearInterval(t);
   }, [paused, next]);
 
   const slide = slides[current];
 
   return (
-    <section
-      className="relative overflow-hidden"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-    >
-      {/* Slide */}
+    <section className="px-4 sm:px-6 lg:px-8 py-6">
       <div
-        className={`bg-gradient-to-br ${slide.bg} transition-all duration-700 ease-in-out`}
+        className="relative overflow-hidden rounded-2xl shadow-2xl"
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-8 items-center min-h-[380px] py-12">
-            {/* Text */}
-            <div className="space-y-5 text-white">
-              <span className="inline-block bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm font-medium">
-                {slide.badge}
-              </span>
-              <div>
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight drop-shadow">
-                  {slide.title}
-                </h1>
-                <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight text-white/80 drop-shadow">
-                  {slide.subtitle}
-                </h2>
-              </div>
-              <p className="text-white/90 text-lg max-w-md leading-relaxed">
-                {slide.desc}
-              </p>
-              <Link
-                href={slide.href}
-                className={`inline-block ${slide.accent} text-white px-8 py-3 rounded-lg font-semibold text-base hover:opacity-90 transition-opacity shadow-lg`}
-              >
-                {slide.cta} →
-              </Link>
-            </div>
+        {slide.type === "festival" ? (
+          <FestivalSlide slide={slide} />
+        ) : (
+          <StandardSlide slide={slide} />
+        )}
 
-            {/* Emoji illustration */}
-            <div className="hidden md:flex items-center justify-center">
-              <div className="grid grid-cols-3 gap-4 text-5xl select-none">
-                {Array.from(slide.pattern).map((ch, i) =>
-                  ch.trim() ? (
-                    <span
-                      key={i}
-                      className="flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-2xl w-20 h-20 shadow-lg hover:scale-110 transition-transform duration-200"
-                    >
-                      {ch}
-                    </span>
-                  ) : null,
-                )}
-              </div>
-            </div>
-          </div>
+        {/* Prev arrow */}
+        <button
+          onClick={prev}
+          className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-700 rounded-full p-2.5 shadow-md transition-all hover:scale-105 z-10"
+          aria-label="Previous slide"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+
+        {/* Next arrow */}
+        <button
+          onClick={next}
+          className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-700 rounded-full p-2.5 shadow-md transition-all hover:scale-105 z-10"
+          aria-label="Next slide"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+
+        {/* Dots */}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+          {slides.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrent(i)}
+              className={`rounded-full transition-all duration-300 ${
+                i === current
+                  ? "w-7 h-2.5 bg-green-600"
+                  : "w-2.5 h-2.5 bg-gray-400/60 hover:bg-gray-500"
+              }`}
+              aria-label={`Go to slide ${i + 1}`}
+            />
+          ))}
         </div>
-      </div>
-
-      {/* Prev / Next */}
-      <button
-        onClick={prev}
-        className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/60 text-white hover:text-gray-800 backdrop-blur-sm rounded-full p-2 transition-all shadow"
-        aria-label="Previous slide"
-      >
-        <ChevronLeft className="w-6 h-6" />
-      </button>
-      <button
-        onClick={next}
-        className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/60 text-white hover:text-gray-800 backdrop-blur-sm rounded-full p-2 transition-all shadow"
-        aria-label="Next slide"
-      >
-        <ChevronRight className="w-6 h-6" />
-      </button>
-
-      {/* Dots */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-        {slides.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setCurrent(i)}
-            className={`rounded-full transition-all duration-300 ${
-              i === current
-                ? "bg-white w-6 h-2.5"
-                : "bg-white/50 w-2.5 h-2.5 hover:bg-white/80"
-            }`}
-            aria-label={`Go to slide ${i + 1}`}
-          />
-        ))}
       </div>
     </section>
   );

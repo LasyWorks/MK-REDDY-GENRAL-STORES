@@ -1,12 +1,12 @@
 "use client";
 import {
-  Activity,
-  Loader2,
-  Clock,
-  Package,
-  ShoppingCart,
-  Settings,
-} from "lucide-react";
+  ChartBarIcon as Activity,
+  ArrowPathIcon as Loader2,
+  ClockIcon as Clock,
+  CubeIcon as Package,
+  ShoppingCartIcon as ShoppingCart,
+  Cog6ToothIcon as Settings,
+} from "@heroicons/react/24/outline";
 
 const ACTION_ICONS = {
   CREATE_PRODUCT: Package,

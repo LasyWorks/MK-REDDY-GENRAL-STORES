@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, memo } from "react";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRightIcon as ChevronRight } from "@heroicons/react/24/outline";
 import SubcategorySidebar from "./SubcategorySidebar";
 import ProductGrid from "./ProductGrid";
 import { useLanguage } from "@/context/LanguageContext";
@@ -75,7 +75,8 @@ function CategoryClientView({
       } else {
         const all = await fetchCategoriesLang(lang);
         if (cancelled || !all) return;
-        const newMain = all.find((c) => c.id === mainCategory.id) || mainCategory;
+        const newMain =
+          all.find((c) => c.id === mainCategory.id) || mainCategory;
         const newSubs = all.filter((c) => c.parent_id === mainCategory.id);
         setDisplayMain(newMain);
         setDisplaySubs(newSubs);
@@ -86,12 +87,14 @@ function CategoryClientView({
       }
     }
     localise();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [lang, mainCategory, subcategories]);
   useEffect(() => {
     const targetId = activeSubcategory?.id || mainCategory?.id;
     if (targetId) loadProducts(targetId);
-  }, [activeSubcategory?.id, lang]); 
+  }, [activeSubcategory?.id, lang]);
   const handleSubcategoryClick = useCallback(
     (subcat) => {
       setActiveSubcategory(subcat);
@@ -103,7 +106,7 @@ function CategoryClientView({
   return (
     <div className="min-h-screen bg-gray-50 pt-4 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        { }
+        {}
         <nav className="text-sm text-gray-500 mb-4 flex items-center gap-1.5 flex-wrap">
           <Link href="/" className="hover:text-green-600 transition-colors">
             Home
@@ -148,4 +151,4 @@ function CategoryClientView({
     </div>
   );
 }
-export default memo(CategoryClientView);
+export default memo(CategoryClientView);

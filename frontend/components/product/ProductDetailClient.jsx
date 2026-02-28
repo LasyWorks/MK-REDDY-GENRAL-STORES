@@ -2,21 +2,21 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
-  ShoppingCart,
-  Plus,
-  Minus,
-  ChevronRight,
-  Package,
-  AlertCircle,
-  CheckCircle2,
-  Share2,
-  MapPin,
-  Zap,
-  Tag,
-  ShieldCheck,
-  Truck,
-  RotateCcw,
-} from "lucide-react";
+  ShoppingCartIcon as ShoppingCart,
+  PlusIcon as Plus,
+  MinusIcon as Minus,
+  ChevronRightIcon as ChevronRight,
+  CubeIcon as Package,
+  ExclamationCircleIcon as AlertCircle,
+  CheckCircleIcon as CheckCircle2,
+  ShareIcon as Share2,
+  MapPinIcon as MapPin,
+  BoltIcon as Zap,
+  TagIcon as Tag,
+  ShieldCheckIcon as ShieldCheck,
+  TruckIcon as Truck,
+  ArrowPathIcon as RotateCcw,
+} from "@heroicons/react/24/outline";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 import ProductCard from "@/components/category/ProductCard";

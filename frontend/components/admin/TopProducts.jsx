@@ -1,13 +1,13 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import {
-  TrendingUp,
-  Package,
-  Loader2,
-  Crown,
-  Star,
-  ArrowUpRight,
-} from "lucide-react";
+  ArrowTrendingUpIcon as TrendingUp,
+  CubeIcon as Package,
+  ArrowPathIcon as Loader2,
+  TrophyIcon as Crown,
+  StarIcon as Star,
+  ArrowUpRightIcon as ArrowUpRight,
+} from "@heroicons/react/24/outline";
 import api from "@/lib/api";
 
 function fmtCurrency(n) {

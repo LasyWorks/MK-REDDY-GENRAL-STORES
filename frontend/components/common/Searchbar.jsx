@@ -1,11 +1,16 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, X, Loader2 } from "lucide-react";
+import {
+  MagnifyingGlassIcon as Search,
+  XMarkIcon as X,
+  ArrowPathIcon as Loader2,
+} from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ImageWithFallback from "./ImageWithFallback";
 import { useLanguage } from "@/context/LanguageContext";
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
 const DEBOUNCE_MS = 350;
 export default function Searchbar() {
   const { lang } = useLanguage();
@@ -26,28 +31,31 @@ export default function Searchbar() {
     document.addEventListener("mousedown", handleOutside);
     return () => document.removeEventListener("mousedown", handleOutside);
   }, []);
-  const doSearch = useCallback(async (q) => {
-    if (!q.trim()) {
-      setResults([]);
-      setOpen(false);
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch(
-        `${API_URL}/products?search=${encodeURIComponent(q)}&limit=8&is_active=true&lang=${lang}`,
-        { cache: "no-store" }
-      );
-      if (!res.ok) throw new Error("search failed");
-      const json = await res.json();
-      setResults(json.data || []);
-      setOpen(true);
-    } catch {
-      setResults([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [lang]);
+  const doSearch = useCallback(
+    async (q) => {
+      if (!q.trim()) {
+        setResults([]);
+        setOpen(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        const res = await fetch(
+          `${API_URL}/products?search=${encodeURIComponent(q)}&limit=8&is_active=true&lang=${lang}`,
+          { cache: "no-store" },
+        );
+        if (!res.ok) throw new Error("search failed");
+        const json = await res.json();
+        setResults(json.data || []);
+        setOpen(true);
+      } catch {
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [lang],
+  );
   const handleChange = (e) => {
     const val = e.target.value;
     setQuery(val);
@@ -58,7 +66,7 @@ export default function Searchbar() {
       setLoading(false);
       return;
     }
-    setLoading(true); 
+    setLoading(true);
     timerRef.current = setTimeout(() => doSearch(val), DEBOUNCE_MS);
   };
   const handleClear = () => {
@@ -79,7 +87,7 @@ export default function Searchbar() {
   };
   return (
     <div ref={wrapperRef} className="relative w-full max-w-2xl">
-      { }
+      {}
       <div className="flex items-center bg-[#f1f5f9] rounded-lg px-4 py-2.5 w-full gap-2 focus-within:ring-2 focus-within:ring-blue-400 transition-all">
         {loading ? (
           <Loader2 className="w-5 h-5 text-blue-500 animate-spin flex-shrink-0" />
@@ -98,12 +106,16 @@ export default function Searchbar() {
           autoComplete="off"
         />
         {query && (
-          <button onClick={handleClear} className="flex-shrink-0" aria-label="Clear search">
+          <button
+            onClick={handleClear}
+            className="flex-shrink-0"
+            aria-label="Clear search"
+          >
             <X className="w-4 h-4 text-gray-400 hover:text-gray-600 transition-colors" />
           </button>
         )}
       </div>
-      { }
+      {}
       {open && (
         <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden max-h-[420px] overflow-y-auto">
           {results.length === 0 ? (
@@ -157,7 +169,9 @@ function SearchResultItem({ product, query, onSelect }) {
             className="w-full h-full object-contain"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-lg">🛒</div>
+          <div className="w-full h-full flex items-center justify-center text-lg">
+            🛒
+          </div>
         )}
       </div>
       <div className="flex-1 min-w-0">
@@ -172,7 +186,9 @@ function SearchResultItem({ product, query, onSelect }) {
       <div className="text-right flex-shrink-0">
         <p className="text-sm font-bold text-gray-900">₹{price.toFixed(0)}</p>
         {hasDiscount && (
-          <p className="text-[10px] text-gray-400 line-through">₹{mrp.toFixed(0)}</p>
+          <p className="text-[10px] text-gray-400 line-through">
+            ₹{mrp.toFixed(0)}
+          </p>
         )}
       </div>
     </Link>
@@ -180,17 +196,17 @@ function SearchResultItem({ product, query, onSelect }) {
 }
 function highlightMatch(text, query) {
   if (!query.trim()) return text;
-  
+
   const safeText = text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#x27;");
-  
+
   const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return safeText.replace(
     new RegExp(`(${escaped})`, "gi"),
-    `<mark class="bg-yellow-100 text-yellow-800 rounded px-0.5">$1</mark>`
+    `<mark class="bg-yellow-100 text-yellow-800 rounded px-0.5">$1</mark>`,
   );
 }

@@ -3,43 +3,44 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  LayoutDashboard,
-  Package,
-  ShoppingCart,
-  Users,
-  LogOut,
-  TrendingUp,
-  AlertTriangle,
-  Search,
-  Plus,
-  Pencil,
-  Trash2,
-  ChevronDown,
-  ChevronRight,
-  Store,
-  RefreshCcw,
-  X,
-  Check,
-  Loader2,
-  CircleDollarSign,
-  ArrowUpRight,
-  ArrowDownRight,
-  UserCheck,
-  UserX,
-  ShieldCheck,
-  ShieldOff,
-  Phone,
-  Mail,
-  Megaphone,
-  CalendarClock,
-  Clock,
-  Eye,
-  EyeOff,
-  Tag,
-  Gift,
-  Bell,
-  Activity,
-} from "lucide-react";
+  Squares2X2Icon as LayoutDashboard,
+  CubeIcon as Package,
+  ShoppingCartIcon as ShoppingCart,
+  UsersIcon as Users,
+  ArrowLeftOnRectangleIcon as LogOut,
+  ArrowTrendingUpIcon as TrendingUp,
+  ExclamationTriangleIcon as AlertTriangle,
+  MagnifyingGlassIcon as Search,
+  PlusIcon as Plus,
+  PencilIcon as Pencil,
+  TrashIcon as Trash2,
+  ChevronDownIcon as ChevronDown,
+  ChevronRightIcon as ChevronRight,
+  BuildingStorefrontIcon as Store,
+  ArrowPathIcon,
+  XMarkIcon as X,
+  CheckIcon as Check,
+  CurrencyRupeeIcon as CircleDollarSign,
+  ArrowUpRightIcon as ArrowUpRight,
+  ArrowDownRightIcon as ArrowDownRight,
+  UserPlusIcon as UserCheck,
+  UserMinusIcon as UserX,
+  ShieldCheckIcon as ShieldCheck,
+  ShieldExclamationIcon as ShieldOff,
+  PhoneIcon as Phone,
+  EnvelopeIcon as Mail,
+  MegaphoneIcon as Megaphone,
+  CalendarIcon as CalendarClock,
+  ClockIcon as Clock,
+  EyeIcon as Eye,
+  EyeSlashIcon as EyeOff,
+  TagIcon as Tag,
+  GiftIcon as Gift,
+  BellIcon as Bell,
+  ChartBarIcon as Activity,
+} from "@heroicons/react/24/outline";
+const Loader2 = ArrowPathIcon;
+const RefreshCcw = ArrowPathIcon;
 import ImageWithFallback from "@/components/common/ImageWithFallback";
 import api from "@/lib/api";
 import secureStorage from "@/lib/secureStorage";
@@ -295,7 +296,7 @@ function ProductModal({ product, categories, onClose, onSaved }) {
   // Get parent category for existing product
   const getParentCategoryId = () => {
     if (!product?.category_id) return "";
-    const category = categories.find(c => c.id === product.category_id);
+    const category = categories.find((c) => c.id === product.category_id);
     return category?.parent_id || product.category_id;
   };
 
@@ -313,7 +314,9 @@ function ProductModal({ product, categories, onClose, onSaved }) {
     is_featured: product?.is_featured || false,
   });
 
-  const [parentCategoryId, setParentCategoryId] = useState(getParentCategoryId());
+  const [parentCategoryId, setParentCategoryId] = useState(
+    getParentCategoryId(),
+  );
   const [imageUrls, setImageUrls] = useState(initImages);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -492,7 +495,9 @@ function ProductModal({ product, categories, onClose, onSaved }) {
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
               />
               <p className="text-xs text-gray-400 mt-1">
-                {isEdit ? "Change carefully - must be unique" : "Leave empty to auto-generate"}
+                {isEdit
+                  ? "Change carefully - must be unique"
+                  : "Leave empty to auto-generate"}
               </p>
             </div>
             <div>
@@ -562,11 +567,13 @@ function ProductModal({ product, categories, onClose, onSaved }) {
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
               >
                 <option value="">— select parent —</option>
-                {categories.filter(c => !c.parent_id).map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
+                {categories
+                  .filter((c) => !c.parent_id)
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
               </select>
             </div>
             <div>
@@ -580,14 +587,18 @@ function ProductModal({ product, categories, onClose, onSaved }) {
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-50 disabled:text-gray-400"
               >
                 <option value="">— select subcategory —</option>
-                {categories.filter(c => c.parent_id === parentCategoryId).map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
+                {categories
+                  .filter((c) => c.parent_id === parentCategoryId)
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
               </select>
               {!parentCategoryId && (
-                <p className="text-xs text-gray-400 mt-1">Select parent category first</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Select parent category first
+                </p>
               )}
             </div>
             <div className="col-span-2">
@@ -1322,17 +1333,19 @@ function UsersTab() {
   async function handlePromoteDemote(user) {
     const isCurrentlyRetail = user.user_type === "retail";
     const newType = isCurrentlyRetail ? "wholesale" : "retail";
-    const action = isCurrentlyRetail ? "Promote to Wholesale" : "Demote to Retail";
-    
+    const action = isCurrentlyRetail
+      ? "Promote to Wholesale"
+      : "Demote to Retail";
+
     if (!confirm(`${action} customer: ${user.name || user.phone}?`)) return;
-    
+
     setActing(user.id);
     try {
-      await api.put(`/users/${user.id}/customer-type`, { customer_type: newType });
+      await api.put(`/users/${user.id}/customer-type`, {
+        customer_type: newType,
+      });
       setUsers((prev) =>
-        prev.map((u) =>
-          u.id === user.id ? { ...u, user_type: newType } : u,
-        ),
+        prev.map((u) => (u.id === user.id ? { ...u, user_type: newType } : u)),
       );
     } catch (e) {
       alert(e.message || "Failed to update customer type");
@@ -1343,17 +1356,19 @@ function UsersTab() {
   async function handlePromoteDemote(user) {
     const isCurrentlyRetail = user.user_type === "retail";
     const newType = isCurrentlyRetail ? "wholesale" : "retail";
-    const action = isCurrentlyRetail ? "Promote to Wholesale" : "Demote to Retail";
-    
+    const action = isCurrentlyRetail
+      ? "Promote to Wholesale"
+      : "Demote to Retail";
+
     if (!confirm(`${action} customer: ${user.name || user.phone}?`)) return;
-    
+
     setActing(user.id);
     try {
-      await api.put(`/users/${user.id}/customer-type`, { customer_type: newType });
+      await api.put(`/users/${user.id}/customer-type`, {
+        customer_type: newType,
+      });
       setUsers((prev) =>
-        prev.map((u) =>
-          u.id === user.id ? { ...u, user_type: newType } : u,
-        ),
+        prev.map((u) => (u.id === user.id ? { ...u, user_type: newType } : u)),
       );
     } catch (e) {
       alert(e.message || "Failed to update customer type");
@@ -1519,10 +1534,15 @@ function UsersTab() {
                             Inactive
                           </span>
                         )}
-                        {(u.user_type === "retail" || u.user_type === "wholesale") && (
-                          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded w-fit
-                            ${u.user_type === "wholesale" ? "bg-amber-50 text-amber-700" : "bg-blue-50 text-blue-600"}`}>
-                            {u.user_type === "wholesale" ? "Wholesale" : "Retail"}
+                        {(u.user_type === "retail" ||
+                          u.user_type === "wholesale") && (
+                          <span
+                            className={`text-[10px] font-medium px-1.5 py-0.5 rounded w-fit
+                            ${u.user_type === "wholesale" ? "bg-amber-50 text-amber-700" : "bg-blue-50 text-blue-600"}`}
+                          >
+                            {u.user_type === "wholesale"
+                              ? "Wholesale"
+                              : "Retail"}
                           </span>
                         )}
                       </div>
@@ -1539,14 +1559,20 @@ function UsersTab() {
                         ) : (
                           <>
                             {/* Promote/Demote (only for retail/wholesale customers) */}
-                            {(u.user_type === "retail" || u.user_type === "wholesale") && (
+                            {(u.user_type === "retail" ||
+                              u.user_type === "wholesale") && (
                               <button
                                 onClick={() => handlePromoteDemote(u)}
-                                title={u.user_type === "retail" ? "Promote to Wholesale" : "Demote to Retail"}
+                                title={
+                                  u.user_type === "retail"
+                                    ? "Promote to Wholesale"
+                                    : "Demote to Retail"
+                                }
                                 className={`p-1.5 rounded-lg transition-colors
-                                  ${u.user_type === "wholesale"
-                                    ? "text-gray-400 hover:text-blue-600 hover:bg-blue-50"
-                                    : "text-gray-400 hover:text-amber-600 hover:bg-amber-50"
+                                  ${
+                                    u.user_type === "wholesale"
+                                      ? "text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+                                      : "text-gray-400 hover:text-amber-600 hover:bg-amber-50"
                                   }`}
                               >
                                 {u.user_type === "retail" ? (
@@ -2867,7 +2893,7 @@ export default function AdminDashboard() {
   const { ready, admin } = useAdminGuard();
   const router = useRouter();
   const [tab, setTab] = useState("overview");
-  
+
   function handleTabChange(tabId) {
     if (tabId === "billing") {
       router.push("/admin/billing");
@@ -2875,7 +2901,7 @@ export default function AdminDashboard() {
       setTab(tabId);
     }
   }
-  
+
   function logout() {
     secureStorage.removeItem("token");
     secureStorage.removeItem("refreshToken");

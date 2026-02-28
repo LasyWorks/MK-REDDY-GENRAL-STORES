@@ -1,13 +1,13 @@
 "use client";
 import {
-  Plus,
-  ShoppingCart,
-  Package,
-  Users,
-  Megaphone,
-  Download,
-  ArrowUpRight,
-} from "lucide-react";
+  PlusIcon as Plus,
+  ShoppingCartIcon as ShoppingCart,
+  CubeIcon as Package,
+  UsersIcon as Users,
+  MegaphoneIcon as Megaphone,
+  ArrowDownTrayIcon as Download,
+  ArrowUpRightIcon as ArrowUpRight,
+} from "@heroicons/react/24/outline";
 
 const ACTIONS = [
   {

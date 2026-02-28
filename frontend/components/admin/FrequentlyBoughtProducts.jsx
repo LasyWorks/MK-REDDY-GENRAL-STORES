@@ -1,11 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
 import {
-  ShoppingCart,
-  Package,
-  Loader2,
-  TrendingUp,
-} from "lucide-react";
+  ShoppingCartIcon as ShoppingCart,
+  CubeIcon as Package,
+  ArrowPathIcon as Loader2,
+  ArrowTrendingUpIcon as TrendingUp,
+} from "@heroicons/react/24/outline";
 import api from "@/lib/api";
 import ImageWithFallback from "@/components/common/ImageWithFallback";
 
@@ -59,7 +59,9 @@ export default function FrequentlyBoughtProducts() {
           <h3 className="font-bold text-gray-900 text-sm">
             Most Purchased Products
           </h3>
-          <p className="text-[11px] text-gray-500">By quantity - Last 30 days</p>
+          <p className="text-[11px] text-gray-500">
+            By quantity - Last 30 days
+          </p>
         </div>
       </div>
 
@@ -77,7 +79,9 @@ export default function FrequentlyBoughtProducts() {
           <div className="grid grid-cols-2 gap-3">
             {products.map((p, i) => {
               const pct =
-                maxQuantity > 0 ? ((p.quantitySold || 0) / maxQuantity) * 100 : 0;
+                maxQuantity > 0
+                  ? ((p.quantitySold || 0) / maxQuantity) * 100
+                  : 0;
               return (
                 <div
                   key={p.id || i}

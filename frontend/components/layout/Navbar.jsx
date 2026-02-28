@@ -1,13 +1,13 @@
 "use client";
 import Link from "next/link";
 import {
-  ChevronDown,
-  ClipboardList,
-  User,
-  ShoppingCart,
-  Globe,
-  LogIn,
-} from "lucide-react";
+  ChevronDownIcon as ChevronDown,
+  ClipboardDocumentListIcon as ClipboardList,
+  UserIcon as User,
+  ShoppingCartIcon as ShoppingCart,
+  GlobeAltIcon as Globe,
+  ArrowRightOnRectangleIcon as LogIn,
+} from "@heroicons/react/24/outline";
 import Searchbar from "../common/Searchbar";
 import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "@/context/LanguageContext";

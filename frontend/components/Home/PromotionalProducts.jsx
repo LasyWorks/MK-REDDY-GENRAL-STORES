@@ -1,6 +1,11 @@
 "use client";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Plus, Minus } from "lucide-react";
+import {
+  ChevronLeftIcon as ChevronLeft,
+  ChevronRightIcon as ChevronRight,
+  PlusIcon as Plus,
+  MinusIcon as Minus,
+} from "@heroicons/react/24/outline";
 import Link from "next/link";
 import ImageWithFallback from "@/components/common/ImageWithFallback";
 import { useLanguage } from "@/context/LanguageContext";
@@ -9,23 +14,38 @@ import { useCart } from "@/context/CartContext";
 import { groupProductsByVariant } from "@/lib/productGrouping";
 import secureStorage from "@/lib/secureStorage";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
 
 /* ─────────── Decorative SVGs ─────────── */
 function SparklesSvg({ className }) {
   return (
-    <svg className={className} viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      className={className}
+      viewBox="0 0 120 120"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <circle cx="10" cy="10" r="3" fill="currentColor" opacity="0.6" />
-      <circle cx="30" cy="5"  r="2" fill="currentColor" opacity="0.4" />
-      <circle cx="5"  cy="30" r="2" fill="currentColor" opacity="0.4" />
-      <path d="M60 0 L63 8 L72 8 L65 13 L68 21 L60 16 L52 21 L55 13 L48 8 L57 8 Z"
-        fill="currentColor" opacity="0.5" />
-      <path d="M100 40 L102 46 L108 46 L103 50 L105 56 L100 52 L95 56 L97 50 L92 46 L98 46 Z"
-        fill="currentColor" opacity="0.4" />
+      <circle cx="30" cy="5" r="2" fill="currentColor" opacity="0.4" />
+      <circle cx="5" cy="30" r="2" fill="currentColor" opacity="0.4" />
+      <path
+        d="M60 0 L63 8 L72 8 L65 13 L68 21 L60 16 L52 21 L55 13 L48 8 L57 8 Z"
+        fill="currentColor"
+        opacity="0.5"
+      />
+      <path
+        d="M100 40 L102 46 L108 46 L103 50 L105 56 L100 52 L95 56 L97 50 L92 46 L98 46 Z"
+        fill="currentColor"
+        opacity="0.4"
+      />
       <circle cx="110" cy="15" r="4" fill="currentColor" opacity="0.3" />
-      <circle cx="85"  cy="90" r="2" fill="currentColor" opacity="0.5" />
-      <path d="M20 80 L22 86 L28 86 L23 90 L25 96 L20 92 L15 96 L17 90 L12 86 L18 86 Z"
-        fill="currentColor" opacity="0.4" />
+      <circle cx="85" cy="90" r="2" fill="currentColor" opacity="0.5" />
+      <path
+        d="M20 80 L22 86 L28 86 L23 90 L25 96 L20 92 L15 96 L17 90 L12 86 L18 86 Z"
+        fill="currentColor"
+        opacity="0.4"
+      />
       <circle cx="50" cy="110" r="3" fill="currentColor" opacity="0.3" />
       <circle cx="90" cy="105" r="2" fill="currentColor" opacity="0.5" />
     </svg>
@@ -34,12 +54,33 @@ function SparklesSvg({ className }) {
 
 function DiyaSvg({ className }) {
   return (
-    <svg className={className} viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      className={className}
+      viewBox="0 0 80 80"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <ellipse cx="40" cy="18" rx="5" ry="10" fill="#FCD34D" opacity="0.9" />
-      <ellipse cx="40" cy="20" rx="3"  ry="7"  fill="#F97316" opacity="0.85" />
-      <rect x="39" y="26" width="2" height="6" rx="1" fill="#92400E" opacity="0.6" />
-      <path d="M20 38 Q20 58 40 60 Q60 58 60 38 Z" fill="#F59E0B" opacity="0.7" />
-      <path d="M18 38 Q40 44 62 38 Q60 32 40 30 Q20 32 18 38 Z" fill="#FBBF24" opacity="0.8" />
+      <ellipse cx="40" cy="20" rx="3" ry="7" fill="#F97316" opacity="0.85" />
+      <rect
+        x="39"
+        y="26"
+        width="2"
+        height="6"
+        rx="1"
+        fill="#92400E"
+        opacity="0.6"
+      />
+      <path
+        d="M20 38 Q20 58 40 60 Q60 58 60 38 Z"
+        fill="#F59E0B"
+        opacity="0.7"
+      />
+      <path
+        d="M18 38 Q40 44 62 38 Q60 32 40 30 Q20 32 18 38 Z"
+        fill="#FBBF24"
+        opacity="0.8"
+      />
       <ellipse cx="40" cy="18" rx="10" ry="12" fill="#FDE68A" opacity="0.15" />
     </svg>
   );
@@ -76,17 +117,23 @@ function LiveCountdown({ endsAt }) {
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
-      <span className="text-white/70 text-xs font-semibold mr-1 hidden sm:inline">Ends in</span>
+      <span className="text-white/70 text-xs font-semibold mr-1 hidden sm:inline">
+        Ends in
+      </span>
       {blocks.map((b, i) => (
         <div key={i} className="flex items-center gap-1">
           <div className="flex flex-col items-center">
             <span className="bg-white/20 backdrop-blur-sm text-white font-mono font-extrabold text-base sm:text-xl leading-none px-2.5 py-1.5 rounded-lg min-w-10.5 text-center tabular-nums border border-white/30 shadow-inner">
               {b.val}
             </span>
-            <span className="text-white/60 text-[9px] font-bold mt-0.5 tracking-widest">{b.label}</span>
+            <span className="text-white/60 text-[9px] font-bold mt-0.5 tracking-widest">
+              {b.label}
+            </span>
           </div>
           {i < 2 && (
-            <span className="text-white font-extrabold text-xl leading-none mb-4 opacity-70">:</span>
+            <span className="text-white font-extrabold text-xl leading-none mb-4 opacity-70">
+              :
+            </span>
           )}
         </div>
       ))}
@@ -96,23 +143,28 @@ function LiveCountdown({ endsAt }) {
 
 /* ─────────── Festive Product Card ─────────── */
 function FestiveProductCard({ product, themeColor }) {
-  const mrp   = parseFloat(product.mrp   || 0);
+  const mrp = parseFloat(product.mrp || 0);
   const price = parseFloat(product.price || 0);
-  const hasDiscount     = mrp > price;
-  const discountPercent = hasDiscount ? Math.round(((mrp - price) / mrp) * 100) : 0;
-  const stock      = product.stock_quantity ?? 0;
+  const hasDiscount = mrp > price;
+  const discountPercent = hasDiscount
+    ? Math.round(((mrp - price) / mrp) * 100)
+    : 0;
+  const stock = product.stock_quantity ?? 0;
   const isOutOfStock = stock <= 0;
-  const isLowStock   = stock > 0 && stock <= 8;
+  const isLowStock = stock > 0 && stock <= 8;
 
   // Deterministic sold-% per product (stable across renders, 40–94 range)
-  const soldPct = useMemo(() => (product.id * 37 + 19) % 55 + 40, [product.id]);
+  const soldPct = useMemo(
+    () => ((product.id * 37 + 19) % 55) + 40,
+    [product.id],
+  );
 
   const { items, addItem, updateQty } = useCart();
   const { productPromoMap } = usePromotions();
-  const promo    = productPromoMap[product.id] || null;
+  const promo = productPromoMap[product.id] || null;
   const cartItem = items.find((i) => i.id === product.id);
-  const qty      = cartItem?.quantity ?? 0;
-  const [adding,      setAdding]      = useState(false);
+  const qty = cartItem?.quantity ?? 0;
+  const [adding, setAdding] = useState(false);
   const [isWholesale, setIsWholesale] = useState(false);
 
   useEffect(() => {
@@ -120,14 +172,18 @@ function FestiveProductCard({ product, themeColor }) {
       const raw = secureStorage.getItem("user");
       if (raw) {
         const u = JSON.parse(raw);
-        setIsWholesale(u.user_type === "wholesale" || u.role === "wholesale_customer");
+        setIsWholesale(
+          u.user_type === "wholesale" || u.role === "wholesale_customer",
+        );
       }
-    } catch { setIsWholesale(false); }
+    } catch {
+      setIsWholesale(false);
+    }
   }, []);
 
-  const maxQuantity  = isWholesale ? 999999 : product.max_order_quantity || 10;
+  const maxQuantity = isWholesale ? 999999 : product.max_order_quantity || 10;
   const atMaxQuantity = !isWholesale && qty >= maxQuantity;
-  const accent        = themeColor || "#C2410C";
+  const accent = themeColor || "#C2410C";
 
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -147,20 +203,25 @@ function FestiveProductCard({ product, themeColor }) {
     >
       {/* Image area */}
       <div className="relative w-full bg-linear-to-br from-orange-50 to-amber-50 aspect-square overflow-hidden">
-
         {/* Discount badge — top-left */}
         {hasDiscount && !isOutOfStock && (
           <div
             className="absolute top-0 left-0 z-10 text-white text-center px-2 py-1.5 rounded-br-xl min-w-11"
             style={{ backgroundColor: accent }}
           >
-            <div className="text-sm font-black leading-none">{discountPercent}%</div>
-            <div className="text-[9px] font-bold tracking-wide leading-none mt-0.5">OFF</div>
+            <div className="text-sm font-black leading-none">
+              {discountPercent}%
+            </div>
+            <div className="text-[9px] font-bold tracking-wide leading-none mt-0.5">
+              OFF
+            </div>
           </div>
         )}
         {isOutOfStock && (
           <div className="absolute top-0 left-0 z-10 bg-gray-500 text-white text-[10px] font-extrabold leading-tight px-2 py-1.5 text-center rounded-br-xl">
-            OUT OF<br />STOCK
+            OUT OF
+            <br />
+            STOCK
           </div>
         )}
 
@@ -208,7 +269,9 @@ function FestiveProductCard({ product, themeColor }) {
         {isLowStock && !isOutOfStock && (
           <div className="flex items-center gap-1">
             <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-[10px] text-red-500 font-bold">Only {stock} left!</span>
+            <span className="text-[10px] text-red-500 font-bold">
+              Only {stock} left!
+            </span>
           </div>
         )}
 
@@ -216,13 +279,23 @@ function FestiveProductCard({ product, themeColor }) {
         {!isOutOfStock && (
           <div className="mt-0.5">
             <div className="flex justify-between items-center mb-0.5">
-              <span className="text-[9px] text-gray-400 font-semibold">Deals Claimed</span>
-              <span className="text-[9px] font-extrabold" style={{ color: accent }}>{soldPct}%</span>
+              <span className="text-[9px] text-gray-400 font-semibold">
+                Deals Claimed
+              </span>
+              <span
+                className="text-[9px] font-extrabold"
+                style={{ color: accent }}
+              >
+                {soldPct}%
+              </span>
             </div>
             <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${soldPct}%`, background: `linear-gradient(to right, ${accent}, #FBBF24)` }}
+                style={{
+                  width: `${soldPct}%`,
+                  background: `linear-gradient(to right, ${accent}, #FBBF24)`,
+                }}
               />
             </div>
           </div>
@@ -244,17 +317,20 @@ function FestiveProductCard({ product, themeColor }) {
           </div>
 
           {isOutOfStock ? (
-            <span className="text-xs text-gray-400 font-semibold">Unavailable</span>
+            <span className="text-xs text-gray-400 font-semibold">
+              Unavailable
+            </span>
           ) : qty === 0 ? (
             <button
               onClick={handleAdd}
               disabled={adding}
               className="bg-green-600 hover:bg-green-700 active:scale-95 text-white text-xs font-extrabold px-4 py-1.5 rounded-lg transition-all duration-150 disabled:opacity-60 min-w-14 shadow-sm"
             >
-              {adding
-                ? <span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                : "ADD"
-              }
+              {adding ? (
+                <span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                "ADD"
+              )}
             </button>
           ) : (
             <div className="flex flex-col gap-1">
@@ -263,7 +339,10 @@ function FestiveProductCard({ product, themeColor }) {
                 className="flex items-center border-2 border-green-500 rounded-lg overflow-hidden"
               >
                 <button
-                  onClick={(e) => { e.preventDefault(); updateQty(product.id, qty - 1); }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    updateQty(product.id, qty - 1);
+                  }}
                   className="px-2 py-1.5 hover:bg-green-50 text-green-600 transition-colors font-bold"
                   aria-label="Decrease"
                 >
@@ -273,8 +352,13 @@ function FestiveProductCard({ product, themeColor }) {
                   {qty}
                 </span>
                 <button
-                  onClick={(e) => { e.preventDefault(); updateQty(product.id, qty + 1); }}
-                  disabled={atMaxQuantity || qty >= (product.stock_quantity ?? 99)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    updateQty(product.id, qty + 1);
+                  }}
+                  disabled={
+                    atMaxQuantity || qty >= (product.stock_quantity ?? 99)
+                  }
                   className="px-2 py-1.5 hover:bg-green-50 text-green-600 transition-colors disabled:opacity-40 font-bold"
                   aria-label="Increase"
                 >
@@ -282,7 +366,9 @@ function FestiveProductCard({ product, themeColor }) {
                 </button>
               </div>
               {atMaxQuantity && (
-                <span className="text-[9px] text-orange-500 font-semibold text-center">Max {maxQuantity}/order</span>
+                <span className="text-[9px] text-orange-500 font-semibold text-center">
+                  Max {maxQuantity}/order
+                </span>
               )}
             </div>
           )}
@@ -310,23 +396,37 @@ function SkeletonCard() {
 /* ─────────── Main Section ─────────── */
 export default function PromotionalProducts() {
   const { lang } = useLanguage();
-  const { activePromos, productPromoMap, loading: promoLoading } = usePromotions();
-  const [products, setProducts]           = useState([]);
-  const [loading, setLoading]             = useState(true);
-  const [canScrollLeft, setCanScrollLeft]   = useState(false);
+  const {
+    activePromos,
+    productPromoMap,
+    loading: promoLoading,
+  } = usePromotions();
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
   const scrollRef = useRef(null);
 
   const promo = activePromos.find((p) => (p.products || []).length > 0);
 
   const fetchProducts = useCallback(async () => {
-    if (!promo) { setProducts([]); setLoading(false); return; }
+    if (!promo) {
+      setProducts([]);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const productIds = (promo.products || []).map((p) => p.id);
-      if (!productIds.length) { setProducts([]); setLoading(false); return; }
+      if (!productIds.length) {
+        setProducts([]);
+        setLoading(false);
+        return;
+      }
       const idParams = productIds.map((id) => `id=${id}`).join("&");
-      const res  = await fetch(`${API_URL}/products?is_active=true&${idParams}&lang=${lang}`);
+      const res = await fetch(
+        `${API_URL}/products?is_active=true&${idParams}&lang=${lang}`,
+      );
       if (!res.ok) throw new Error("failed");
       const json = await res.json();
       setProducts((json.data || []).filter((p) => productIds.includes(p.id)));
@@ -341,7 +441,10 @@ export default function PromotionalProducts() {
     if (!promoLoading) fetchProducts();
   }, [promoLoading, fetchProducts]);
 
-  const productGroups = useMemo(() => groupProductsByVariant(products), [products]);
+  const productGroups = useMemo(
+    () => groupProductsByVariant(products),
+    [products],
+  );
 
   const updateScrollBtns = () => {
     const el = scrollRef.current;
@@ -351,7 +454,10 @@ export default function PromotionalProducts() {
   };
 
   const scroll = (dir) => {
-    scrollRef.current?.scrollBy({ left: dir === "left" ? -260 : 260, behavior: "smooth" });
+    scrollRef.current?.scrollBy({
+      left: dir === "left" ? -260 : 260,
+      behavior: "smooth",
+    });
   };
 
   useEffect(() => {
@@ -364,9 +470,9 @@ export default function PromotionalProducts() {
 
   if (!promoLoading && !loading && !productGroups.length) return null;
 
-  const themeColor  = promo?.theme_color || "#C2410C";
-  const title       = promo?.title       || "Diwali Mega Sale";
-  const endsAt      = promo?.ends_at;
+  const themeColor = promo?.theme_color || "#C2410C";
+  const title = promo?.title || "Diwali Mega Sale";
+  const endsAt = promo?.ends_at;
 
   // Deep maroon-orange → gold festive gradient
   const gradientBg = `linear-gradient(135deg, #7C2D12 0%, ${themeColor} 45%, #B45309 80%, #92400E 100%)`;
@@ -374,13 +480,17 @@ export default function PromotionalProducts() {
   return (
     <section className="relative overflow-hidden print:hidden w-full">
       {/* Festive gradient background */}
-      <div className="absolute inset-0 z-0" style={{ background: gradientBg }} />
+      <div
+        className="absolute inset-0 z-0"
+        style={{ background: gradientBg }}
+      />
 
       {/* Dot pattern overlay */}
       <div
         className="absolute inset-0 z-0 pointer-events-none opacity-10"
         style={{
-          backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.5) 1px, transparent 1px)",
+          backgroundImage:
+            "radial-gradient(circle, rgba(255,255,255,0.5) 1px, transparent 1px)",
           backgroundSize: "24px 24px",
         }}
       />
@@ -395,10 +505,8 @@ export default function PromotionalProducts() {
 
       {/* Content */}
       <div className="relative z-10 max-w-300 mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-
         {/* Section header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-5">
-
           {/* Left: title + countdown */}
           <div className="flex flex-col gap-2">
             <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight drop-shadow leading-tight">
@@ -444,7 +552,10 @@ export default function PromotionalProducts() {
         >
           {loading
             ? Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="w-50 sm:w-55 md:w-60 shrink-0 snap-start">
+                <div
+                  key={i}
+                  className="w-50 sm:w-55 md:w-60 shrink-0 snap-start"
+                >
                   <SkeletonCard />
                 </div>
               ))
@@ -453,10 +564,12 @@ export default function PromotionalProducts() {
                   key={`${group.name}-${idx}`}
                   className="w-50 sm:w-55 md:w-60 shrink-0 snap-start"
                 >
-                  <FestiveProductCard product={group.variants[0]} themeColor={themeColor} />
+                  <FestiveProductCard
+                    product={group.variants[0]}
+                    themeColor={themeColor}
+                  />
                 </div>
-              ))
-          }
+              ))}
         </div>
 
         {/* Mobile swipe hint */}

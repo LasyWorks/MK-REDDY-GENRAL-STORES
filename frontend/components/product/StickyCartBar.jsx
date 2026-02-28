@@ -1,6 +1,11 @@
 ﻿"use client";
 import { useEffect, useState } from "react";
-import { ShoppingCart, Plus, Minus, Zap } from "lucide-react";
+import {
+  ShoppingCartIcon as ShoppingCart,
+  PlusIcon as Plus,
+  MinusIcon as Minus,
+  BoltIcon as Zap,
+} from "@heroicons/react/24/outline";
 import { useCart } from "@/context/CartContext";
 import ImageWithFallback from "@/components/common/ImageWithFallback";
 

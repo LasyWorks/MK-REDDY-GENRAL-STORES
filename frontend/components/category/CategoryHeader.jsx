@@ -1,7 +1,11 @@
 "use client";
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { ChevronDown, SlidersHorizontal, X } from "lucide-react";
+import {
+  ChevronDownIcon as ChevronDown,
+  AdjustmentsHorizontalIcon as SlidersHorizontal,
+  XMarkIcon as X,
+} from "@heroicons/react/24/outline";
 
 const SORT_OPTIONS = [
   { value: "popularity", label: "Popularity" },

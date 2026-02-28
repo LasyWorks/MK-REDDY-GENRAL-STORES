@@ -1,16 +1,16 @@
 "use client";
 import {
-  Package,
-  ShoppingCart,
-  CircleDollarSign,
-  Users,
-  TrendingUp,
-  TrendingDown,
-  ArrowUpRight,
-  Loader2,
-  AlertTriangle,
-  Clock,
-} from "lucide-react";
+  CubeIcon as Package,
+  ShoppingCartIcon as ShoppingCart,
+  CurrencyRupeeIcon as CircleDollarSign,
+  UsersIcon as Users,
+  ArrowTrendingUpIcon as TrendingUp,
+  ArrowTrendingDownIcon as TrendingDown,
+  ArrowUpRightIcon as ArrowUpRight,
+  ArrowPathIcon as Loader2,
+  ExclamationTriangleIcon as AlertTriangle,
+  ClockIcon as Clock,
+} from "@heroicons/react/24/outline";
 
 const CARDS = [
   {

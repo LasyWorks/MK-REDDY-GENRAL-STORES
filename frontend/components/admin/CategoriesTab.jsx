@@ -1,6 +1,15 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Pencil, Trash2, Loader2, ChevronDown, ChevronRight, Eye, EyeOff } from "lucide-react";
+import {
+  PlusIcon as Plus,
+  PencilIcon as Pencil,
+  TrashIcon as Trash2,
+  ArrowPathIcon as Loader2,
+  ChevronDownIcon as ChevronDown,
+  ChevronRightIcon as ChevronRight,
+  EyeIcon as Eye,
+  EyeSlashIcon as EyeOff,
+} from "@heroicons/react/24/outline";
 import api from "@/lib/api";
 import CategoryModal from "./CategoryModal";
 
@@ -22,7 +31,7 @@ export default function CategoriesTab() {
       const res = await api.get("/categories", { limit: 500 });
       const allCategories = res.data || [];
       setCategories(allCategories);
-      
+
       // Auto-expand all parent categories
       const parentIds = allCategories
         .filter((c) => !c.parent_id)
@@ -42,11 +51,12 @@ export default function CategoriesTab() {
   const handleDelete = async (category) => {
     const isParent = !category.parent_id;
     const subcategories = categories.filter((c) => c.parent_id === category.id);
-    
-    const confirmMsg = isParent && subcategories.length > 0
-      ? `Delete "${category.name}" and all its ${subcategories.length} subcategories?`
-      : `Delete "${category.name}"?`;
-    
+
+    const confirmMsg =
+      isParent && subcategories.length > 0
+        ? `Delete "${category.name}" and all its ${subcategories.length} subcategories?`
+        : `Delete "${category.name}"?`;
+
     if (!confirm(confirmMsg)) return;
 
     setDeleting(category.id);
@@ -68,8 +78,8 @@ export default function CategoriesTab() {
       });
       setCategories((prev) =>
         prev.map((c) =>
-          c.id === category.id ? { ...c, is_active: !c.is_active } : c
-        )
+          c.id === category.id ? { ...c, is_active: !c.is_active } : c,
+        ),
       );
     } catch (e) {
       alert(e.message || "Failed to toggle active status");
@@ -224,7 +234,9 @@ export default function CategoriesTab() {
                   {/* Actions */}
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setModal({ mode: "edit", category: parent })}
+                      onClick={() =>
+                        setModal({ mode: "edit", category: parent })
+                      }
                       className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100"
                     >
                       <Pencil className="w-4 h-4" />
@@ -347,7 +359,10 @@ export default function CategoriesTab() {
       {/* Category Modal */}
       {modal && (
         <CategoryModal
-          category={modal.category || (modal.parentId ? { parent_id: modal.parentId } : null)}
+          category={
+            modal.category ||
+            (modal.parentId ? { parent_id: modal.parentId } : null)
+          }
           categories={categories}
           onClose={() => setModal(null)}
           onSaved={onSaved}

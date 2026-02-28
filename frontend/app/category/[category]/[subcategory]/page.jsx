@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getAllCategories } from "@/app/data/categories";
 import CategoryLayout from "@/components/category/CategoryLayout";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRightIcon as ChevronRight } from "@heroicons/react/24/outline";
 
 export const dynamic = "force-dynamic";
 

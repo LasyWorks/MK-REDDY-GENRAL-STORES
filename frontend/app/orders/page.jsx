@@ -2,16 +2,16 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  Package,
-  ChevronRight,
-  Clock,
-  CheckCircle2,
-  Truck,
-  XCircle,
-  ShoppingBag,
-  FileText,
-  RefreshCw,
-} from "lucide-react";
+  CubeIcon as Package,
+  ChevronRightIcon as ChevronRight,
+  ClockIcon as Clock,
+  CheckCircleIcon as CheckCircle2,
+  TruckIcon as Truck,
+  XCircleIcon as XCircle,
+  ShoppingBagIcon as ShoppingBag,
+  DocumentTextIcon as FileText,
+  ArrowPathIcon as RefreshCw,
+} from "@heroicons/react/24/outline";
 import orderService from "@/services/orderService";
 const STATUS_META = {
   pending: {
@@ -44,7 +44,9 @@ function StatusBadge({ status }) {
   const meta = STATUS_META[status] || STATUS_META.pending;
   const Icon = meta.icon;
   return (
-    <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${meta.color}`}>
+    <span
+      className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${meta.color}`}
+    >
       <Icon className="w-3.5 h-3.5" />
       {meta.label}
     </span>
@@ -72,7 +74,7 @@ export default function OrdersPage() {
   return (
     <main className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-3xl mx-auto px-4 sm:px-6">
-        { }
+        {}
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">My Orders</h1>
@@ -86,21 +88,26 @@ export default function OrdersPage() {
             className="p-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors disabled:opacity-50"
             aria-label="Refresh orders"
           >
-            <RefreshCw className={`w-4 h-4 text-gray-500 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`w-4 h-4 text-gray-500 ${loading ? "animate-spin" : ""}`}
+            />
           </button>
         </div>
-        { }
+        {}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl px-5 py-4 mb-6 text-sm flex items-center gap-2">
             <XCircle className="w-4 h-4 shrink-0" />
             {error}
           </div>
         )}
-        { }
+        {}
         {loading && (
           <div className="space-y-3">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-white rounded-xl border border-gray-100 p-5 animate-pulse">
+              <div
+                key={i}
+                className="bg-white rounded-xl border border-gray-100 p-5 animate-pulse"
+              >
                 <div className="flex justify-between items-start mb-3">
                   <div className="space-y-2">
                     <div className="h-4 w-32 bg-gray-200 rounded" />
@@ -113,11 +120,13 @@ export default function OrdersPage() {
             ))}
           </div>
         )}
-        { }
+        {}
         {!loading && !error && orders.length === 0 && (
           <div className="flex flex-col items-center py-20 text-center">
             <ShoppingBag className="w-16 h-16 text-gray-200 mb-4" />
-            <h2 className="text-lg font-semibold text-gray-700">No orders yet</h2>
+            <h2 className="text-lg font-semibold text-gray-700">
+              No orders yet
+            </h2>
             <p className="text-sm text-gray-400 mt-1 mb-6">
               Your order history will appear here once you place an order.
             </p>
@@ -129,7 +138,7 @@ export default function OrdersPage() {
             </Link>
           </div>
         )}
-        { }
+        {}
         {!loading && orders.length > 0 && (
           <div className="space-y-3">
             {orders.map((order) => (
@@ -182,4 +191,4 @@ export default function OrdersPage() {
       </div>
     </main>
   );
-}
+}

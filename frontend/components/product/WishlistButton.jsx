@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Heart } from "lucide-react";
+import { HeartIcon as Heart } from "@heroicons/react/24/outline";
 
 export default function WishlistButton({ productId, productName }) {
   const [wished, setWished] = useState(false);

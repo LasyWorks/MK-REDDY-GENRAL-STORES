@@ -1,6 +1,10 @@
 "use client";
 import { useState, useRef, useCallback } from "react";
-import { ZoomIn, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  MagnifyingGlassPlusIcon as ZoomIn,
+  ChevronLeftIcon as ChevronLeft,
+  ChevronRightIcon as ChevronRight,
+} from "@heroicons/react/24/outline";
 import ImageWithFallback from "@/components/common/ImageWithFallback";
 
 const VIEW_LABELS = [
@@ -26,22 +30,25 @@ export default function ProductImages({
   const safeImages = images.length > 0 ? images : [null];
   const mainSrc = safeImages[activeIndex];
 
-  const handleMouseMove = useCallback((e) => {
-    const rect = imgRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    setCursorPosition({ x, y });
-    
-    // Send zoom data to parent
-    if (onZoomChange) {
-      onZoomChange({
-        isZoomed: true,
-        image: mainSrc,
-        position: { x, y },
-      });
-    }
-  }, [mainSrc, onZoomChange]);
+  const handleMouseMove = useCallback(
+    (e) => {
+      const rect = imgRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      setCursorPosition({ x, y });
+
+      // Send zoom data to parent
+      if (onZoomChange) {
+        onZoomChange({
+          isZoomed: true,
+          image: mainSrc,
+          position: { x, y },
+        });
+      }
+    },
+    [mainSrc, onZoomChange],
+  );
 
   const handleMouseEnter = useCallback(() => {
     setHovered(true);

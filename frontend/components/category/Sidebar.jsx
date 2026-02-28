@@ -3,7 +3,11 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
-import { ChevronDown, ChevronUp, X } from "lucide-react";
+import {
+  ChevronDownIcon as ChevronDown,
+  ChevronUpIcon as ChevronUp,
+  XMarkIcon as X,
+} from "@heroicons/react/24/outline";
 import ImageWithFallback from "../common/ImageWithFallback";
 
 export default function Sidebar({

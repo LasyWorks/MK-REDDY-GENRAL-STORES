@@ -1,7 +1,10 @@
 "use client";
 import { memo, useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, Minus, Clock } from "lucide-react";
+import {
+  PlusIcon as Plus,
+  MinusIcon as Minus,
+} from "@heroicons/react/24/outline";
 import ImageWithFallback from "../common/ImageWithFallback";
 import CountdownTimer from "../common/CountdownTimer";
 import { useCart } from "@/context/CartContext";
@@ -96,14 +99,6 @@ function ProductCard({ product }) {
 
       {/* ── Info ── */}
       <div className="flex flex-col flex-1 px-3 pt-2 pb-3 gap-1.5">
-        {/* Delivery time */}
-        <div className="flex items-center gap-1 text-gray-400">
-          <Clock className="w-3 h-3" />
-          <span className="text-[10px] font-semibold tracking-wide uppercase">
-            8 Mins
-          </span>
-        </div>
-
         {/* Name */}
         <h3 className="text-sm font-semibold text-gray-800 leading-snug line-clamp-2 min-h-[2.6rem]">
           {product.name}

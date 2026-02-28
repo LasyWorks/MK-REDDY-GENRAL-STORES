@@ -4,7 +4,6 @@ import Navbar from "@/components/layout/Navbar";
 import CategoryNav from "@/components/layout/CategoryNav";
 import Footer from "@/components/layout/Footer";
 import CartSidebar from "@/components/cart/CartSidebar";
-import FestiveBanner from "@/components/Home/FestiveBanner";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { CartProvider } from "@/context/CartContext";
 import { PromotionProvider } from "@/context/PromotionContext";
@@ -31,7 +30,6 @@ export default function RootLayout({ children }) {
           <CartProvider>
             <PromotionProvider>
               <Navbar />
-              <FestiveBanner />
               <CategoryNav />
               <CartSidebar />
               {children}

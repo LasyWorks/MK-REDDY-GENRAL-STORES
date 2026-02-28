@@ -1,12 +1,12 @@
 "use client";
 import { useState } from "react";
 import {
-  ShoppingCart,
-  ChevronDown,
-  Eye,
-  Loader2,
-  ArrowUpRight,
-} from "lucide-react";
+  ShoppingCartIcon as ShoppingCart,
+  ChevronDownIcon as ChevronDown,
+  EyeIcon as Eye,
+  ArrowPathIcon as Loader2,
+  ArrowUpRightIcon as ArrowUpRight,
+} from "@heroicons/react/24/outline";
 
 const STATUS_STYLES = {
   pending: "bg-amber-100 text-amber-700 border-amber-200",

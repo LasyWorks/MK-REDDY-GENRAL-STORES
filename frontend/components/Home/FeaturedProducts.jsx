@@ -1,6 +1,10 @@
 "use client";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Star } from "lucide-react";
+import {
+  ChevronLeftIcon as ChevronLeft,
+  ChevronRightIcon as ChevronRight,
+  StarIcon as Star,
+} from "@heroicons/react/24/outline";
 import { useLanguage } from "@/context/LanguageContext";
 import ProductCard from "@/components/category/ProductCard";
 import ProductCardWithVariants from "@/components/category/ProductCardWithVariants";
@@ -47,9 +51,6 @@ export default function FeaturedProducts() {
         {}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="bg-yellow-400 text-white p-2 rounded-lg">
-              <Star className="w-5 h-5 fill-white" />
-            </div>
             <div>
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
                 Featured Products

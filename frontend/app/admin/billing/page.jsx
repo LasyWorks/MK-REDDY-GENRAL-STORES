@@ -1,6 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Printer, ArrowLeft } from "lucide-react";
+import {
+  PrinterIcon as Printer,
+  ArrowLeftIcon as ArrowLeft,
+} from "@heroicons/react/24/outline";
 import Link from "next/link";
 import api from "@/lib/api";
 

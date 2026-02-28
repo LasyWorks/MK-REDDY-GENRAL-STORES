@@ -1,5 +1,5 @@
 "use client";
-import { PackageSearch } from "lucide-react";
+import { ArchiveBoxXMarkIcon as PackageSearch } from "@heroicons/react/24/outline";
 import { useRouter, usePathname } from "next/navigation";
 
 export default function EmptyState({

@@ -11,7 +11,11 @@ import {
   BarChart,
   Bar,
 } from "recharts";
-import { TrendingUp, Loader2, Calendar } from "lucide-react";
+import {
+  ArrowTrendingUpIcon as TrendingUp,
+  ArrowPathIcon as Loader2,
+  CalendarIcon as Calendar,
+} from "@heroicons/react/24/outline";
 import api from "@/lib/api";
 
 const PERIODS = [

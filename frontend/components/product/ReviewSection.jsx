@@ -1,6 +1,12 @@
 "use client";
 import { useState } from "react";
-import { Star, ThumbsUp, ChevronDown, X, Send } from "lucide-react";
+import {
+  StarIcon as Star,
+  HandThumbUpIcon as ThumbsUp,
+  ChevronDownIcon as ChevronDown,
+  XMarkIcon as X,
+  PaperAirplaneIcon as Send,
+} from "@heroicons/react/24/outline";
 
 /* -- Helpers -- */
 function FilledStars({ value = 0, size = "w-4 h-4" }) {

@@ -1,7 +1,11 @@
 "use client";
 import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Cookie } from "lucide-react";
+import {
+  ChevronLeftIcon as ChevronLeft,
+  ChevronRightIcon as ChevronRight,
+  CakeIcon as Cookie,
+} from "@heroicons/react/24/outline";
 import ProductCard from "@/components/category/ProductCard";
 import ProductCardWithVariants from "@/components/category/ProductCardWithVariants";
 import { groupProductsByVariant } from "@/lib/productGrouping";
@@ -12,10 +16,32 @@ const API_URL =
 
 /* Snack-related keywords to filter out non-snack products from mixed results */
 const SNACK_KEYWORDS = [
-  "chocolate", "biscuit", "cookie", "chips", "namkeen", "wafer",
-  "candy", "toffee", "snack", "cracker", "kurkure", "lays", "parle",
-  "hide seek", "bourbon", "oreo", "kitkat", "dairy milk", "5 star",
-  "munch", "cadbury", "maggi", "noodle", "peanut", "popcorn", "murukku",
+  "chocolate",
+  "biscuit",
+  "cookie",
+  "chips",
+  "namkeen",
+  "wafer",
+  "candy",
+  "toffee",
+  "snack",
+  "cracker",
+  "kurkure",
+  "lays",
+  "parle",
+  "hide seek",
+  "bourbon",
+  "oreo",
+  "kitkat",
+  "dairy milk",
+  "5 star",
+  "munch",
+  "cadbury",
+  "maggi",
+  "noodle",
+  "peanut",
+  "popcorn",
+  "murukku",
 ];
 
 function isSnack(product) {
@@ -37,7 +63,7 @@ export default function SnacksSection() {
         const catRes = await categoryService.getAll({ limit: 200 });
         const allCats = catRes.data || [];
         const snackCat = allCats.find((c) =>
-          /snack|chocolate/i.test(c.name || "")
+          /snack|chocolate/i.test(c.name || ""),
         );
 
         let fetched = [];
@@ -45,7 +71,7 @@ export default function SnacksSection() {
         if (snackCat) {
           // Step 2a: fetch by parent_category_id (covers all sub-categories too)
           const res = await fetch(
-            `${API_URL}/products?parent_category_id=${snackCat.id}&is_active=true&limit=40`
+            `${API_URL}/products?parent_category_id=${snackCat.id}&is_active=true&limit=40`,
           );
           const json = await res.json();
           fetched = json.data || [];
@@ -53,7 +79,7 @@ export default function SnacksSection() {
           // Also fetch direct children categories' products
           if (!fetched.length) {
             const res2 = await fetch(
-              `${API_URL}/products?category_id=${snackCat.id}&is_active=true&limit=40`
+              `${API_URL}/products?category_id=${snackCat.id}&is_active=true&limit=40`,
             );
             const json2 = await res2.json();
             fetched = json2.data || [];
@@ -63,7 +89,7 @@ export default function SnacksSection() {
         // Step 2b: fallback — keyword search, then filter to real snacks
         if (!fetched.length) {
           const res = await fetch(
-            `${API_URL}/products?search=chocolate+biscuit+chips+namkeen+cookie&is_active=true&limit=60`
+            `${API_URL}/products?search=chocolate+biscuit+chips+namkeen+cookie&is_active=true&limit=60`,
           );
           const json = await res.json();
           fetched = (json.data || []).filter(isSnack);
@@ -78,7 +104,10 @@ export default function SnacksSection() {
     })();
   }, []);
 
-  const productGroups = useMemo(() => groupProductsByVariant(products), [products]);
+  const productGroups = useMemo(
+    () => groupProductsByVariant(products),
+    [products],
+  );
 
   const scroll = (dir) => {
     scrollRef.current?.scrollBy({
@@ -95,9 +124,7 @@ export default function SnacksSection() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="bg-orange-400 text-white p-2 rounded-lg">
-              <Cookie className="w-5 h-5" />
-            </div>
+            
             <div>
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
                 Snacks &amp; Chocolates
