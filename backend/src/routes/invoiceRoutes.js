@@ -1,18 +1,40 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { invoiceController } = require('../controllers');
-const { authenticate, authorize } = require('../middlewares/auth');
-const { validateMarkAsPaid } = require('../utils/validators');
+const { invoiceController } = require("../controllers");
+const { authenticate, authorize } = require("../middlewares/auth");
+const { validateMarkAsPaid } = require("../utils/validators");
 router.use(authenticate);
 // Allow admins to view their own invoices
-router.get('/my-invoices', authorize('retail_customer', 'wholesale_customer', 'admin'), invoiceController.getMyInvoices);
-router.get('/reports/revenue', authorize('admin'), invoiceController.getRevenueReport);
-router.get('/reports/gst', authorize('admin'), invoiceController.getGSTReport);
-router.get('/reports/pending', authorize('admin'), invoiceController.getPendingPayments);
-router.get('/', authorize('admin'), invoiceController.getAllInvoices);
-router.get('/number/:invoiceNumber', invoiceController.getInvoiceByNumber);
-router.get('/order/:orderId', invoiceController.getInvoiceByOrder);
-router.get('/:id', invoiceController.getInvoice);
-router.get('/:id/download', invoiceController.downloadInvoice);
-router.put('/:id/paid', authorize('admin'), validateMarkAsPaid, invoiceController.markAsPaid);
+router.get(
+  "/my-invoices",
+  authorize("retail_customer", "wholesale_customer", "admin"),
+  invoiceController.getMyInvoices,
+);
+router.get(
+  "/reports/revenue",
+  authorize("admin"),
+  invoiceController.getRevenueReport,
+);
+router.get("/reports/gst", authorize("admin"), invoiceController.getGSTReport);
+router.get(
+  "/reports/pending",
+  authorize("admin"),
+  invoiceController.getPendingPayments,
+);
+router.get("/", authorize("admin"), invoiceController.getAllInvoices);
+router.get("/number/:invoiceNumber", invoiceController.getInvoiceByNumber);
+router.get("/order/:orderId", invoiceController.getInvoiceByOrder);
+router.get("/:id", invoiceController.getInvoice);
+router.get("/:id/download", invoiceController.downloadInvoice);
+router.post(
+  "/order/:orderId/generate",
+  authorize("admin"),
+  invoiceController.generateInvoice,
+);
+router.put(
+  "/:id/paid",
+  authorize("admin"),
+  validateMarkAsPaid,
+  invoiceController.markAsPaid,
+);
 module.exports = router;

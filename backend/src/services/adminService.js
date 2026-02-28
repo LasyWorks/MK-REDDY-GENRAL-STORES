@@ -87,7 +87,7 @@ class AdminService {
          SUM(CASE WHEN status='picked_up'  THEN total_amount ELSE 0 END)   AS revenue,
          SUM(CASE WHEN status='cancelled'  THEN 1            ELSE 0 END)   AS cancelled
        FROM orders
-       WHERE created_at::date BETWEEN $2 AND $3
+       WHERE created_at >= $2::date AND created_at < ($3::date + interval '1 day')
        GROUP BY period
        ORDER BY period`,
       [pgFormat, start, end],
@@ -131,7 +131,7 @@ class AdminService {
        JOIN products p ON oi.product_id = p.id
        LEFT JOIN product_translations pt_en ON p.id = pt_en.product_id AND pt_en.lang_code = 'en'
        JOIN orders   o ON oi.order_id   = o.id
-       WHERE o.status = 'picked_up' AND o.created_at::date BETWEEN $1 AND $2
+       WHERE o.status = 'picked_up' AND o.created_at >= $1::date AND o.created_at < ($2::date + interval '1 day')
        GROUP BY p.id, pt_en.name
        ORDER BY total_sales DESC
        LIMIT $3`,
@@ -147,7 +147,7 @@ class AdminService {
        JOIN categories c ON p.category_id  = c.id
        LEFT JOIN category_translations ct_en ON c.id = ct_en.category_id AND ct_en.lang_code = 'en'
        JOIN orders     o ON oi.order_id    = o.id
-       WHERE o.status = 'picked_up' AND o.created_at::date BETWEEN $1 AND $2
+       WHERE o.status = 'picked_up' AND o.created_at >= $1::date AND o.created_at < ($2::date + interval '1 day')
        GROUP BY c.id, ct_en.name
        ORDER BY total_sales DESC`,
       [start, end],
@@ -180,7 +180,9 @@ class AdminService {
    */
   static async getMostFrequentlyBoughtProducts(limit = 10, startDate, endDate) {
     const today = new Date().toISOString().split("T")[0];
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000)
+      .toISOString()
+      .split("T")[0];
     const start = startDate || thirtyDaysAgo;
     const end = endDate || today;
     const safeLimit = parseInt(limit) || 10;
@@ -200,7 +202,7 @@ class AdminService {
        JOIN products p ON oi.product_id = p.id
        LEFT JOIN product_translations pt_en ON p.id = pt_en.product_id AND pt_en.lang_code = 'en'
        JOIN orders o ON oi.order_id = o.id
-       WHERE o.status = 'picked_up' AND o.created_at::date BETWEEN $1 AND $2
+       WHERE o.status = 'picked_up' AND o.created_at >= $1::date AND o.created_at < ($2::date + interval '1 day')
        GROUP BY p.id, pt_en.name
        ORDER BY total_quantity DESC, order_count DESC
        LIMIT $3`,
@@ -233,7 +235,7 @@ class AdminService {
               SUM(o.total_amount)  AS total_spent
        FROM users u
        JOIN orders o ON u.id = o.user_id
-       WHERE o.status = 'picked_up' AND o.created_at::date BETWEEN $1 AND $2
+       WHERE o.status = 'picked_up' AND o.created_at >= $1::date AND o.created_at < ($2::date + interval '1 day')
        GROUP BY u.id
        ORDER BY total_spent DESC
        LIMIT $3`,
@@ -246,7 +248,7 @@ class AdminService {
               SUM(o.total_amount)  AS total_revenue
        FROM users u
        JOIN orders o ON u.id = o.user_id
-       WHERE o.status = 'picked_up' AND o.created_at::date BETWEEN $1 AND $2
+       WHERE o.status = 'picked_up' AND o.created_at >= $1::date AND o.created_at < ($2::date + interval '1 day')
        GROUP BY u.user_type`,
       [start, end],
     );
@@ -450,7 +452,7 @@ class AdminService {
           `SELECT o.order_number, u.name AS customer, u.phone, o.status,
                   o.subtotal, o.total_gst, o.total_amount, o.created_at
            FROM orders o JOIN users u ON o.user_id = u.id
-           WHERE o.created_at::date BETWEEN $1 AND $2
+           WHERE o.created_at >= $1::date AND o.created_at < ($2::date + interval '1 day')
            ORDER BY o.created_at DESC`,
           [start, end],
         );
@@ -467,7 +469,7 @@ class AdminService {
           `SELECT i.invoice_number, u.name AS customer, i.subtotal,
                   i.total_gst, i.total_amount, i.payment_status, i.created_at
            FROM invoices i JOIN orders o ON i.order_id = o.id JOIN users u ON o.user_id = u.id
-           WHERE i.created_at::date BETWEEN $1 AND $2
+           WHERE i.created_at >= $1::date AND i.created_at < ($2::date + interval '1 day')
            ORDER BY i.created_at DESC`,
           [start, end],
         );

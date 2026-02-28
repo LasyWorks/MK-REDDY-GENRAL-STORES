@@ -1,34 +1,34 @@
-const { Invoice, Order, AdminLog } = require('../models');
-const ApiError = require('../utils/ApiError');
+const { Invoice, Order, AdminLog } = require("../models");
+const ApiError = require("../utils/ApiError");
 class InvoiceService {
   static async getById(invoiceId) {
     const invoice = await Invoice.findById(invoiceId);
     if (!invoice) {
-      throw ApiError.notFound('Invoice not found');
+      throw ApiError.notFound("Invoice not found");
     }
     return invoice;
   }
-  static async getByOrderId(orderId, lang = 'en') {
+  static async getByOrderId(orderId, lang = "en") {
     const invoice = await Invoice.getFullInvoice(orderId, lang);
     if (!invoice) {
-      throw ApiError.notFound('Invoice not found');
+      throw ApiError.notFound("Invoice not found");
     }
     return invoice;
   }
   static async getByInvoiceNumber(invoiceNumber) {
     const invoice = await Invoice.findByInvoiceNumber(invoiceNumber);
     if (!invoice) {
-      throw ApiError.notFound('Invoice not found');
+      throw ApiError.notFound("Invoice not found");
     }
     return invoice;
   }
   static async getAll(options = {}) {
     return Invoice.findAll(options);
   }
-  static async markPaid(invoiceId, paymentMethod = 'cash', adminId) {
+  static async markPaid(invoiceId, paymentMethod = "cash", adminId) {
     const invoice = await Invoice.findById(invoiceId);
     if (!invoice) {
-      throw ApiError.notFound('Invoice not found');
+      throw ApiError.notFound("Invoice not found");
     }
     // Idempotent - safe to call multiple times without side effects
     if (invoice.is_paid) {
@@ -38,8 +38,8 @@ class InvoiceService {
     // Audit trail for financial compliance - track who marked invoice as paid
     await AdminLog.create({
       adminId,
-      action: 'MARK_INVOICE_PAID',
-      entityType: 'invoice',
+      action: "MARK_INVOICE_PAID",
+      entityType: "invoice",
       entityId: invoiceId,
       newValue: { payment_method: paymentMethod },
     });
@@ -48,18 +48,59 @@ class InvoiceService {
   static async getGSTReport(startDate, endDate) {
     return Invoice.getGSTReport(startDate, endDate);
   }
+  static async generateForOrder(orderId, adminId) {
+    // Check if invoice already exists
+    const existing = await Invoice.findByOrderId(orderId);
+    if (existing) {
+      return Invoice.getFullInvoice(orderId);
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      throw ApiError.notFound("Order not found");
+    }
+
+    // Look up the customer
+    const { queryOne: qOne } = require("../config/database");
+    const user = await qOne(
+      "SELECT id, name, phone, address FROM users WHERE id = $1",
+      [order.user_id],
+    );
+    if (!user) {
+      throw ApiError.notFound("Customer not found");
+    }
+
+    await Invoice.create(order, user);
+
+    if (adminId) {
+      await AdminLog.create({
+        adminId,
+        action: "GENERATE_INVOICE",
+        entityType: "invoice",
+        entityId: orderId,
+        newValue: { order_number: order.order_number },
+      });
+    }
+
+    return Invoice.getFullInvoice(orderId);
+  }
+
   static async generateInvoiceHtml(invoice) {
     const items = invoice.items || [];
-    const itemRows = items.map(item => `
+    const itemRows = items
+      .map(
+        (item) => `
       <tr>
-        <td>${item.product_name || item.name || '-'}</td>
-        <td>${item.unit_type || '-'}</td>
+        <td>${item.product_name || item.name || "-"}</td>
+        <td>${item.unit_type || "-"}</td>
         <td style="text-align:right">${item.quantity}</td>
         <td style="text-align:right">₹${parseFloat(item.unit_price || item.price || 0).toFixed(2)}</td>
         <td style="text-align:right">${item.gst_percentage || 0}%</td>
         <td style="text-align:right">₹${parseFloat(item.gst_amount || 0).toFixed(2)}</td>
         <td style="text-align:right">₹${parseFloat(item.total_price || item.subtotal || 0).toFixed(2)}</td>
-      </tr>`).join('');
+      </tr>`,
+      )
+      .join("");
     return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><title>Invoice ${invoice.invoice_number}</title>
@@ -78,8 +119,8 @@ class InvoiceService {
 <h1>MK Reddy General Stores</h1>
 <h2>Invoice</h2>
 <table class="meta">
-  <tr><td><b>Invoice #:</b></td><td>${invoice.invoice_number}</td><td><b>Date:</b></td><td>${new Date(invoice.created_at).toLocaleDateString('en-IN')}</td></tr>
-  <tr><td><b>Order #:</b></td><td>${invoice.order_number || '-'}</td><td><b>Payment:</b></td><td>${invoice.is_paid ? 'Paid' : 'Pending'}</td></tr>
+  <tr><td><b>Invoice #:</b></td><td>${invoice.invoice_number}</td><td><b>Date:</b></td><td>${new Date(invoice.created_at).toLocaleDateString("en-IN")}</td></tr>
+  <tr><td><b>Order #:</b></td><td>${invoice.order_number || "-"}</td><td><b>Payment:</b></td><td>${invoice.is_paid ? "Paid" : "Pending"}</td></tr>
 </table>
 <table>
   <thead><tr><th>Product</th><th>Unit</th><th>Qty</th><th>Price</th><th>GST%</th><th>GST Amt</th><th>Total</th></tr></thead>
@@ -92,24 +133,24 @@ class InvoiceService {
 </table>
 </body></html>`;
   }
-  static async getRevenueReport(startDate, endDate, groupBy = 'day') {
+  static async getRevenueReport(startDate, endDate, groupBy = "day") {
     return this.getSalesReport(startDate, endDate, groupBy);
   }
   static async getPendingPayments(options = {}) {
-    return this.getAll({ ...options, paymentStatus: 'pending' });
+    return this.getAll({ ...options, paymentStatus: "pending" });
   }
-  static async getSalesReport(startDate, endDate, groupBy = 'day') {
+  static async getSalesReport(startDate, endDate, groupBy = "day") {
     const invoices = await Invoice.findAll({
       startDate,
       endDate,
       isPaid: true,
-      limit: 10000, 
+      limit: 10000,
     });
     const dailySales = {};
     let totalSales = 0;
     let totalGst = 0;
-    invoices.invoices.forEach(invoice => {
-      const date = new Date(invoice.created_at).toISOString().split('T')[0];
+    invoices.invoices.forEach((invoice) => {
+      const date = new Date(invoice.created_at).toISOString().split("T")[0];
       if (!dailySales[date]) {
         dailySales[date] = {
           date,
@@ -134,7 +175,9 @@ class InvoiceService {
         totalGst: parseFloat(totalGst.toFixed(2)),
         totalRevenue: parseFloat((totalSales + totalGst).toFixed(2)),
       },
-      dailySales: Object.values(dailySales).sort((a, b) => a.date.localeCompare(b.date)),
+      dailySales: Object.values(dailySales).sort((a, b) =>
+        a.date.localeCompare(b.date),
+      ),
     };
   }
 }

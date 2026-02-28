@@ -239,12 +239,12 @@ export default function ProductDetailClient({
           { cache: "no-store" },
         );
         if (!res.ok || cancelled) {
-          console.log('Related products fetch failed:', res.status);
+          console.log("Related products fetch failed:", res.status);
           return;
         }
         const json = await res.json();
         const all = json.data || [];
-        console.log('Related products fetched:', all.length);
+        console.log("Related products fetched:", all.length);
         const filtered = all.filter(
           (p) =>
             p.id !== product.id &&
@@ -253,13 +253,13 @@ export default function ProductDetailClient({
               p.brand.toLowerCase() !== product.brand.toLowerCase()),
         );
         if (!cancelled) {
-          console.log('Setting related products:', filtered.length);
+          console.log("Setting related products:", filtered.length);
           setRelated(filtered.slice(0, 8));
           setRelatedCatName(catName);
           setRelatedCatId(parentId || product.category_id);
         }
       } catch (err) {
-        console.error('Related products error:', err);
+        console.error("Related products error:", err);
       }
     }
     fetchRelated();
@@ -280,20 +280,20 @@ export default function ProductDetailClient({
     async function fetchPeopleAlsoBought() {
       try {
         const url = `${API_URL}/products/${product.id}/frequently-bought-together?lang=${lang}&limit=12`;
-        console.log('Fetching people also bought:', url);
+        console.log("Fetching people also bought:", url);
         const res = await fetch(url, { cache: "no-store" });
         if (!res.ok || cancelled) {
-          console.log('People also bought fetch failed:', res.status);
+          console.log("People also bought fetch failed:", res.status);
           return;
         }
         const json = await res.json();
         const items = json.data || [];
-        console.log('People also bought fetched:', items.length, items);
+        console.log("People also bought fetched:", items.length, items);
         if (!cancelled) {
           setPeopleAlsoBought(items);
         }
       } catch (err) {
-        console.error('People also bought error:', err);
+        console.error("People also bought error:", err);
       }
     }
     fetchPeopleAlsoBought();
@@ -440,9 +440,9 @@ export default function ProductDetailClient({
                   className="w-full h-full"
                   style={{
                     backgroundImage: `url(${zoomData.image})`,
-                    backgroundSize: '250%',
+                    backgroundSize: "180%",
                     backgroundPosition: `${zoomData.position.x}% ${zoomData.position.y}%`,
-                    backgroundRepeat: 'no-repeat',
+                    backgroundRepeat: "no-repeat",
                   }}
                 />
               </div>
@@ -737,7 +737,8 @@ export default function ProductDetailClient({
       ) : (
         <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-sm text-yellow-800">
-            Debug: No "People Also Bought" data. Count: {peopleAlsoBought.length}. Check console for API response.
+            Debug: No "People Also Bought" data. Count:{" "}
+            {peopleAlsoBought.length}. Check console for API response.
           </p>
         </div>
       )}
