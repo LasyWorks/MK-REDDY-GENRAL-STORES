@@ -77,6 +77,12 @@ class OrderService {
       logger.error('Email confirmation failed:', err);
     }
     try {
+      // Notify admin about every new order regardless of customer email
+      await EmailService.sendAdminOrderNotification(order, user);
+    } catch (err) {
+      logger.error('Admin order notification email failed:', err);
+    }
+    try {
       await NotificationService.sendWhatsAppConfirmation(user, order);
     } catch (err) {
       logger.error('WhatsApp confirmation failed:', err);
@@ -170,7 +176,19 @@ class OrderService {
         newValue: { status: 'cancelled', reason },
       });
     }
-    return Order.findById(orderId);
+    const cancelledOrder = await Order.findById(orderId);
+    try {
+      const user = await User.findById(order.user_id);
+      // Notify admin about every cancellation
+      await EmailService.sendAdminOrderCancellationNotification(cancelledOrder, user, reason);
+      // Notify customer only if they have an email
+      if (user.email) {
+        await EmailService.sendCustomerOrderCancellationNotification(cancelledOrder, user, reason);
+      }
+    } catch (err) {
+      logger.error('Cancellation email failed:', err);
+    }
+    return cancelledOrder;
   }
   static async getStatistics(startDate = null, endDate = null) {
     return Order.getStatistics(startDate, endDate);

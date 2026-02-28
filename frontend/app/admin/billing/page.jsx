@@ -22,9 +22,10 @@ export default function BillingPage() {
 
   const fetchOrders = async () => {
     try {
-      const res = await api.get("/orders", { status: "picked_up" });
-      // ApiResponse.paginated returns array directly in data
-      setOrders(Array.isArray(res.data) ? res.data : []);
+      const res = await api.get("/orders", { limit: 100 });
+      // ApiResponse.paginated wraps array in res.data
+      const orders = Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []);
+      setOrders(orders);
     } catch (error) {
       console.error("Error fetching orders:", error);
     } finally {

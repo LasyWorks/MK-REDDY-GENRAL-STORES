@@ -1,5 +1,6 @@
-const { Invoice, Order, AdminLog } = require("../models");
-const ApiError = require("../utils/ApiError");
+const { Invoice, Order, User, AdminLog } = require('../models');
+const ApiError = require('../utils/ApiError');
+const logger = require('../utils/logger');
 class InvoiceService {
   static async getById(invoiceId) {
     const invoice = await Invoice.findById(invoiceId);
@@ -8,10 +9,24 @@ class InvoiceService {
     }
     return invoice;
   }
-  static async getByOrderId(orderId, lang = "en") {
-    const invoice = await Invoice.getFullInvoice(orderId, lang);
+  static async getByOrderId(orderId, lang = 'en') {
+    let invoice = await Invoice.getFullInvoice(orderId, lang);
     if (!invoice) {
-      throw ApiError.notFound("Invoice not found");
+      // Auto-create invoice for orders that were created without one (e.g. seeded orders)
+      const order = await Order.findById(orderId, lang);
+      if (!order) {
+        throw ApiError.notFound('Order not found');
+      }
+      const user = await User.findById(order.user_id);
+      if (!user) {
+        throw ApiError.notFound('Order customer not found');
+      }
+      await Invoice.create(order, user);
+      logger.info(`Auto-created invoice for order ${orderId}`);
+      invoice = await Invoice.getFullInvoice(orderId, lang);
+      if (!invoice) {
+        throw ApiError.notFound('Invoice could not be created');
+      }
     }
     return invoice;
   }

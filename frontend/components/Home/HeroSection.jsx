@@ -97,8 +97,10 @@ function useCountdown(endTime) {
       s: Math.floor((diff % 60_000) / 1_000),
     };
   };
-  const [t, setT] = useState(calc);
+  // Start with zeros to match server render — client takes over after mount
+  const [t, setT] = useState({ d: 0, h: 0, m: 0, s: 0 });
   useEffect(() => {
+    setT(calc());
     const id = setInterval(() => setT(calc()), 1000);
     return () => clearInterval(id);
   }, [endTime]);

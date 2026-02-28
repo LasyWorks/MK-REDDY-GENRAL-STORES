@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
 const config = {
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT, 10) || 5001,
@@ -37,6 +37,7 @@ const config = {
     secure: process.env.SMTP_SECURE === 'true',
     user: process.env.SMTP_USER || '',
     password: process.env.SMTP_PASSWORD || '',
+    adminEmail: process.env.ADMIN_EMAIL || '',
   },
   store: {
     name: process.env.STORE_NAME || 'MK Kirrana Stores',

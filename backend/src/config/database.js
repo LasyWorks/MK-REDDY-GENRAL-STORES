@@ -11,8 +11,10 @@ const pool = new Pool({
   database: config.database.name,
   max:      Math.max(20, config.database.connectionLimit),
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  connectionTimeoutMillis: 20000,
   ssl: config.database.ssl,
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000,
 });
 
 pool.on('error', (err) => {
