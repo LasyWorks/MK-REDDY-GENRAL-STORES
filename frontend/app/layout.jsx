@@ -3,6 +3,7 @@ import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import CategoryNav from "@/components/layout/CategoryNav";
 import Footer from "@/components/layout/Footer";
+import CartSidebar from "@/components/cart/CartSidebar";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { CartProvider } from "@/context/CartContext";
 import { PromotionProvider } from "@/context/PromotionContext";
@@ -32,6 +33,7 @@ export default function RootLayout({ children }) {
               <CategoryNav />
               {children}
               <Footer />
+              <CartSidebar />
             </PromotionProvider>
           </CartProvider>
         </LanguageProvider>
