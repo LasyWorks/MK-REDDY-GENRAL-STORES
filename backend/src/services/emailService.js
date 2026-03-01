@@ -81,7 +81,7 @@ class EmailService {
   async send(to, subject, html, text = null) {
     try {
       const mailOptions = {
-        from: `"${config.store.name}" <${config.email.user}>`,
+        from: config.email.from || `"${config.store.name}" <${config.email.user}>`,
         to,
         subject,
         html,
@@ -94,6 +94,51 @@ class EmailService {
       logger.error('Email send failed:', error);
       throw error;
     }
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     OTP EMAIL
+     ───────────────────────────────────────────────────────────── */
+  async sendOTP(email, otp, userName = 'Customer') {
+    if (!email) return { success: false, reason: 'No email provided' };
+
+    const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Your OTP Code</title><style>${BASE_STYLES}</style></head>
+<body><div class="em-outer"><div class="em-wrap">
+  <div class="em-accent"></div>
+  <div class="em-brand"><h2>${config.store.name}</h2><p>Secure Login Verification</p></div>
+  <div class="em-status" style="background:#eff6ff;border-bottom:1px solid #bfdbfe;">
+    <div class="status-icon" style="width:56px;height:56px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#dbeafe;margin-bottom:14px;">
+      <span style="font-size:26px;color:#1e40af;">&#128274;</span></div>
+    <h1 style="color:#1e3a8a;">Your OTP Code</h1>
+    <p>Hi <strong>${userName}</strong>, use this code to complete your login.</p>
+  </div>
+  <div class="em-body" style="padding-top:24px;text-align:center;">
+    <div style="background:#f8fafc;border:2px solid #0d1b3e;border-radius:12px;padding:24px;margin:20px 0;">
+      <div class="meta-label" style="margin-bottom:8px;">Your OTP Code</div>
+      <div style="font-size:42px;font-weight:700;color:#0d1b3e;letter-spacing:8px;font-family:monospace;">${otp}</div>
+    </div>
+    <div class="info-box amber" style="background:#fffbeb;border:1px solid #fde68a;text-align:left;">
+      <div class="info-box-title" style="color:#92400e;">Security Information</div>
+      <ul style="font-size:13px;color:#78350f;line-height:1.9;margin:0;padding-left:20px;">
+        <li>This OTP is valid for <strong>${config.otp.expiryMinutes} minutes</strong></li>
+        <li>Do not share this code with anyone</li>
+        <li>If you didn't request this, please ignore this email</li>
+      </ul>
+    </div>
+  </div>
+  <div class="em-footer">
+    <div class="em-footer-row">
+      <div><div class="em-footer-brand">${config.store.name}</div>
+      ${config.store.gst ? `<div style="color:#64748b;font-size:12px;margin-top:3px;">GSTIN: ${config.store.gst}</div>` : ''}</div>
+      <div class="em-footer-contact">${config.store.phone ? `${config.store.phone}<br>` : ''}${config.store.email ? `${config.store.email}` : ''}</div>
+    </div>
+    <div class="em-footer-legal">This is an auto-generated email. Please do not reply.<br>&copy; ${new Date().getFullYear()} ${config.store.name}. All rights reserved.</div>
+  </div>
+</div></div></body></html>`;
+
+    return this.send(email, `Your OTP Code - ${config.store.name}`, html);
   }
 
   /* ─────────────────────────────────────────────────────────────

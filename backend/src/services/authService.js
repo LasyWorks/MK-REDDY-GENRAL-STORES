@@ -5,6 +5,7 @@ const securityConfig = require('../config/security');
 const { User, OTP, RefreshToken } = require('../models');
 const { generateOTP, hashOTP, getRoleIdByUserType } = require('../utils/helpers');
 const SmsService = require('./smsService');
+const EmailService = require('./emailService');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
 const AccountLockout = require('../utils/accountLockout');
@@ -52,11 +53,35 @@ class AuthService {
     if (user.is_blocked) {
       throw ApiError.forbidden(`Account is blocked: ${user.blocked_reason || 'Contact support'}`);
     }
-    const result = await this.sendOTP(user.phone, 'login');
+
+    // Check if user is trying to request OTPs too quickly (potential abuse)
+    const recentCount = await OTP.countRecent(user.phone, OTP_RESEND_COOLDOWN_SECS);
+    if (recentCount > 0) {
+      throw ApiError.tooManyRequests(
+        `Please wait ${OTP_RESEND_COOLDOWN_SECS} seconds before requesting a new OTP.`
+      );
+    }
+
+    const otp = generateOTP(6);
+    const hashedOTP = hashOTP(otp);
+    await OTP.create(user.phone, hashedOTP, 'login', config.otp.expiryMinutes);
+
+    // Send OTP via email
+    try {
+      await EmailService.sendOTP(email, otp, user.name);
+      logger.info(`OTP email sent successfully to ${email}`);
+    } catch (error) {
+      logger.error(`Failed to send OTP email to ${email}:`, error);
+      throw ApiError.internal('Failed to send OTP email. Please try again.');
+    }
+
     return {
-      ...result,
+      message: 'OTP sent successfully to your email',
+      expiresIn: config.otp.expiryMinutes * 60,
       phone: user.phone, 
       email: user.email,
+      // Only reveal OTP in development for testing
+      ...(config.env === 'development' && { otp }),
     };
   }
   static async verifyCustomerOTP(phone, otp) {

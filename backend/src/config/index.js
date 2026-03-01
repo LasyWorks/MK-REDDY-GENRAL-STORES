@@ -37,6 +37,7 @@ const config = {
     secure: process.env.SMTP_SECURE === 'true',
     user: process.env.SMTP_USER || '',
     password: process.env.SMTP_PASSWORD || '',
+    from: process.env.EMAIL_FROM || process.env.SMTP_USER || '',
     adminEmail: process.env.ADMIN_EMAIL || '',
   },
   store: {
