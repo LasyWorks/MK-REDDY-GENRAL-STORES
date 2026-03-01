@@ -17,8 +17,8 @@ const getInventoryReport = asyncHandler(async (req, res) => {
   ApiResponse.success(res, report);
 });
 const getCustomerReport = asyncHandler(async (req, res) => {
-  const { start_date, end_date, customer_type } = req.query;
-  const report = await AdminService.getCustomerReport(start_date, end_date, customer_type);
+  const { start_date, end_date, limit } = req.query;
+  const report = await AdminService.getCustomerReport(start_date, end_date, parseInt(limit) || 20);
   ApiResponse.success(res, report);
 });
 const getTopProducts = asyncHandler(async (req, res) => {

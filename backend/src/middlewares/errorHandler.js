@@ -9,6 +9,7 @@ const normalizeError = (err) => {
   // Database errors need friendly messages - don't expose internal DB structure
   if (err.code) {
     switch (err.code) {
+      // MySQL errors
       case 'ER_DUP_ENTRY':
         return ApiError.conflict('Duplicate entry. Resource already exists.');
       case 'ER_NO_REFERENCED_ROW':
@@ -16,8 +17,24 @@ const normalizeError = (err) => {
         return ApiError.badRequest('Referenced resource does not exist.');
       case 'ER_ROW_IS_REFERENCED':
       case 'ER_ROW_IS_REFERENCED_2':
-        // Prevent cascade delete issues (e.g., can't delete category with products)
         return ApiError.conflict('Cannot delete. Resource is referenced by other records.');
+      // PostgreSQL errors
+      case '22P02': // invalid_text_representation (e.g. invalid UUID format)
+        return ApiError.badRequest('Invalid ID format.');
+      case '22003': // numeric_value_out_of_range
+        return ApiError.badRequest('Numeric value out of range.');
+      case '23505': // unique_violation
+        return ApiError.conflict('Duplicate entry. Resource already exists.');
+      case '23503': // foreign_key_violation
+        return ApiError.conflict('Cannot complete operation. A related record is still referenced.');
+      case '23502': // not_null_violation
+        return ApiError.badRequest('Missing required field.');
+      case '42703': // undefined_column
+        return ApiError.badRequest('Invalid field name in query.');
+      case '42P01': // undefined_table
+        return ApiError.internal('Database schema error.');
+      case '08006': // connection_failure
+      case '08001': // sqlclient_unable_to_establish_sqlconnection
       case 'ECONNREFUSED':
         return ApiError.internal('Database connection failed.');
       default:

@@ -1,8 +1,14 @@
 const { User, AdminLog } = require('../models');
 const config = require('../config');
 const ApiError = require('../utils/ApiError');
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 class UserService {
   static async getById(id) {
+    if (!id || !UUID_RE.test(id)) {
+      throw ApiError.notFound('User not found');
+    }
     const user = await User.findById(id);
     if (!user) {
       throw ApiError.notFound('User not found');

@@ -72,8 +72,11 @@ class Product {
       params.push(categoryId);
     }
     if (parentCategoryId) {
-      conds.push(`c.parent_id = $${idx++}`);
+      // Match products assigned *directly* to the parent category (legacy flat products)
+      // OR products assigned to any subcategory whose parent is this category
+      conds.push(`(c.parent_id = $${idx} OR p.category_id = $${idx})`);
       params.push(parentCategoryId);
+      idx++;
     }
     if (isActive !== null) {
       conds.push(`p.is_active = $${idx++}`);

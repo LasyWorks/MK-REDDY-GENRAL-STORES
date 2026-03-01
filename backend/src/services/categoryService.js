@@ -1,8 +1,14 @@
 const { Category, AdminLog } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { revalidatePages } = require('../utils/revalidate');
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 class CategoryService {
   static async getById(id, lang = 'en') {
+    if (!id || !UUID_RE.test(id)) {
+      throw ApiError.notFound('Category not found');
+    }
     const category = await Category.findById(id, lang);
     if (!category) {
       throw ApiError.notFound('Category not found');
@@ -94,4 +100,4 @@ class CategoryService {
     };
   }
 }
-module.exports = CategoryService;
+module.exports = CategoryService;

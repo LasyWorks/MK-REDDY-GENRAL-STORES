@@ -90,6 +90,10 @@ class OrderService {
     return order;
   }
   static async getById(orderId, lang = 'en') {
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!orderId || !UUID_RE.test(orderId)) {
+      throw ApiError.notFound('Order not found');
+    }
     const order = await Order.findById(orderId, lang);
     if (!order) {
       throw ApiError.notFound('Order not found');

@@ -8,6 +8,11 @@ const path = require('path');
 const fs = require('fs');
 class ProductService {
   static async getById(id, lang = 'en') {
+    // Validate UUID format before hitting the DB to avoid PostgreSQL 22P02 errors
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!id || !UUID_RE.test(id)) {
+      throw ApiError.notFound('Product not found');
+    }
     const product = await Product.findById(id, lang);
     if (!product) {
       throw ApiError.notFound('Product not found');
