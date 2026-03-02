@@ -21,6 +21,8 @@ export default function Navbar() {
   const languageMenuRef = useRef(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userPicture, setUserPicture] = useState(null);
+  const [userInitials, setUserInitials] = useState("");
 
   useEffect(() => {
     const check = () => {
@@ -30,11 +32,24 @@ export default function Navbar() {
         try {
           const user = JSON.parse(secureStorage.getItem("user") || "{}");
           setIsAdmin(user.user_type === "admin");
+          setUserPicture(user.profile_picture || null);
+          const initials =
+            user.name
+              ?.trim()
+              .split(/\s+/)
+              .slice(0, 2)
+              .map((w) => w[0]?.toUpperCase())
+              .join("") || "?";
+          setUserInitials(initials);
         } catch {
           setIsAdmin(false);
+          setUserPicture(null);
+          setUserInitials("?");
         }
       } else {
         setIsAdmin(false);
+        setUserPicture(null);
+        setUserInitials("");
       }
     };
     check();
@@ -153,7 +168,18 @@ export default function Navbar() {
                   prefetch={false}
                   className="hidden md:flex items-center gap-2 text-gray-700 hover:text-blue-600 font-medium text-[15px] transition-colors"
                 >
-                  <User className="w-5 h-5" />
+                  {userPicture ? (
+                    <img
+                      src={userPicture}
+                      alt="Profile"
+                      className="w-7 h-7 rounded-full object-cover ring-2 ring-blue-200"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                      {userInitials || <User className="w-4 h-4" />}
+                    </div>
+                  )}
                   <span>Profile</span>
                 </Link>
               </>

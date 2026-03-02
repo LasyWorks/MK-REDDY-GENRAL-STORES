@@ -142,7 +142,16 @@ export default function ProfilePage() {
                                  flex items-center justify-center text-white text-3xl font-black select-none
                                  shadow-2xl ring-2 ${theme.ring}`}
                      style={{ letterSpacing: "-1px" }}>
-                  {initials}
+                  {user.profile_picture ? (
+                    <img
+                      src={user.profile_picture}
+                      alt={user.name}
+                      className="w-full h-full rounded-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    initials
+                  )}
                 </div>
               </div>
               {user.is_active && (
