@@ -353,8 +353,8 @@ const authValidation = {
     commonRules.email("email"),
     body("user_type")
       .optional()
-      .isIn(["regular", "premium", "wholesale"])
-      .withMessage("User type must be regular, premium, or wholesale"),
+      .isIn(["retail", "wholesale"])
+      .withMessage("User type must be retail or wholesale"),
     body("address").optional().trim().isLength({ max: 500 }),
     validate,
   ],

@@ -347,21 +347,21 @@ class AuthService {
       throw ApiError.conflict('User with this phone number already exists');
     }
 
-    // Validate user type
-    const validUserTypes = ['regular', 'premium', 'wholesale'];
+    // Validate user type — must match DB CHECK constraint: ('retail','wholesale','admin')
+    const validUserTypes = ['retail', 'wholesale'];
     if (user_type && !validUserTypes.includes(user_type)) {
       throw ApiError.badRequest(`Invalid user type. Must be one of: ${validUserTypes.join(', ')}`);
     }
 
     // Get role ID based on user type
-    const roleId = await getRoleIdByUserType(user_type || 'regular');
+    const roleId = await getRoleIdByUserType(user_type || 'retail');
 
     // Create the user
     const userId = await User.create({
       name,
       phone,
       email,
-      user_type: user_type || 'regular',
+      user_type: user_type || 'retail',
       role_id: roleId,
       address,
       email_verified: true, // Email is verified via OTP

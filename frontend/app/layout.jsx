@@ -7,7 +7,7 @@ import CartSidebar from "@/components/cart/CartSidebar";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { CartProvider } from "@/context/CartContext";
 import { PromotionProvider } from "@/context/PromotionContext";
-import { GoogleOAuthProvider } from '@react-oauth/google';
+import GoogleOAuthWrapper from '@/components/common/GoogleOAuthWrapper';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,7 +31,7 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <GoogleOAuthProvider clientId={googleClientId}>
+        <GoogleOAuthWrapper clientId={googleClientId}>
           <LanguageProvider>
             <CartProvider>
               <PromotionProvider>
@@ -43,7 +43,7 @@ export default function RootLayout({ children }) {
               </PromotionProvider>
             </CartProvider>
           </LanguageProvider>
-        </GoogleOAuthProvider>
+        </GoogleOAuthWrapper>
       </body>
     </html>
   );

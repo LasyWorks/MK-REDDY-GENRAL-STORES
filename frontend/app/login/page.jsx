@@ -38,7 +38,7 @@ function LoginForm() {
   // Phone collection form
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
-  const [userType, setUserType] = useState("regular");
+  const [userType, setUserType] = useState("retail");
   const [address, setAddress] = useState("");
   
   const [loading, setLoading] = useState(false);
@@ -94,7 +94,7 @@ function LoginForm() {
       }
     } catch (err) {
       console.error("Google login error:", err);
-      const errorMessage = err.response?.data?.message || err.message || "Google login failed. Please try again.";
+      const errorMessage = err.message || err.response?.data?.message || "Google login failed. Please try again.";
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -102,7 +102,8 @@ function LoginForm() {
   };
 
   const handleGoogleError = () => {
-    setError("Google login cancelled or failed. Please try again.");
+    // FedCM AbortErrors (user dismissed / navigated away) are harmless — don't show an error UI for those.
+    // Only set an error when the user actually attempted and failed.
   };
 
   const handleGooglePhoneSubmit = async (e) => {
@@ -141,7 +142,7 @@ function LoginForm() {
       setTimeout(() => router.push(redirectTo), 2000);
     } catch (err) {
       console.error("Registration error:", err);
-      setError(err.response?.data?.message || "Registration failed. Please try again.");
+      setError(err.message || err.response?.data?.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -175,7 +176,7 @@ function LoginForm() {
       }
     } catch (err) {
       console.error("Send OTP error:", err);
-      setError(err.response?.data?.message || "Failed to send OTP. Please try again.");
+      setError(err.message || err.response?.data?.message || "Failed to send OTP. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -242,7 +243,7 @@ function LoginForm() {
       console.error("Verify OTP error:", err);
       // Only show error if we haven't already succeeded
       if (step !== "complete") {
-        setError(err.response?.data?.message || "Invalid OTP. Please try again.");
+        setError(err.message || err.response?.data?.message || "Invalid OTP. Please try again.");
       }
       setIsProcessing(false);
       verifyingRef.current = false; // Reset ref lock on error
@@ -285,7 +286,7 @@ function LoginForm() {
       setTimeout(() => router.push(redirectTo), 2000);
     } catch (err) {
       console.error("Registration error:", err);
-      setError(err.response?.data?.message || "Registration failed. Please try again.");
+      setError(err.message || err.response?.data?.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -353,7 +354,6 @@ function LoginForm() {
                   <GoogleLogin
                     onSuccess={handleGoogleSuccess}
                     onError={handleGoogleError}
-                    useOneTap
                     theme="outline"
                     size="large"
                     text="signin_with"
@@ -631,28 +631,17 @@ function LoginForm() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Customer Type
                 </label>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => setUserType("regular")}
+                    onClick={() => setUserType("retail")}
                     className={`py-3 px-4 rounded-xl font-medium text-sm transition-all ${
-                      userType === "regular"
+                      userType === "retail"
                         ? "bg-green-600 text-white shadow-md"
                         : "bg-gray-50 text-gray-700 hover:bg-gray-100"
                     }`}
                   >
-                    🛒 Regular
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setUserType("premium")}
-                    className={`py-3 px-4 rounded-xl font-medium text-sm transition-all ${
-                      userType === "premium"
-                        ? "bg-green-600 text-white shadow-md"
-                        : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    ⭐ Premium
+                    🛒 Retail
                   </button>
                   <button
                     type="button"
