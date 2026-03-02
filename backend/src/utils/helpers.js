@@ -80,36 +80,18 @@ const escapeHtml = (str) => {
   };
   return str.replace(/[&<>"'/]/g, (char) => htmlEscapes[char]);
 };
-/**
- * Truncate string
- * @param {string} str - Input string
- * @param {number} length - Max length
- * @returns {string} Truncated string
- */
+// Shorten text and add ... at the end if too long
 const truncate = (str, length = 100) => {
   if (!str || str.length <= length) return str;
   return `${str.substring(0, length)}...`;
 };
-/**
- * Get multilingual field based on language
- * @param {Object} obj - Object with multilingual fields
- * @param {string} field - Base field name
- * @param {string} lang - Language code
- * @returns {string} Localized value
- */
+// Get the right language version of a field (e.g. name_en or name_te)
 const getLocalizedField = (obj, field, lang = 'en') => {
   const langField = `${field}_${lang}`;
   const defaultField = `${field}_en`;
   return obj[langField] || obj[defaultField] || obj[field] || '';
 };
-/**
- * Auto-generate a SKU from product attributes.
- * Format: {BRAND}-{NAME}-{VARIANT}-{SEQ}  (slugified, upper-case, max ~50 chars)
- * If brand/variant are absent the segments are skipped.
- * @param {{ name_en?: string, brand?: string, variant?: string }} data
- * @param {number} [seq] - optional sequence / counter to append
- * @returns {string} Generated SKU
- */
+// Create a unique product code from brand, name, and variant
 const generateSku = (data = {}, seq) => {
   const parts = [data.brand, data.name_en, data.variant].filter(Boolean);
   let slug = parts
@@ -125,13 +107,9 @@ const generateSku = (data = {}, seq) => {
     : crypto.randomInt(10000, 99999).toString();
   return `${slug}-${suffix}`;
 };
-// ── Role resolver (cached) ──────────────────────────────────────────
+// Role cache for database lookups
 let _roleCache = null;
-/**
- * Get role UUID by role name. Caches all roles on first call.
- * @param {string} roleName - e.g. 'admin', 'retail_customer', 'wholesale_customer'
- * @returns {Promise<string>} UUID of the role
- */
+// Get role ID from database by role name (caches results)
 const getRoleId = async (roleName) => {
   if (!_roleCache) {
     const { query } = require('../config/database');
@@ -143,16 +121,12 @@ const getRoleId = async (roleName) => {
   if (!id) throw new Error(`Role '${roleName}' not found`);
   return id;
 };
-/**
- * Map user_type to role name, then resolve UUID.
- * @param {string} userType - 'admin' | 'retail' | 'wholesale'
- * @returns {Promise<string>} UUID of the corresponding role
- */
+// Convert user type (retail/wholesale) to role ID
 const getRoleIdByUserType = async (userType) => {
   const map = { admin: 'admin', retail: 'retail_customer', wholesale: 'wholesale_customer' };
   return getRoleId(map[userType] || 'retail_customer');
 };
-/** Reset cached roles (useful after migration / tests) */
+// Clear role cache (used for testing)
 const resetRoleCache = () => { _roleCache = null; };
 module.exports = {
   generateOTP,

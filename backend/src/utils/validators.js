@@ -297,6 +297,34 @@ const paginationValidation = [
   validate,
 ];
 const authValidation = {
+  // Google OAuth 2.0 Validation
+  googleLogin: [
+    body("idToken")
+      .trim()
+      .notEmpty()
+      .withMessage("Google ID token is required"),
+    validate,
+  ],
+  googleRegister: [
+    body("name")
+      .trim()
+      .isLength({ min: 2, max: 100 })
+      .withMessage("Name must be between 2 and 100 characters"),
+    commonRules.phone("phone"),
+    commonRules.email("email"),
+    body("googleId")
+      .trim()
+      .notEmpty()
+      .withMessage("Google ID is required"),
+    body("user_type")
+      .optional()
+      .isIn(["retail", "wholesale"])
+      .withMessage("User type must be retail or wholesale"),
+    body("address").optional().trim().isLength({ max: 500 }),
+    body("picture").optional().trim().isURL().withMessage("Picture must be a valid URL"),
+    validate,
+  ],
+  // Legacy SMS/OTP Validation (kept for reference)
   sendOTP: [commonRules.phone("phone"), validate],
   verifyOTP: [commonRules.phone("phone"), commonRules.otp("otp"), validate],
   register: [
@@ -312,6 +340,25 @@ const authValidation = {
     body("address").optional().trim().isLength({ max: 500 }),
     validate,
   ],
+  
+  // Customer Email OTP Validation (New)
+  sendEmailOTP: [commonRules.email("email"), validate],
+  verifyEmailOTP: [commonRules.email("email"), commonRules.otp("otp"), validate],
+  emailOTPRegister: [
+    body("name")
+      .trim()
+      .isLength({ min: 2, max: 100 })
+      .withMessage("Name must be between 2 and 100 characters"),
+    commonRules.phone("phone"),
+    commonRules.email("email"),
+    body("user_type")
+      .optional()
+      .isIn(["regular", "premium", "wholesale"])
+      .withMessage("User type must be regular, premium, or wholesale"),
+    body("address").optional().trim().isLength({ max: 500 }),
+    validate,
+  ],
+  
   adminLogin: [
     body("identifier")
       .trim()
@@ -366,6 +413,11 @@ const adminValidation = {
 const validateSendOTP = authValidation.sendOTP;
 const validateVerifyOTP = authValidation.verifyOTP;
 const validateRegister = authValidation.register;
+const validateSendEmailOTP = authValidation.sendEmailOTP;
+const validateVerifyEmailOTP = authValidation.verifyEmailOTP;
+const validateEmailOTPRegister = authValidation.emailOTPRegister;
+const validateGoogleLogin = authValidation.googleLogin;
+const validateGoogleRegister = authValidation.googleRegister;
 const validateAdminLogin = authValidation.adminLogin;
 const validateRefreshToken = authValidation.refreshToken;
 const validateCreateUser = userValidation.create;
@@ -407,6 +459,11 @@ module.exports = {
   validateSendOTP,
   validateVerifyOTP,
   validateRegister,
+  validateSendEmailOTP,
+  validateVerifyEmailOTP,
+  validateEmailOTPRegister,
+  validateGoogleLogin,
+  validateGoogleRegister,
   validateAdminLogin,
   validateRefreshToken,
   validateCreateUser,

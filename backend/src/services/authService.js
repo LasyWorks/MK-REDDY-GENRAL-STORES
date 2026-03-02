@@ -4,8 +4,8 @@ const config = require('../config');
 const securityConfig = require('../config/security');
 const { User, OTP, RefreshToken } = require('../models');
 const { generateOTP, hashOTP, getRoleIdByUserType } = require('../utils/helpers');
-const SmsService = require('./smsService');
 const EmailService = require('./emailService');
+const GoogleOAuthService = require('./GoogleOAuthService');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
 const AccountLockout = require('../utils/accountLockout');
@@ -13,6 +13,115 @@ const { sendSecurityAlert } = require('../utils/alerting');
 // Prevent OTP spam attacks by limiting resend frequency
 const OTP_RESEND_COOLDOWN_SECS = 30; 
 class AuthService {
+  // Login user with Google account
+  static async googleLogin(idToken, ipAddress = null) {
+    // Verify the Google token and get user info
+    const googleUser = await GoogleOAuthService.verifyIdToken(idToken);
+
+    if (!googleUser.emailVerified) {
+      throw ApiError.forbidden('Please verify your email with Google first');
+    }
+
+    // Check if user exists by email or Google ID
+    let user = await User.findByEmail(googleUser.email);
+
+    // If user doesn't exist, they need to complete registration with phone number
+    if (!user) {
+      logger.info(`New Google user attempting login: ${googleUser.email}`);
+      return {
+        authenticated: false,
+        requiresRegistration: true,
+        requiresPhone: true,
+        googleData: {
+          email: googleUser.email,
+          name: googleUser.name,
+          picture: googleUser.picture,
+          googleId: googleUser.googleId,
+        },
+      };
+    }
+
+    // User exists - perform security checks
+    if (!user.is_active) {
+      throw ApiError.forbidden('Account is inactive. Please contact support.');
+    }
+
+    if (user.is_blocked) {
+      throw ApiError.forbidden(`Account is blocked: ${user.blocked_reason || 'Contact support'}`);
+    }
+
+    // Update Google ID if not set
+    if (!user.google_id) {
+      await User.updateGoogleId(user.id, googleUser.googleId);
+    }
+
+    // Generate tokens and log login
+    const tokens = await this.generateTokens(user, null, ipAddress);
+    await User.updateLastLogin(user.id);
+
+    logger.info(`Successful Google login for user ${user.id} (${user.email})`);
+
+    return {
+      authenticated: true,
+      user: this.sanitizeUser(user),
+      ...tokens,
+    };
+  }
+
+  // Complete registration for new Google users (needs phone number)
+  static async completeGoogleRegistration(userData) {
+    const { name, phone, email, googleId, picture, user_type, address } = userData;
+
+    // Validate required fields
+    if (!email || !googleId || !phone || !name) {
+      throw ApiError.badRequest('Email, Google ID, phone number, and name are required');
+    }
+
+    // Check if user already exists by email
+    const existingUserByEmail = await User.findByEmail(email);
+    if (existingUserByEmail) {
+      throw ApiError.conflict('User with this email already exists');
+    }
+
+    // Check if phone number is already taken
+    const existingUserByPhone = await User.findByPhone(phone);
+    if (existingUserByPhone) {
+      throw ApiError.conflict('User with this phone number already exists');
+    }
+
+    // Check customer limit
+    const customerCount = await User.countCustomers();
+    if (customerCount >= config.limits.maxCustomers) {
+      throw ApiError.forbidden('Maximum customer limit reached. Please contact support.');
+    }
+
+    // Get role ID
+    const roleId = await getRoleIdByUserType(user_type || 'retail');
+
+    // Create user with Google OAuth data
+    const userId = await User.create({
+      name,
+      phone,
+      email,
+      google_id: googleId,
+      profile_picture: picture,
+      user_type: user_type || 'retail',
+      role_id: roleId,
+      address,
+      email_verified: true, // Email is verified by Google
+    });
+
+    const user = await User.findById(userId);
+    const tokens = await this.generateTokens(user);
+
+    logger.info(`New user registered via Google OAuth: ${user.id} (${email})`);
+
+    return {
+      user: this.sanitizeUser(user),
+      ...tokens,
+    };
+  }
+
   static async sendOTP(phone, purpose = 'login') {
     // Check if user is trying to request OTPs too quickly (potential abuse)
     const recentCount = await OTP.countRecent(phone, OTP_RESEND_COOLDOWN_SECS);
@@ -84,6 +193,193 @@ class AuthService {
       ...(config.env === 'development' && { otp }),
     };
   }
+  
+  // Send OTP code to customer's email for login or registration
+  static async sendCustomerEmailOTP(email) {
+    if (!email || !email.includes('@')) {
+      throw ApiError.badRequest('Valid email address is required');
+    }
+
+    // Normalize email to lowercase for consistency
+    email = email.toLowerCase().trim();
+
+    // Check for rate limiting
+    const recentCount = await OTP.countRecentByEmail(email, OTP_RESEND_COOLDOWN_SECS);
+    if (recentCount > 0) {
+      throw ApiError.tooManyRequests(
+        `Please wait ${OTP_RESEND_COOLDOWN_SECS} seconds before requesting a new OTP.`
+      );
+    }
+
+    // Check if user exists
+    const user = await User.findByEmail(email);
+    
+    // If user exists, check account status
+    if (user) {
+      if (!user.is_active) {
+        throw ApiError.forbidden('Account is inactive');
+      }
+      if (user.is_blocked) {
+        throw ApiError.forbidden(`Account is blocked: ${user.blocked_reason || 'Contact support'}`);
+      }
+    }
+
+    const otp = generateOTP(6);
+    const hashedOTP = hashOTP(otp);
+    await OTP.createByEmail(email, hashedOTP, 'login', config.otp.expiryMinutes);
+
+    // Send OTP via email
+    try {
+      await EmailService.sendOTP(email, otp, user?.name || 'User');
+      logger.info(`Customer OTP email sent successfully to ${email}`);
+      
+      // Debug logging in development
+      if (config.env === 'development') {
+        logger.debug(`OTP Generation Debug:
+          Email: ${email}
+          OTP: ${otp}
+          Hashed: ${hashedOTP}
+        `);
+      }
+    } catch (error) {
+      logger.error(`Failed to send customer OTP email to ${email}:`, error);
+      throw ApiError.internal('Failed to send OTP email. Please try again.');
+    }
+
+    return {
+      message: 'OTP sent successfully to your email',
+      expiresIn: config.otp.expiryMinutes * 60,
+      email,
+      // Only reveal OTP in development for testing
+      ...(config.env === 'development' && { otp }),
+    };
+  }
+
+  // Check if OTP code matches and login/register the customer
+  static async verifyCustomerEmailOTP(email, otp) {
+    // Normalize email to lowercase for consistency
+    email = email.toLowerCase().trim();
+    
+    const otpRecord = await OTP.findValidByEmail(email, 'login');
+    
+    if (!otpRecord) {
+      throw ApiError.badRequest('OTP expired or not found');
+    }
+
+    // Prevent brute force attacks by limiting guess attempts per OTP
+    if (otpRecord.attempts >= config.otp.maxAttempts) {
+      await OTP.delete(otpRecord.id);
+      throw ApiError.tooManyRequests('Maximum OTP attempts exceeded. Please request a new OTP.');
+    }
+
+    // Trim and convert to string to ensure consistency
+    const cleanOTP = String(otp).trim();
+    const hashedOTP = hashOTP(cleanOTP);
+    
+    // Debug logging in development
+    if (config.env === 'development') {
+      logger.debug(`OTP Verification Debug:
+        Email: ${email}
+        Input OTP: "${otp}" (type: ${typeof otp})
+        Cleaned OTP: "${cleanOTP}"
+        Input Hash: ${hashedOTP}
+        Stored Hash: ${otpRecord.otp_hash}
+        Match: ${hashedOTP === otpRecord.otp_hash}
+      `);
+    }
+    
+    if (hashedOTP !== otpRecord.otp_hash) {
+      await OTP.incrementAttempts(otpRecord.id);
+      throw ApiError.badRequest('Invalid OTP');
+    }
+
+    await OTP.markVerified(otpRecord.id);
+    await OTP.delete(otpRecord.id);
+
+    let user = await User.findByEmail(email);
+
+    // User verified email but hasn't registered yet - require phone number
+    if (!user) {
+      return {
+        authenticated: false,
+        requiresRegistration: true,
+        requiresPhone: true,
+        email,
+      };
+    }
+
+    if (!user.is_active) {
+      throw ApiError.forbidden('Account is inactive');
+    }
+
+    if (user.is_blocked) {
+      throw ApiError.forbidden(`Account is blocked: ${user.blocked_reason || 'Contact support'}`);
+    }
+
+    const tokens = await this.generateTokens(user);
+    await User.updateLastLogin(user.id);
+
+    return {
+      authenticated: true,
+      user: this.sanitizeUser(user),
+      ...tokens,
+    };
+  }
+
+  // Complete registration for new email users (needs phone number and name)
+  static async completeEmailOTPRegistration(userData) {
+    const { name, phone, email, user_type, address } = userData;
+
+    // Validate required fields - phone is mandatory
+    if (!email || !phone || !name) {
+      throw ApiError.badRequest('Email, phone number, and name are required');
+    }
+
+    // Check if user already exists by email
+    const existingUserByEmail = await User.findByEmail(email);
+    if (existingUserByEmail) {
+      throw ApiError.conflict('User with this email already exists');
+    }
+
+    // Check if phone number is already taken
+    const existingUserByPhone = await User.findByPhone(phone);
+    if (existingUserByPhone) {
+      throw ApiError.conflict('User with this phone number already exists');
+    }
+
+    // Validate user type
+    const validUserTypes = ['regular', 'premium', 'wholesale'];
+    if (user_type && !validUserTypes.includes(user_type)) {
+      throw ApiError.badRequest(`Invalid user type. Must be one of: ${validUserTypes.join(', ')}`);
+    }
+
+    // Get role ID based on user type
+    const roleId = await getRoleIdByUserType(user_type || 'regular');
+
+    // Create the user
+    const userId = await User.create({
+      name,
+      phone,
+      email,
+      user_type: user_type || 'regular',
+      role_id: roleId,
+      address,
+      email_verified: true, // Email is verified via OTP
+    });
+
+    const user = await User.findById(userId);
+
+    // Generate tokens
+    const tokens = await this.generateTokens(user);
+
+    logger.info(`New user registered via email OTP: ${email} (ID: ${userId})`);
+
+    return {
+      user: this.sanitizeUser(user),
+      ...tokens,
+    };
+  }
+  
   static async verifyCustomerOTP(phone, otp) {
     const otpRecord = await OTP.findValid(phone, 'login');
     if (!otpRecord) {
@@ -315,12 +611,16 @@ class AuthService {
     return {
       id: user.id,
       name: user.name,
+      first_name: user.first_name,
+      last_name: user.last_name,
       phone: user.phone,
       email: user.email,
+      profile_picture: user.profile_picture,
       user_type: user.user_type,
       role: user.role_name,
       address: user.address,
       is_active: user.is_active,
+      email_verified: user.email_verified,
       last_login_at: user.last_login_at,
       created_at: user.created_at,
     };

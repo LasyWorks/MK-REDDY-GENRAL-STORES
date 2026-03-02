@@ -25,11 +25,11 @@ class User {
     );
   }
   static async create(userData) {
-    const { name, phone, email, user_type, role_id, address, password_hash } = userData;
+    const { name, phone, email, user_type, role_id, address, password_hash, google_id, profile_picture, email_verified } = userData;
     return insert(
-      `INSERT INTO users (name, phone, email, user_type, role_id, address, password_hash)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-      [name, phone, email || null, user_type, role_id, address || null, password_hash || null]
+      `INSERT INTO users (name, phone, email, user_type, role_id, address, password_hash, google_id, profile_picture, email_verified)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
+      [name, phone, email || null, user_type, role_id, address || null, password_hash || null, google_id || null, profile_picture || null, email_verified || false]
     );
   }
   static async update(id, userData) {
@@ -102,5 +102,9 @@ class User {
   static async updateLastLogin(id) {
     return modify('UPDATE users SET last_login_at = NOW() WHERE id = $1', [id]);
   }
+  
+  static async updateGoogleId(id, googleId) {
+    return modify('UPDATE users SET google_id = $1 WHERE id = $2', [googleId, id]);
+  }
 }
-module.exports = User;
+module.exports = User;

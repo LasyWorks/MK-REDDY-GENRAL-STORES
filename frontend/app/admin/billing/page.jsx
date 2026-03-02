@@ -22,7 +22,8 @@ export default function BillingPage() {
 
   const fetchOrders = async () => {
     try {
-      const res = await api.get("/orders", { limit: 100 });
+      // Only fetch picked_up orders for billing
+      const res = await api.get("/orders", { limit: 100, status: "picked_up" });
       // ApiResponse.paginated wraps array in res.data
       const orders = Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []);
       setOrders(orders);

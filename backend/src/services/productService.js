@@ -3,6 +3,7 @@ const config = require('../config');
 const ApiError = require('../utils/ApiError');
 const { generateSku } = require('../utils/helpers');
 const { revalidatePages } = require('../utils/revalidate');
+const { invalidateCache } = require('../middlewares/cache');
 const ExcelJS = require('exceljs');
 const path = require('path');
 const fs = require('fs');
@@ -56,6 +57,10 @@ class ProductService {
       entityId: productId,
       newValue: productData,
     });
+    // Invalidate product cache so new product appears in API responses
+    invalidateCache('products', '/api/v1/products');
+    invalidateCache('responses', '/api/v1/products');
+    
     // Trigger frontend cache refresh so new product appears immediately on website
     await revalidatePages({
       tags: ['products', `category-${productData.category_id}`],
@@ -97,6 +102,12 @@ class ProductService {
       newValue: productData,
     });
     const categoryId = productData.category_id || oldData.category_id;
+    
+    // Invalidate caches for updated product and its category
+    invalidateCache('products', `/api/v1/products/${id}`);
+    invalidateCache('products', '/api/v1/products');
+    invalidateCache('responses', '/api/v1/products');
+    
     await revalidatePages({
       tags: ['products', `product-${id}`, `category-${categoryId}`],
       paths: [`/categories/${categoryId}`],
@@ -110,6 +121,12 @@ class ProductService {
     }
     // Soft delete: keep product in database for order history, just hide from customers
     await Product.update(id, { is_active: false });
+    
+    // Invalidate product caches
+    invalidateCache('products', `/api/v1/products/${id}`);
+    invalidateCache('products', '/api/v1/products');
+    invalidateCache('responses', '/api/v1/products');
+    
     await AdminLog.create({
       adminId,
       action: 'DEACTIVATE_PRODUCT',

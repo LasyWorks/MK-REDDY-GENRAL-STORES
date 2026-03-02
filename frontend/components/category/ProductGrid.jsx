@@ -1,4 +1,4 @@
-import ProductCard from "./ProductCard";
+import LazyProductCard from "./LazyProductCard";
 import ProductSkeleton from "./ProductSkeleton";
 import EmptyState from "./EmptyState";
 
@@ -19,8 +19,8 @@ export default function ProductGrid({ products, loading }) {
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
-      {products.map((product) => (
-        <ProductCard key={product.id} product={product} />
+      {products.map((product, index) => (
+        <LazyProductCard key={product.id} product={product} index={index} />
       ))}
     </div>
   );

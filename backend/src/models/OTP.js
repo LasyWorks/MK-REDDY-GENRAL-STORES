@@ -11,12 +11,42 @@ class OTP {
       [phone, otpHash, purpose, expiresAt]
     );
   }
+  
+  // Create OTP for email-based authentication
+  static async createByEmail(email, otpHash, purpose = 'login', expiryMinutes = 5) {
+    // Normalize email to lowercase
+    email = email.toLowerCase().trim();
+    
+    await modify(
+      'DELETE FROM otps WHERE email = $1 AND purpose = $2',
+      [email, purpose]
+    );
+    const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
+    return insert(
+      'INSERT INTO otps (email, otp_hash, purpose, expires_at) VALUES ($1, $2, $3, $4) RETURNING id',
+      [email, otpHash, purpose, expiresAt]
+    );
+  }
+  
   static async findValid(phone, purpose = 'login') {
     return queryOne(
       `SELECT * FROM otps
        WHERE phone = $1 AND purpose = $2 AND expires_at > NOW() AND is_verified = FALSE
        ORDER BY created_at DESC LIMIT 1`,
       [phone, purpose]
+    );
+  }
+  
+  // Find valid OTP by email
+  static async findValidByEmail(email, purpose = 'login') {
+    // Normalize email to lowercase
+    email = email.toLowerCase().trim();
+    
+    return queryOne(
+      `SELECT * FROM otps
+       WHERE email = $1 AND purpose = $2 AND expires_at > NOW() AND is_verified = FALSE
+       ORDER BY created_at DESC LIMIT 1`,
+      [email, purpose]
     );
   }
   static async incrementAttempts(id) {
@@ -45,5 +75,18 @@ class OTP {
     );
     return parseInt(result.count, 10);
   }
+  
+  // Count recent OTP requests by email (for rate limiting)
+  static async countRecentByEmail(email, windowSeconds = 30) {
+    // Normalize email to lowercase
+    email = email.toLowerCase().trim();
+    
+    const result = await queryOne(
+      `SELECT COUNT(*) AS count FROM otps
+       WHERE email = $1 AND created_at > NOW() - ($2 * INTERVAL '1 second')`,
+      [email, windowSeconds]
+    );
+    return parseInt(result.count, 10);
+  }
 }
-module.exports = OTP;
+module.exports = OTP;

@@ -6,6 +6,7 @@ const {
   authorize,
   optionalAuth,
 } = require("../middlewares/auth");
+const { cacheMiddleware } = require("../middlewares/cache");
 const {
   validateCreateCategory,
   validateUpdateCategory,
@@ -19,12 +20,13 @@ router.get(
   categoryController.getAllCategoriesAdmin,
 );
 
-// ── Public / optional-auth routes ─────────────────────────────────────────
-router.get("/", optionalAuth, categoryController.getAllCategories);
-router.get("/:id", optionalAuth, categoryController.getCategoryById);
+// ── Public / optional-auth routes with caching ─────────────────────────────
+router.get("/", optionalAuth, cacheMiddleware('categories', 600), categoryController.getAllCategories);
+router.get("/:id", optionalAuth, cacheMiddleware('categories', 600), categoryController.getCategoryById);
 router.get(
   "/:id/products",
   optionalAuth,
+  cacheMiddleware('products', 300),
   categoryController.getCategoryProducts,
 );
 

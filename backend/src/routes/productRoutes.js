@@ -6,6 +6,7 @@ const {
   authorize,
   optionalAuth,
 } = require("../middlewares/auth");
+const { cacheMiddleware } = require("../middlewares/cache");
 const { uploadExcel } = require("../middlewares/upload");
 const {
   validateCreateProduct,
@@ -33,15 +34,16 @@ router.get(
   productController.downloadTemplate,
 );
 
-// ── Public / optional-auth routes ─────────────────────────────────────────
-router.get("/", optionalAuth, productController.getAllProducts);
-router.get("/search", optionalAuth, productController.searchProducts);
+// ── Public / optional-auth routes with caching ────────────────────────────
+router.get("/", optionalAuth, cacheMiddleware('products', 180), productController.getAllProducts);
+router.get("/search", optionalAuth, cacheMiddleware('products', 120), productController.searchProducts);
 router.get(
   "/:id/frequently-bought-together",
   optionalAuth,
+  cacheMiddleware('products', 300),
   productController.getFrequentlyBoughtTogether,
 );
-router.get("/:id", optionalAuth, productController.getProductById);
+router.get("/:id", optionalAuth, cacheMiddleware('products', 300), productController.getProductById);
 
 // ── Admin-only mutation routes ─────────────────────────────────────────────
 router.use(authenticate);

@@ -1,6 +1,39 @@
 const { AuthService } = require('../services');
 const { asyncHandler } = require('../middlewares');
 const ApiResponse = require('../utils/ApiResponse');
+
+// Google OAuth Login - New primary authentication method
+const googleLogin = asyncHandler(async (req, res) => {
+  const { idToken } = req.body;
+  const ipAddress = req.ip || req.connection.remoteAddress;
+  
+  const result = await AuthService.googleLogin(idToken, ipAddress);
+  
+  if (result.requiresRegistration) {
+    ApiResponse.success(res, result, 'Google authentication successful. Please complete registration.');
+  } else {
+    ApiResponse.success(res, result, 'Login successful');
+  }
+});
+
+// Complete Google OAuth registration with phone number
+const completeGoogleRegistration = asyncHandler(async (req, res) => {
+  const { name, phone, email, googleId, picture, user_type, address } = req.body;
+  
+  const result = await AuthService.completeGoogleRegistration({
+    name,
+    phone,
+    email,
+    googleId,
+    picture,
+    user_type,
+    address,
+  });
+  
+  ApiResponse.created(res, result, 'Registration completed successfully');
+});
+
+// Legacy OTP methods - Kept for admin email-based authentication only
 const sendOTP = asyncHandler(async (req, res) => {
   const { phone } = req.body;
   const result = await AuthService.sendOTP(phone);
@@ -72,10 +105,46 @@ const changePassword = asyncHandler(async (req, res) => {
   const result = await PasswordService.changePassword(req.user.id, currentPassword, newPassword);
   ApiResponse.success(res, result, result.message);
 });
+
+// Customer Email OTP Login
+const sendCustomerEmailOTP = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  const result = await AuthService.sendCustomerEmailOTP(email);
+  ApiResponse.success(res, result, 'OTP sent successfully');
+});
+
+const verifyCustomerEmailOTP = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+  const result = await AuthService.verifyCustomerEmailOTP(email, otp);
+  
+  if (result.requiresRegistration) {
+    ApiResponse.success(res, result, 'OTP verified. Please complete registration with phone number.');
+  } else {
+    ApiResponse.success(res, result, 'Login successful');
+  }
+});
+
+const completeEmailOTPRegistration = asyncHandler(async (req, res) => {
+  const { name, phone, email, user_type, address } = req.body;
+  const result = await AuthService.completeEmailOTPRegistration({
+    name,
+    phone,
+    email,
+    user_type,
+    address,
+  });
+  ApiResponse.created(res, result, 'Registration completed successfully');
+});
+
 module.exports = {
+  googleLogin,
+  completeGoogleRegistration,
   sendOTP,
   sendOTPByEmail,
+  sendCustomerEmailOTP,
   verifyOTP,
+  verifyCustomerEmailOTP,
+  completeEmailOTPRegistration,
   resendOTP,
   register,
   adminLogin,

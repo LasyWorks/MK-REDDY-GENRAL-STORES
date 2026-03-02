@@ -5,38 +5,48 @@ import Link from "next/link";
 import {
   PhoneIcon as Phone,
   ShieldCheckIcon as ShieldCheck,
-  ArrowRightIcon as ArrowRight,
-  ArrowPathIcon,
   UserIcon as User,
   MapPinIcon as MapPin,
-  EnvelopeIcon as Mail,
   CheckCircleIcon as CheckCircle2,
   BuildingStorefrontIcon as Store,
+  EnvelopeIcon as Mail,
+  KeyIcon as Key,
 } from "@heroicons/react/24/outline";
-const RotateCcw = ArrowPathIcon;
-const Loader2 = ArrowPathIcon;
+import { GoogleLogin } from '@react-oauth/google';
 import api from "@/lib/api";
 import secureStorage from "@/lib/secureStorage";
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/";
-  const [step, setStep] = useState("phone");
-  const [loginMethod, setLoginMethod] = useState("phone");
-  const [phone, setPhone] = useState("");
+  
+  // Login method: 'select', 'google', 'email'
+  const [loginMethod, setLoginMethod] = useState("select");
+  
+  // Steps: 'method-select', 'email-input', 'otp-verify', 'phone-collection', 'complete'
+  const [step, setStep] = useState("method-select");
+  
+  // Google OAuth data
+  const [googleData, setGoogleData] = useState(null);
+  
+  // Email OTP data
   const [email, setEmail] = useState("");
-  const [sentToEmail, setSentToEmail] = useState("");
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-  const otpRefs = useRef([]);
-  const [countdown, setCountdown] = useState(0);
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  
+  // Phone collection form
+  const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
-  const [registerEmail, setRegisterEmail] = useState("");
-  const [registerPhone, setRegisterPhone] = useState("");
-  const [userType, setUserType] = useState("retail");
+  const [userType, setUserType] = useState("regular");
   const [address, setAddress] = useState("");
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false); // Prevent double submission
+  const verifyingRef = useRef(false); // Ref-based lock for OTP verification
+
   useEffect(() => {
     if (
       typeof window !== "undefined" &&
@@ -46,618 +56,727 @@ function LoginForm() {
       router.replace("/");
     }
   }, [router]);
-  useEffect(() => {
-    if (countdown <= 0) return;
-    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [countdown]);
-  useEffect(() => {
-    if (step === "otp") setTimeout(() => otpRefs.current[0]?.focus(), 80);
-  }, [step]);
-  async function handleSendOTP(e) {
-    e?.preventDefault();
-    if (loginMethod === "phone") {
-      if (!/^[6-9]\d{9}$/.test(phone)) {
-        setError("Enter a valid 10-digit Indian mobile number");
-        return;
-      }
-      setError("");
-      setLoading(true);
-      try {
-        await api.post("/auth/otp/send", { phone });
-        setSentToEmail("");
-        setStep("otp");
-        setOtp(["", "", "", "", "", ""]);
-        setCountdown(30);
-      } catch (err) {
-        setError(err.message || "Failed to send OTP. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      if (!email || !email.includes("@")) {
-        setError("Enter a valid email address");
-        return;
-      }
-      setError("");
-      setLoading(true);
-      try {
-        const res = await api.post("/auth/otp/send-by-email", { email });
-        setPhone(res.data.phone);
-        setSentToEmail(email);
-        setStep("otp");
-        setOtp(["", "", "", "", "", ""]);
-        setCountdown(30);
-      } catch (err) {
-        setError(err.message || "Failed to send OTP. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    }
-  }
-  async function doVerify(otpStr) {
-    setError("");
+
+  // Google OAuth Handlers
+  const handleGoogleSuccess = async (credentialResponse) => {
     setLoading(true);
-    try {
-      const res = await api.post("/auth/otp/verify", { phone, otp: otpStr });
-      if (res.data?.requiresRegistration) {
-        if (sentToEmail) {
-          setRegisterEmail(sentToEmail);
-        }
-        setStep("register");
-      } else {
-        secureStorage.setItem("token", res.data.accessToken);
-        secureStorage.setItem("refreshToken", res.data.refreshToken);
-        secureStorage.setItem("user", JSON.stringify(res.data.user));
-        window.dispatchEvent(new Event("authChange"));
-        setSuccess("Login successful! Redirecting…");
-        setTimeout(() => router.push(redirectTo), 600);
-      }
-    } catch (err) {
-      setError(err.message || "Invalid OTP. Please try again.");
-      setOtp(["", "", "", "", "", ""]);
-      setTimeout(() => otpRefs.current[0]?.focus(), 60);
-    } finally {
-      setLoading(false);
-    }
-  }
-  function handleVerifyOTP(e) {
-    e?.preventDefault();
-    doVerify(otp.join(""));
-  }
-  async function handleResend() {
-    if (countdown > 0) return;
     setError("");
-    setLoading(true);
+    
     try {
-      await api.post("/auth/otp/resend", { phone });
-      setOtp(["", "", "", "", "", ""]);
-      setCountdown(30);
-      setTimeout(() => otpRefs.current[0]?.focus(), 80);
-    } catch (err) {
-      setError(err.message || "Failed to resend OTP.");
-    } finally {
-      setLoading(false);
-    }
-  }
-  async function handleRegister(e) {
-    e.preventDefault();
-    if (!name.trim()) {
-      setError("Full name is required");
-      return;
-    }
-    const phoneToUse = phone || registerPhone;
-    if (!phoneToUse || !/^[6-9]\d{9}$/.test(phoneToUse)) {
-      setError("Valid phone number is required");
-      return;
-    }
-    setError("");
-    setLoading(true);
-    try {
-      const res = await api.post("/auth/register", {
-        name: name.trim(),
-        phone: phoneToUse,
-        user_type: userType,
-        ...(registerEmail.trim() && { email: registerEmail.trim() }),
-        ...(address.trim() && { address: address.trim() }),
+      const { data } = await api.post("/auth/google/login", {
+        idToken: credentialResponse.credential,
       });
-      if (res.data?.accessToken && res.data?.user) {
-        secureStorage.setItem("token", res.data.accessToken);
-        secureStorage.setItem("refreshToken", res.data.refreshToken);
-        secureStorage.setItem("user", JSON.stringify(res.data.user));
-        window.dispatchEvent(new Event("authChange"));
-        setSuccess("Account created successfully! Redirecting…");
-        setTimeout(() => router.push(redirectTo), 600);
+
+      if (!data) {
+        throw new Error("Invalid response from server");
+      }
+
+      if (data.requiresRegistration) {
+        // New user - needs to provide phone number
+        setGoogleData(data.googleData);
+        setName(data.googleData.name || "");
+        setEmail(data.googleData.email || "");
+        setStep("phone-collection");
+        setSuccess("Google authentication successful! Please provide your phone number to complete registration.");
       } else {
-        await api.post("/auth/otp/send", { phone: phoneToUse });
-        setSuccess("Account created! Enter the OTP to sign in.");
-        setOtp(["", "", "", "", "", ""]);
-        setCountdown(30);
-        setStep("otp");
+        // Existing user - login successful
+        const { user, accessToken, refreshToken } = data;
+        secureStorage.setItem("token", accessToken);
+        secureStorage.setItem("refreshToken", refreshToken);
+        secureStorage.setItem("user", JSON.stringify(user));
+        
+        // Dispatch auth change event for Navbar to update
+        window.dispatchEvent(new Event("authChange"));
+        
+        setSuccess("Login successful! Redirecting...");
+        setStep("complete");
+        setTimeout(() => router.push(redirectTo), 1000);
       }
     } catch (err) {
-      setError(err.message || "Registration failed. Please try again.");
+      console.error("Google login error:", err);
+      const errorMessage = err.response?.data?.message || err.message || "Google login failed. Please try again.";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  }
-  function handleOtpChange(idx, val) {
-    const digit = val.replace(/\D/g, "").slice(-1);
-    const next = [...otp];
-    next[idx] = digit;
-    setOtp(next);
-    setError("");
-    if (digit && idx < 5) otpRefs.current[idx + 1]?.focus();
-    if (digit && idx === 5 && next.every(Boolean)) {
-      setTimeout(() => doVerify(next.join("")), 80);
-    }
-  }
-  function handleOtpKeyDown(idx, e) {
-    if (e.key === "Backspace" && !otp[idx] && idx > 0)
-      otpRefs.current[idx - 1]?.focus();
-  }
-  function handleOtpPaste(e) {
+  };
+
+  const handleGoogleError = () => {
+    setError("Google login cancelled or failed. Please try again.");
+  };
+
+  const handleGooglePhoneSubmit = async (e) => {
     e.preventDefault();
-    const pasted = e.clipboardData
-      .getData("text")
-      .replace(/\D/g, "")
-      .slice(0, 6);
-    if (!pasted) return;
-    const next = ["", "", "", "", "", ""];
-    for (let i = 0; i < pasted.length; i++) next[i] = pasted[i];
-    setOtp(next);
-    otpRefs.current[Math.min(pasted.length, 5)]?.focus();
-    if (pasted.length === 6) setTimeout(() => doVerify(pasted), 80);
-  }
+    
+    if (!phone || phone.length < 10) {
+      setError("Please enter a valid 10-digit phone number");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const { data } = await api.post("/auth/google/register", {
+        name,
+        phone,
+        email: googleData.email,
+        googleId: googleData.googleId,
+        picture: googleData.picture,
+        user_type: userType,
+        address,
+      });
+
+      const { user, accessToken, refreshToken } = data;
+      secureStorage.setItem("token", accessToken);
+      secureStorage.setItem("refreshToken", refreshToken);
+      secureStorage.setItem("user", JSON.stringify(user));
+
+      // Dispatch auth change event for Navbar to update
+      window.dispatchEvent(new Event("authChange"));
+
+      setSuccess("Registration completed successfully! Redirecting...");
+      setStep("complete");
+      
+      setTimeout(() => router.push(redirectTo), 2000);
+    } catch (err) {
+      console.error("Registration error:", err);
+      setError(err.response?.data?.message || "Registration failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Email OTP Handlers
+  const handleSendOTP = async (e) => {
+    e.preventDefault();
+    
+    if (!email || !email.includes('@')) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      // Normalize email to lowercase
+      const normalizedEmail = email.toLowerCase().trim();
+      setEmail(normalizedEmail);
+      
+      const { data } = await api.post("/auth/email-otp/send", { email: normalizedEmail });
+      setSuccess(data.message || "OTP sent successfully! Please check your email.");
+      setOtpSent(true);
+      setStep("otp-verify");
+      
+      // Auto-show OTP in development
+      if (data?.otp) {
+        console.log("Development OTP:", data.otp);
+      }
+    } catch (err) {
+      console.error("Send OTP error:", err);
+      setError(err.response?.data?.message || "Failed to send OTP. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!otp || otp.length !== 6) {
+      setError("Please enter a valid 6-digit OTP");
+      return;
+    }
+
+    // Prevent double submission - use ref for immediate check (state updates are async)
+    if (verifyingRef.current || isProcessing || loading) {
+      console.log("Already processing OTP verification, ignoring duplicate request");
+      return;
+    }
+
+    // Lock immediately with ref
+    verifyingRef.current = true;
+    setIsProcessing(true);
+    setLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      console.log("Sending OTP verification request...");
+      const { data } = await api.post("/auth/email-otp/verify", { email, otp });
+      console.log("OTP verification response:", data);
+
+      if (!data) {
+        throw new Error("Invalid response from server");
+      }
+
+      if (data.requiresRegistration) {
+        // New user - needs to provide phone number
+        setStep("phone-collection");
+        setSuccess("Email verified! Please provide your phone number to complete registration.");
+        setIsProcessing(false);
+        verifyingRef.current = false;
+      } else {
+        // Existing user - login successful
+        const { user, accessToken, refreshToken } = data;
+        console.log("Login successful, storing tokens...");
+        
+        secureStorage.setItem("token", accessToken);
+        secureStorage.setItem("refreshToken", refreshToken);
+        secureStorage.setItem("user", JSON.stringify(user));
+        
+        // Dispatch auth change event for Navbar to update
+        window.dispatchEvent(new Event("authChange"));
+        
+        setSuccess("Login successful! Redirecting...");
+        setStep("complete");
+        setLoading(false);
+        
+        // Redirect immediately
+        console.log("Redirecting to:", redirectTo);
+        router.push(redirectTo);
+      }
+    } catch (err) {
+      console.error("Verify OTP error:", err);
+      // Only show error if we haven't already succeeded
+      if (step !== "complete") {
+        setError(err.response?.data?.message || "Invalid OTP. Please try again.");
+      }
+      setIsProcessing(false);
+      verifyingRef.current = false; // Reset ref lock on error
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEmailOTPPhoneSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!phone || phone.length < 10) {
+      setError("Please enter a valid 10-digit phone number");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const { data } = await api.post("/auth/email-otp/register", {
+        name,
+        phone,
+        email,
+        user_type: userType,
+        address,
+      });
+
+      const { user, accessToken, refreshToken } = data;
+      secureStorage.setItem("token", accessToken);
+      secureStorage.setItem("refreshToken", refreshToken);
+      secureStorage.setItem("user", JSON.stringify(user));
+
+      // Dispatch auth change event for Navbar to update
+      window.dispatchEvent(new Event("authChange"));
+
+      setSuccess("Registration completed successfully! Redirecting...");
+      setStep("complete");
+      
+      setTimeout(() => router.push(redirectTo), 2000);
+    } catch (err) {
+      console.error("Registration error:", err);
+      setError(err.response?.data?.message || "Registration failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    setOtp("");
+    setError("");
+    setSuccess("");
+    setIsProcessing(false); // Reset processing flag for new OTP
+    await handleSendOTP({ preventDefault: () => {} });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-sm">
-        {}
+      <div className="w-full max-w-md">
+        {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-green-600 rounded-2xl shadow-lg mb-4">
-            <Store className="w-7 h-7 text-white" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-600 rounded-2xl shadow-lg mb-4">
+            <Store className="w-9 h-9 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">MK Reddy Stores</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            {step === "phone" && "Sign in or create a new account"}
-            {step === "otp" && "Verify your mobile number"}
-            {step === "register" && "Complete your profile to get started"}
+          <h1 className="text-3xl font-bold text-gray-900">MK Reddy Stores</h1>
+          <p className="text-sm text-gray-500 mt-2">
+            {step === "method-select" && "Choose your sign-in method"}
+            {step === "email-input" && "Sign in with Email OTP"}
+            {step === "otp-verify" && "Verify your OTP"}
+            {step === "phone-collection" && "Complete your profile"}
+            {step === "complete" && "Welcome to MK Reddy Stores!"}
           </p>
         </div>
-        {}
-        {(step === "otp" || step === "register") && (
-          <div className="flex items-center justify-center gap-2 mb-5">
-            {["Phone", "OTP", "Profile"].map((label, i) => {
-              const currentIdx = step === "otp" ? 1 : 2;
-              const done = i < currentIdx;
-              const active = i === currentIdx;
-              return (
-                <div key={label} className="flex items-center gap-2">
-                  <div
-                    className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold transition-colors ${
-                      done
-                        ? "bg-green-600 text-white"
-                        : active
-                          ? "bg-green-600 text-white ring-2 ring-green-200"
-                          : "bg-gray-200 text-gray-500"
-                    }`}
-                  >
-                    {done ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
-                  </div>
-                  <span
-                    className={`text-xs font-medium ${done || active ? "text-green-700" : "text-gray-400"}`}
-                  >
-                    {label}
-                  </span>
-                  {i < 2 && (
-                    <div
-                      className={`w-6 h-px ${done ? "bg-green-400" : "bg-gray-200"}`}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-        {}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
+
+        {/* Main Card */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
           {success && (
-            <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm rounded-xl px-4 py-3 mb-4">
-              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              {success}
+            <div className="flex items-center gap-3 bg-green-50 border border-green-200 text-green-700 text-sm rounded-xl px-4 py-3 mb-6">
+              <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+              <span>{success}</span>
             </div>
           )}
+          
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3 mb-4">
+            <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3 mb-6">
               {error}
             </div>
           )}
-          {}
-          {step === "phone" && (
-            <form onSubmit={handleSendOTP} className="space-y-5">
-              {}
-              <div className="flex gap-2 p-1 bg-gray-100 rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => setLoginMethod("phone")}
-                  className={`flex-1 py-2.5 px-4 rounded-lg font-semibold text-sm transition-all ${
-                    loginMethod === "phone"
-                      ? "bg-white text-green-700 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  📱 Phone
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLoginMethod("email")}
-                  className={`flex-1 py-2.5 px-4 rounded-lg font-semibold text-sm transition-all ${
-                    loginMethod === "email"
-                      ? "bg-white text-green-700 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  ✉️ Email
-                </button>
-              </div>
-              {loginMethod === "phone" ? (
-                <>
-                  {}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                      Mobile Number <span className="text-red-500">*</span>
-                    </label>
-                    <div className="flex items-center border-2 border-gray-200 rounded-xl overflow-hidden focus-within:border-green-500 transition-colors bg-white">
-                      <div className="flex items-center gap-1.5 px-3 py-3 border-r border-gray-200 bg-gray-50 select-none">
-                        <span className="text-lg leading-none">🇮🇳</span>
-                        <span className="text-sm font-semibold text-gray-700">
-                          +91
-                        </span>
-                      </div>
-                      <input
-                        type="tel"
-                        inputMode="numeric"
-                        maxLength={10}
-                        placeholder="10-digit mobile number"
-                        value={phone}
-                        onChange={(e) => {
-                          setPhone(
-                            e.target.value.replace(/\D/g, "").slice(0, 10),
-                          );
-                          setError("");
-                        }}
-                        className="flex-1 px-3 py-3 text-gray-900 outline-none text-sm placeholder-gray-400"
-                        autoFocus
-                        autoComplete="tel-national"
-                      />
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1.5">
-                      An OTP will be sent to verify your number
-                    </p>
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={loading || phone.length !== 10}
-                    className="w-full flex items-center justify-center gap-2 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors shadow-sm text-sm"
-                  >
-                    {loading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <>
-                        Get OTP <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-                </>
-              ) : (
-                <>
-                  {}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                      Email Address <span className="text-red-500">*</span>
-                    </label>
-                    <div className="flex items-center border-2 border-gray-200 rounded-xl focus-within:border-green-500 transition-colors overflow-hidden">
-                      <Mail className="w-4 h-4 text-gray-400 ml-3" />
-                      <input
-                        type="email"
-                        placeholder="you@example.com"
-                        value={email}
-                        onChange={(e) => {
-                          setEmail(e.target.value);
-                          setError("");
-                        }}
-                        className="flex-1 px-3 py-3 text-sm text-gray-900 outline-none placeholder-gray-400"
-                        autoFocus
-                        autoComplete="email"
-                      />
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1.5">
-                      OTP will be sent to your registered phone number
-                    </p>
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={loading || !email.includes("@")}
-                    className="w-full flex items-center justify-center gap-2 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors shadow-sm text-sm"
-                  >
-                    {loading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <>
-                        Get OTP <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-                </>
-              )}
-              <p className="text-center text-xs text-gray-500">
-                New here? Just enter your {loginMethod} — we'll create your
-                account after verification.
-              </p>
-            </form>
-          )}
-          {/* ── STEP 2: OTP ── */}
-          {step === "otp" && (
-            <form onSubmit={handleVerifyOTP} className="space-y-5">
+
+          {/* Method Selection Step */}
+          {step === "method-select" && (
+            <div className="space-y-6">
               <div className="text-center">
-                {sentToEmail ? (
-                  <>
-                    <p className="text-sm text-gray-600">
-                      OTP sent to phone ending in{" "}
-                      <span className="font-semibold text-gray-900">
-                        ••••{phone.slice(-4)}
-                      </span>
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      (Associated with {sentToEmail})
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-sm text-gray-600">
-                    OTP sent to{" "}
-                    <span className="font-semibold text-gray-900">
-                      +91 {phone}
-                    </span>
-                  </p>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStep("phone");
-                    setError("");
-                    setSuccess("");
-                    setSentToEmail("");
-                  }}
-                  className="text-xs text-green-600 hover:underline mt-0.5"
-                >
-                  Change {loginMethod}
-                </button>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                  Welcome Back!
+                </h2>
+                <p className="text-sm text-gray-600">
+                  Choose how you'd like to sign in
+                </p>
               </div>
-              {/* 6-box OTP input */}
-              <div
-                className="flex justify-center gap-2"
-                onPaste={handleOtpPaste}
-              >
-                {otp.map((digit, idx) => (
-                  <input
-                    key={idx}
-                    ref={(el) => (otpRefs.current[idx] = el)}
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(e) => handleOtpChange(idx, e.target.value)}
-                    onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                    className={`w-11 h-12 text-center text-lg font-bold border-2 rounded-xl outline-none transition-colors ${
-                      digit
-                        ? "border-green-500 bg-green-50 text-green-700"
-                        : "border-gray-200 focus:border-green-400 text-gray-900"
-                    }`}
-                    autoComplete="one-time-code"
+
+              {/* Google Sign In */}
+              <div>
+                <p className="text-xs font-medium text-gray-600 mb-3 text-center">
+                  Sign in with Google
+                </p>
+                <div className="flex justify-center">
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={handleGoogleError}
+                    useOneTap
+                    theme="outline"
+                    size="large"
+                    text="signin_with"
+                    shape="rectangular"
                   />
-                ))}
+                </div>
               </div>
+
+              {/* Divider */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-white text-gray-500">or</span>
+                </div>
+              </div>
+
+              {/* Email OTP Button */}
               <button
-                type="submit"
-                disabled={loading || otp.join("").length !== 6}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors shadow-sm text-sm"
+                onClick={() => {
+                  setLoginMethod("email");
+                  setStep("email-input");
+                }}
+                className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-200 hover:border-green-500 hover:bg-green-50 text-gray-700 font-semibold py-3.5 rounded-xl transition-all duration-200"
               >
-                {loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    Verify &amp; Sign In <ShieldCheck className="w-4 h-4" />
-                  </>
-                )}
+                <Mail className="w-5 h-5 text-green-600" />
+                Sign in with Email OTP
               </button>
-              <div className="flex items-center justify-center gap-1.5 text-sm">
-                <RotateCcw className="w-3.5 h-3.5 text-gray-400" />
-                {countdown > 0 ? (
-                  <span className="text-gray-500">
-                    Resend in{" "}
-                    <span className="font-semibold text-green-700">
-                      {countdown}s
-                    </span>
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleResend}
-                    disabled={loading}
-                    className="text-green-600 font-semibold hover:underline disabled:opacity-50"
-                  >
-                    Resend OTP
-                  </button>
-                )}
+
+              <div className="flex items-center gap-3 text-xs text-gray-500">
+                <ShieldCheck className="w-5 h-5 text-green-600 flex-shrink-0" />
+                <span>
+                  Secure authentication. Your phone number is required for delivery coordination.
+                </span>
               </div>
-            </form>
+
+              <div className="pt-4 border-t border-gray-100">
+                <p className="text-xs text-center text-gray-600">
+                  By signing in, you agree to our{" "}
+                  <Link href="/terms" className="text-green-600 hover:underline">
+                    Terms of Service
+                  </Link>{" "}
+                  and{" "}
+                  <Link href="/privacy" className="text-green-600 hover:underline">
+                    Privacy Policy
+                  </Link>
+                </p>
+              </div>
+            </div>
           )}
-          {/* ── STEP 3: Register ── */}
-          {step === "register" && (
-            <form onSubmit={handleRegister} className="space-y-4">
-              <p className="text-xs text-gray-500 bg-blue-50 rounded-lg px-3 py-2 border border-blue-100">
-                ✓ OTP verified — complete your profile to finish sign-up.
-              </p>
-              {/* Phone (read-only if entered via phone, editable if via email) */}
-              {phone && !sentToEmail ? (
-                <div className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-600">
-                  <Phone className="w-4 h-4 text-gray-400" />
-                  +91 {phone}
-                  <CheckCircle2 className="w-4 h-4 text-green-500 ml-auto" />
-                </div>
-              ) : null}
-              {/* Full Name */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Full Name <span className="text-red-500">*</span>
-                </label>
-                <div className="flex items-center border-2 border-gray-200 rounded-xl focus-within:border-green-500 transition-colors overflow-hidden">
-                  <User className="w-4 h-4 text-gray-400 ml-3" />
-                  <input
-                    type="text"
-                    placeholder="Your full name"
-                    value={name}
-                    onChange={(e) => {
-                      setName(e.target.value);
-                      setError("");
-                    }}
-                    className="flex-1 px-3 py-3 text-sm text-gray-900 outline-none placeholder-gray-400"
-                    autoFocus
-                    autoComplete="name"
-                  />
-                </div>
+
+          {/* Email Input Step */}
+          {step === "email-input" && (
+            <form onSubmit={handleSendOTP} className="space-y-5">
+              <div className="text-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-900 mb-1">
+                  Enter Your Email
+                </h2>
+                <p className="text-sm text-gray-600">
+                  We'll send a 6-digit OTP to verify your email
+                </p>
               </div>
-              {/* Email - pre-filled if logged in via email, otherwise optional */}
+
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Email Address{" "}
-                  {sentToEmail ? (
-                    <CheckCircle2 className="w-3 h-3 inline text-green-500" />
-                  ) : (
-                    <span className="text-xs font-normal text-gray-400">
-                      (optional)
-                    </span>
-                  )}
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Address *
                 </label>
-                <div className="flex items-center border-2 border-gray-200 rounded-xl focus-within:border-green-500 transition-colors overflow-hidden">
-                  <Mail className="w-4 h-4 text-gray-400 ml-3" />
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="email"
-                    placeholder="you@example.com"
-                    value={registerEmail}
-                    onChange={(e) => setRegisterEmail(e.target.value)}
-                    className="flex-1 px-3 py-3 text-sm text-gray-900 outline-none placeholder-gray-400"
-                    autoComplete="email"
-                    disabled={!!sentToEmail}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your.email@example.com"
+                    required
+                    className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
                   />
                 </div>
               </div>
-              {/* Account Type */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Account Type <span className="text-red-500">*</span>
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    {
-                      value: "retail",
-                      label: "Retail",
-                      desc: "Personal / household",
-                    },
-                    {
-                      value: "wholesale",
-                      label: "Wholesale",
-                      desc: "Business / bulk orders",
-                    },
-                  ].map(({ value, label, desc }) => (
-                    <label
-                      key={value}
-                      className={`relative flex flex-col gap-0.5 p-3 border-2 rounded-xl cursor-pointer transition-colors ${
-                        userType === value
-                          ? "border-green-500 bg-green-50"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="user_type"
-                        value={value}
-                        checked={userType === value}
-                        onChange={() => setUserType(value)}
-                        className="sr-only"
-                      />
-                      <span
-                        className={`text-sm font-semibold ${userType === value ? "text-green-700" : "text-gray-800"}`}
-                      >
-                        {label}
-                      </span>
-                      <span className="text-xs text-gray-500">{desc}</span>
-                      {userType === value && (
-                        <CheckCircle2 className="w-4 h-4 text-green-600 absolute top-2.5 right-2.5" />
-                      )}
-                    </label>
-                  ))}
-                </div>
-              </div>
-              {/* Address */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Delivery Address{" "}
-                  <span className="text-xs font-normal text-gray-400">
-                    (optional)
-                  </span>
-                </label>
-                <div className="flex items-start border-2 border-gray-200 rounded-xl focus-within:border-green-500 transition-colors overflow-hidden">
-                  <MapPin className="w-4 h-4 text-gray-400 ml-3 mt-3.5 flex-shrink-0" />
-                  <textarea
-                    rows={2}
-                    placeholder="House / flat, street, city, pincode"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    className="flex-1 px-3 py-3 text-sm text-gray-900 outline-none placeholder-gray-400 resize-none"
-                  />
-                </div>
-              </div>
+
               <button
                 type="submit"
-                disabled={loading || !name.trim()}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors shadow-sm text-sm"
+                disabled={loading || !email}
+                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
               >
                 {loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Sending OTP...
+                  </span>
                 ) : (
-                  <>
-                    Create Account <ArrowRight className="w-4 h-4" />
-                  </>
+                  "Send OTP"
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setStep("method-select");
+                  setEmail("");
+                  setError("");
+                  setSuccess("");
+                }}
+                className="w-full text-sm text-gray-600 hover:text-gray-800 py-2"
+              >
+                ← Back to login methods
+              </button>
+            </form>
+          )}
+
+          {/* OTP Verify Step */}
+          {step === "otp-verify" && (
+            <form onSubmit={handleVerifyOTP} className="space-y-5">
+              <div className="text-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-900 mb-1">
+                  Verify OTP
+                </h2>
+                <p className="text-sm text-gray-600">
+                  Enter the 6-digit code sent to <br />
+                  <span className="font-medium text-gray-900">{email}</span>
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  OTP Code *
+                </label>
+                <div className="relative">
+                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="000000"
+                    required
+                    maxLength={6}
+                    className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-center text-2xl tracking-widest font-mono"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  OTP expires in 5 minutes
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || isProcessing || otp.length !== 6}
+                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
+              >
+                {loading || isProcessing ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Verifying...
+                  </span>
+                ) : (
+                  "Verify OTP"
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResendOTP}
+                disabled={loading}
+                className="w-full text-sm text-green-600 hover:text-green-700 py-2"
+              >
+                Resend OTP
+              </button>
+            </form>
+          )}
+
+          {/* Phone Collection Step */}
+          {step === "phone-collection" && (
+            <form onSubmit={loginMethod === "email" ? handleEmailOTPPhoneSubmit : handleGooglePhoneSubmit} className="space-y-5">{" "}
+              <div className="text-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-900 mb-1">
+                  Complete Your Profile
+                </h2>
+                <p className="text-sm text-gray-600">
+                  We need your phone number for order notifications
+                </p>
+              </div>
+
+              {/* Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Full Name *
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter your full name"
+                    required
+                    className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Email - show for email OTP, read-only for Google */}
+              {loginMethod === "email" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address *
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="email"
+                      value={email}
+                      readOnly
+                      className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-600 outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Phone */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number * (Required for delivery)
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    placeholder="10-digit mobile number"
+                    required
+                    maxLength={10}
+                    className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  <ShieldCheck className="w-4 h-4 inline mr-1 text-green-600" />
+                  Used for order updates and delivery coordination
+                </p>
+              </div>
+
+              {/* Customer Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Customer Type
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setUserType("regular")}
+                    className={`py-3 px-4 rounded-xl font-medium text-sm transition-all ${
+                      userType === "regular"
+                        ? "bg-green-600 text-white shadow-md"
+                        : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    🛒 Regular
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUserType("premium")}
+                    className={`py-3 px-4 rounded-xl font-medium text-sm transition-all ${
+                      userType === "premium"
+                        ? "bg-green-600 text-white shadow-md"
+                        : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    ⭐ Premium
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUserType("wholesale")}
+                    className={`py-3 px-4 rounded-xl font-medium text-sm transition-all ${
+                      userType === "wholesale"
+                        ? "bg-green-600 text-white shadow-md"
+                        : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    📦 Wholesale
+                  </button>
+                </div>
+              </div>
+
+              {/* Address */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Delivery Address (Optional)
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                  <textarea
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Enter your delivery address"
+                    rows={3}
+                    className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all resize-none"
+                  />
+                </div>
+              </div>
+
+              {/* Submit */}
+              <button
+                type="submit"
+                disabled={loading || !phone || phone.length !== 10}
+                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Processing...
+                  </span>
+                ) : (
+                  "Complete Registration"
                 )}
               </button>
             </form>
           )}
+
+          {/* Success Step */}
+          {step === "complete" && (
+            <div className="text-center py-8">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                <CheckCircle2 className="w-10 h-10 text-green-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Welcome to MK Reddy Stores!
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Your account has been created successfully.
+              </p>
+              <div className="inline-flex items-center gap-2 text-sm text-green-600">
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+                Redirecting...
+              </div>
+            </div>
+          )}
         </div>
-        <p className="text-center text-xs text-gray-400 mt-6">
-          By continuing, you agree to our{" "}
-          <span className="text-green-600 cursor-pointer hover:underline">
-            Terms of Service
-          </span>{" "}
-          &amp;{" "}
-          <span className="text-green-600 cursor-pointer hover:underline">
-            Privacy Policy
-          </span>
-        </p>
+
+        {/* Footer Note */}
+        <div className="text-center mt-6">
+          <p className="text-sm text-gray-600">
+            Need help?{" "}
+            <Link href="/contact" className="text-green-600 hover:underline font-medium">
+              Contact Support
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
 }
-// ── Exported page (Suspense for useSearchParams) ──────────────────────────────
+
 export default function LoginPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-green-600" />
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
         </div>
-      }
-    >
+      </div>
+    }>
       <LoginForm />
     </Suspense>
   );

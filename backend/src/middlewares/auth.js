@@ -2,10 +2,11 @@ const jwt = require('jsonwebtoken');
 const config = require('../config');
 const ApiError = require('../utils/ApiError');
 const { query } = require('../config/database');
+// Check if user is logged in with valid token
 const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    // Only accept Bearer token format to prevent security issues with other auth schemes
+    // Check for Bearer token in header
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw ApiError.unauthorized('Access token is required');
     }
@@ -43,10 +44,11 @@ const authenticate = async (req, res, next) => {
     }
   }
 };
+// Check for token but allow request to continue even without one
 const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    // Don't fail request if no token - useful for public endpoints that offer extra features when authenticated
+    // Skip if no token
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return next();
     }
@@ -76,12 +78,13 @@ const optionalAuth = async (req, res, next) => {
     next();
   }
 };
+// Check if user has the right role to access this page
 const authorize = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
       return next(ApiError.unauthorized('Authentication required'));
     }
-    // Block access if user's role doesn't match any of the allowed roles for this endpoint
+    // Check if user's role is in the allowed list
     if (!allowedRoles.includes(req.user.role)) {
       const rolesList = allowedRoles.join(', ');
       return next(ApiError.forbidden(
@@ -91,7 +94,7 @@ const authorize = (...allowedRoles) => {
     next();
   };
 };
-// Convenience shortcuts for common role checks to avoid typing role names repeatedly
+// Quick shortcuts for common role checks
 const adminOnly = authorize('admin');
 const customerOnly = authorize('retail_customer', 'wholesale_customer');
 const verifyRefreshToken = async (req, res, next) => {

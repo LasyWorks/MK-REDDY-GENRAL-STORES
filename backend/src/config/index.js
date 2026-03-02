@@ -73,6 +73,10 @@ const config = {
     apiKey:      process.env.WA_360_API_KEY        || '',
     namespace:   process.env.WA_360_NAMESPACE      || '',
   },
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID || '',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+  },
   cors: {
     origin: (process.env.CORS_ORIGIN && process.env.CORS_ORIGIN !== '*')
       ? process.env.CORS_ORIGIN

@@ -4,6 +4,8 @@ const { apiLimiter, otpLimiter, loginLimiter, uploadLimiter } = require('./rateL
 const requestLogger = require('./requestLogger');
 const languageMiddleware = require('./language');
 const { uploadExcel, uploadImage, uploadImages } = require('./upload');
+const { cacheMiddleware, invalidateCache, cacheStats, clearCache, cache } = require('./cache');
+
 module.exports = {
   errorHandler,
   notFoundHandler,
@@ -23,4 +25,9 @@ module.exports = {
   uploadExcel,
   uploadImage,
   uploadImages,
-};
+  cacheMiddleware,
+  invalidateCache,
+  cacheStats,
+  clearCache,
+  cache,
+};

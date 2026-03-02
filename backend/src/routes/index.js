@@ -3,6 +3,8 @@ const router = express.Router();
 const os = require('os');
 const path = require('path');
 const { pool } = require('../config/database');
+const { cacheStats, clearCache } = require('../middlewares/cache');
+const { authenticate, authorize } = require('../middlewares/auth');
 const authRoutes = require('./authRoutes');
 const userRoutes = require('./userRoutes');
 const categoryRoutes = require('./categoryRoutes');
@@ -78,6 +80,11 @@ router.get('/docs', (req, res) => {
   const docsPath = path.join(__dirname, '../../tests/API-REFERENCE.html');
   res.sendFile(docsPath);
 });
+
+// Cache management endpoints (admin only)
+router.get('/cache/stats', authenticate, authorize('admin'), cacheStats);
+router.post('/cache/clear', authenticate, authorize('admin'), clearCache);
+
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/categories', categoryRoutes);

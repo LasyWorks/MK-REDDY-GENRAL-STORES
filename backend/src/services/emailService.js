@@ -3,17 +3,7 @@ const config = require('../config');
 const { Invoice } = require('../models');
 const logger = require('../utils/logger');
 
-/* ─────────────────────────────────────────────
-   Professional Design System
-   ─────────────────────────────────────────────
-   Fonts  : Segoe UI / Helvetica / Arial
-   Brand  : #0d1b3e (navy), #c8972a (gold)
-   Success: #14532d (dark green)
-   Danger : #7f1d1d (dark red)
-   Neutral: #1e293b text, #64748b muted
-   Surface: #f8fafc bg, #ffffff card
-   ───────────────────────────────────────────── */
-
+// Email colors and fonts
 const BASE_STYLES = `
   *{box-sizing:border-box;margin:0;padding:0;}
   body{background:#f1f5f9;font-family:'Segoe UI',Helvetica,Arial,sans-serif;color:#1e293b;-webkit-font-smoothing:antialiased;}
@@ -96,9 +86,7 @@ class EmailService {
     }
   }
 
-  /* ─────────────────────────────────────────────────────────────
-     OTP EMAIL
-     ───────────────────────────────────────────────────────────── */
+  // Send OTP code email to user
   async sendOTP(email, otp, userName = 'Customer') {
     if (!email) return { success: false, reason: 'No email provided' };
 
@@ -141,9 +129,7 @@ class EmailService {
     return this.send(email, `Your OTP Code - ${config.store.name}`, html);
   }
 
-  /* ─────────────────────────────────────────────────────────────
-     1. ORDER CONFIRMATION  ->  Customer
-     ───────────────────────────────────────────────────────────── */
+  // Send order confirmation email to customer
   async sendOrderConfirmation(order, user) {
     const invoice = await Invoice.getFullInvoice(order.id);
     if (!invoice || !user.email) return { success: false, reason: 'No email or invoice' };
@@ -226,9 +212,7 @@ class EmailService {
     return this.send(user.email, `Order Confirmed - ${order.order_number} | ${config.store.name}`, html);
   }
 
-  /* ─────────────────────────────────────────────────────────────
-     2. ORDER READY FOR PICKUP  ->  Customer
-     ───────────────────────────────────────────────────────────── */
+  // Send "order is ready for pickup" email to customer
   async sendOrderReadyNotification(order, user) {
     if (!user.email) return { success: false, reason: 'No email' };
 
@@ -280,9 +264,7 @@ class EmailService {
     return this.send(user.email, `Your Order is Ready - ${order.order_number} | ${config.store.name}`, html);
   }
 
-  /* ─────────────────────────────────────────────────────────────
-     3. NEW ORDER NOTIFICATION  ->  Admin
-     ───────────────────────────────────────────────────────────── */
+  // Send new order email to store admin
   async sendAdminOrderNotification(order, user) {
     const adminEmail = config.email.adminEmail || config.adminEmail;
     if (!adminEmail) return { success: false, reason: 'No admin email' };
@@ -374,9 +356,7 @@ class EmailService {
     return this.send(adminEmail, `[NEW ORDER] ${order.order_number} - Rs.${total.toFixed(2)} | ${config.store.name}`, html);
   }
 
-  /* ─────────────────────────────────────────────────────────────
-     4. ORDER CANCELLATION NOTIFICATION  ->  Admin
-     ───────────────────────────────────────────────────────────── */
+  // Send order cancellation email to store admin
   async sendAdminOrderCancellationNotification(order, user, reason) {
     const adminEmail = config.email.adminEmail || config.adminEmail;
     if (!adminEmail) return { success: false, reason: 'No admin email' };
@@ -462,9 +442,7 @@ class EmailService {
     return this.send(adminEmail, `[CANCELLED] ${order.order_number} - Rs.${total.toFixed(2)} | ${config.store.name}`, html);
   }
 
-  /* ─────────────────────────────────────────────────────────────
-     5. ORDER CANCELLATION NOTICE  ->  Customer
-     ───────────────────────────────────────────────────────────── */
+  // Send order cancellation email to customer
   async sendCustomerOrderCancellationNotification(order, user, reason) {
     if (!user.email) return { success: false, reason: 'No email' };
 

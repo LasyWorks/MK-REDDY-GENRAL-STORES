@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const path = require('path');
 const xssClean = require('xss-clean');
+const compression = require('compression');
 const config = require('./config');
 const securityConfig = require('./config/security');
 const routes = require('./routes');
@@ -51,6 +52,21 @@ app.use(cors({
   credentials: true,
   maxAge: 86400, 
 }));
+
+// Compression middleware - gzip responses for faster transfer
+app.use(compression({
+  level: 6, // Balance between speed and compression ratio
+  threshold: 1024, // Only compress responses > 1KB
+  filter: (req, res) => {
+    // Don't compress if client doesn't support it
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    // Use compression for all responses
+    return compression.filter(req, res);
+  }
+}));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(xssClean());

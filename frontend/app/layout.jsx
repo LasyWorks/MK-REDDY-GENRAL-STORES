@@ -7,6 +7,8 @@ import CartSidebar from "@/components/cart/CartSidebar";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { CartProvider } from "@/context/CartContext";
 import { PromotionProvider } from "@/context/PromotionContext";
+import { GoogleOAuthProvider } from '@react-oauth/google';
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -20,23 +22,28 @@ export const metadata = {
   description:
     "Shop for groceries, vegetables, fruits and more at MK Reddy General Store",
 };
+
 export default function RootLayout({ children }) {
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <LanguageProvider>
-          <CartProvider>
-            <PromotionProvider>
-              <Navbar />
-              <CategoryNav />
-              <CartSidebar />
-              {children}
-              <Footer />
-            </PromotionProvider>
-          </CartProvider>
-        </LanguageProvider>
+        <GoogleOAuthProvider clientId={googleClientId}>
+          <LanguageProvider>
+            <CartProvider>
+              <PromotionProvider>
+                <Navbar />
+                <CategoryNav />
+                <CartSidebar />
+                {children}
+                <Footer />
+              </PromotionProvider>
+            </CartProvider>
+          </LanguageProvider>
+        </GoogleOAuthProvider>
       </body>
     </html>
   );

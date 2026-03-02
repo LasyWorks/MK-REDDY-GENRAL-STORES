@@ -4,22 +4,33 @@ import Link from "next/link";
 import { ChevronRightIcon as ChevronRight } from "@heroicons/react/24/outline";
 import SubcategorySidebar from "./SubcategorySidebar";
 import ProductGrid from "./ProductGrid";
+import InfiniteScroll from "@/components/common/InfiniteScroll";
 import { useLanguage } from "@/context/LanguageContext";
+
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
+
+const PRODUCTS_PER_PAGE = 50;
+
 const productCache = new Map();
-async function fetchProducts(categoryId, lang) {
-  const key = `${categoryId}-${lang}`;
+
+async function fetchProducts(categoryId, lang, page = 1, limit = PRODUCTS_PER_PAGE) {
+  const key = `${categoryId}-${lang}-${page}`;
   if (productCache.has(key)) return productCache.get(key);
+
   const res = await fetch(
-    `${API_URL}/products?category_id=${categoryId}&limit=50&is_active=true&lang=${lang}`,
+    `${API_URL}/products?category_id=${categoryId}&limit=${limit}&page=${page}&is_active=true&lang=${lang}`,
     { cache: "no-store" },
   );
-  if (!res.ok) return [];
+  if (!res.ok) return { data: [], hasMore: false };
+  
   const json = await res.json();
   const data = json.data || [];
-  productCache.set(key, data);
-  return data;
+  const hasMore = data.length === limit; // More pages if we got full page
+  
+  const result = { data, hasMore };
+  productCache.set(key, result);
+  return result;
 }
 const categoryCache = new Map();
 async function fetchCategoriesLang(lang) {
@@ -51,21 +62,51 @@ function CategoryClientView({
   );
   const [products, setProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
   const loadProducts = useCallback(
-    async (categoryId) => {
-      setProductsLoading(true);
+    async (categoryId, page = 1, append = false) => {
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setProductsLoading(true);
+        setProducts([]);
+        setCurrentPage(1);
+      }
+      
       try {
-        const data = await fetchProducts(categoryId, lang);
-        setProducts(data);
+        const result = await fetchProducts(categoryId, lang, page);
+        if (append) {
+          setProducts(prev => [...prev, ...result.data]);
+        } else {
+          setProducts(result.data);
+        }
+        setHasMore(result.hasMore);
       } catch (err) {
         console.error("Failed to load products:", err);
-        setProducts([]);
+        if (!append) setProducts([]);
+        setHasMore(false);
       } finally {
-        setProductsLoading(false);
+        if (append) {
+          setLoadingMore(false);
+        } else {
+          setProductsLoading(false);
+        }
       }
     },
     [lang],
   );
+
+  const loadMore = useCallback(() => {
+    const nextPage = currentPage + 1;
+    setCurrentPage(nextPage);
+    const targetId = activeSubcategory?.id || mainCategory?.id;
+    if (targetId) {
+      loadProducts(targetId, nextPage, true);
+    }
+  }, [currentPage, activeSubcategory?.id, mainCategory?.id, loadProducts]);
   useEffect(() => {
     let cancelled = false;
     async function localise() {
@@ -152,12 +193,19 @@ function CategoryClientView({
             onSubcategoryClick={handleSubcategoryClick}
           />
           <div className="flex-1">
-            <ProductGrid
-              products={products}
-              loading={productsLoading}
-              activeSubcategoryName={activeSubcategory?.name}
-              mainCategoryName={displayMain?.name}
-            />
+            <InfiniteScroll
+              onLoadMore={loadMore}
+              hasMore={hasMore}
+              loading={loadingMore}
+              threshold={300}
+            >
+              <ProductGrid
+                products={products}
+                loading={productsLoading}
+                activeSubcategoryName={activeSubcategory?.name}
+                mainCategoryName={displayMain?.name}
+              />
+            </InfiniteScroll>
           </div>
         </div>
       </div>
