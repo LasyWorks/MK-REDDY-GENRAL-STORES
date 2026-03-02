@@ -1,19 +1,23 @@
 import Link from "next/link";
 import {
-  MapPin,
-  Phone,
-  Mail,
-  Clock,
-  ShoppingBag,
-  Shield,
-  Truck,
-  RotateCcw,
-} from "lucide-react";
+  MapPinIcon as MapPin,
+  PhoneIcon as Phone,
+  EnvelopeIcon as Mail,
+  ClockIcon as Clock,
+  ShoppingBagIcon as ShoppingBag,
+  ShieldCheckIcon as Shield,
+  TruckIcon as Truck,
+  ArrowPathIcon as RotateCcw,
+} from "@heroicons/react/24/outline";
 
 const USP = [
-  { icon: Truck, label: "Free Delivery", sub: "On orders above ₹199" },
+  { icon: Truck, label: "Home Delivery", sub: "Delivered to your doorstep" },
   { icon: Shield, label: "100% Genuine", sub: "Verified products only" },
-  { icon: RotateCcw, label: "Easy Returns", sub: "Hassle-free returns" },
+  {
+    icon: RotateCcw,
+    label: "Freshness Guarantee",
+    sub: "Fresh products always",
+  },
   { icon: ShoppingBag, label: "Best Prices", sub: "Lowest price guaranteed" },
 ];
 
@@ -63,13 +67,16 @@ export default function Footer() {
               <div className="flex items-start gap-2.5 text-gray-400">
                 <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-blue-400" />
                 <span>
-                  1/05, Mallikarjuna Puram, Sri Potti Sriramulu Nellore,
-                  Andhra Pradesh – 524311
+                  1/05, Mallikarjuna Puram, Sri Potti Sriramulu Nellore, Andhra
+                  Pradesh – 524311
                 </span>
               </div>
               <div className="flex items-center gap-2.5 text-gray-400">
                 <Phone className="w-4 h-4 shrink-0 text-blue-400" />
-                <a href="tel:+919346586105" className="hover:text-white transition-colors">
+                <a
+                  href="tel:+919346586105"
+                  className="hover:text-white transition-colors"
+                >
                   +91 93465 86105
                 </a>
               </div>
@@ -135,7 +142,8 @@ export default function Footer() {
       <div className="border-t border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-gray-500">
-            © {new Date().getFullYear()} MK Reddy General Stores. All rights reserved.
+            © {new Date().getFullYear()} MK Reddy General Stores. All rights
+            reserved.
           </p>
           <p className="text-xs text-gray-500">
             Developed by{" "}
