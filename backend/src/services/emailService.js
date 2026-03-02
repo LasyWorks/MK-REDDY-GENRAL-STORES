@@ -499,6 +499,72 @@ class EmailService {
     return this.send(user.email, `Order Cancellation Confirmed - ${order.order_number} | ${config.store.name}`, html);
   }
 
+  /**
+   * Send an account-merge verification OTP.
+   * @param {string}  email           – recipient address
+   * @param {string}  otp             – plain 6-digit code
+   * @param {string}  userName        – display name
+   * @param {boolean} isPrimaryAccount – true = this is the NEW account email; false = EXISTING account
+   */
+  async sendMergeOTP(email, otp, userName = 'Customer', isPrimaryAccount = true) {
+    if (!email) return { success: false, reason: 'No email provided' };
+
+    const roleLabel = isPrimaryAccount ? 'New Account' : 'Existing Account';
+    const context   = isPrimaryAccount
+      ? 'You attempted to register with a phone number that is already linked to another account.'
+      : 'Someone is attempting to merge a new sign-in into your existing account.';
+    const warningHtml = !isPrimaryAccount ? `
+      <div class="info-box amber" style="margin-bottom:12px;">
+        <div class="info-box-title" style="color:#92400e;">Security Notice</div>
+        <p style="font-size:13px;color:#78350f;line-height:1.7;">
+          If you did <strong>not</strong> initiate this request, please ignore this email.
+          Do NOT share this code with anyone. The code expires in 5 minutes.
+        </p>
+      </div>` : '';
+
+    const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Account Merge Verification</title><style>${BASE_STYLES}</style></head>
+<body><div class="em-outer"><div class="em-wrap">
+  <div class="em-accent"></div>
+  <div class="em-brand"><h2>${config.store.name}</h2><p>Account Merge Verification</p></div>
+  <div class="em-status" style="background:#eff6ff;border-bottom:1px solid #bfdbfe;">
+    <div class="status-icon" style="background:#dbeafe;">🔗</div>
+    <h1 style="color:#1e3a8a;">Verify Your ${roleLabel}</h1>
+    <p style="color:#3b82f6;">Hi <strong>${userName}</strong>, use the code below to authorise the account merge.</p>
+  </div>
+  <div class="em-body" style="padding-top:24px;">
+    ${warningHtml}
+    <p style="font-size:14px;color:#475569;margin-bottom:16px;">${context}</p>
+    <div style="background:#eff6ff;border:2px dashed #93c5fd;border-radius:12px;padding:24px;text-align:center;margin:20px 0;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#3b82f6;margin-bottom:8px;">
+        Verification Code (${roleLabel})
+      </div>
+      <div style="font-size:40px;font-weight:900;letter-spacing:8px;color:#1e3a8a;font-family:monospace;">
+        ${otp}
+      </div>
+      <div style="font-size:12px;color:#64748b;margin-top:8px;">Expires in 5 minutes · Single use only</div>
+    </div>
+    <div class="info-box red" style="margin-top:0;">
+      <div class="info-box-title" style="color:#991b1b;">Both accounts must confirm</div>
+      <p style="font-size:13px;color:#7f1d1d;line-height:1.7;">
+        The merge will only proceed if verification codes for <strong>both</strong> email addresses are entered correctly.
+        If only one code is confirmed, no merge will happen.
+      </p>
+    </div>
+  </div>
+  <div class="em-footer">
+    <div class="em-footer-row">
+      <div><div class="em-footer-brand">${config.store.name}</div></div>
+      <div class="em-footer-contact">${config.store.phone || ''}${config.store.email ? `<br>${config.store.email}` : ''}</div>
+    </div>
+    <div class="em-footer-legal">This is an auto-generated security email. Do not reply.<br>&copy; ${new Date().getFullYear()} ${config.store.name}. All rights reserved.</div>
+  </div>
+</div></div></body></html>`;
+
+    return this.send(email, `Account Merge Verification (${roleLabel}) | ${config.store.name}`, html);
+  }
+
   async testConnection() {
     try {
       await this.transporter.verify();

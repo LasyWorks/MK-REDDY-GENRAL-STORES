@@ -9,6 +9,7 @@ const Invoice = require('./Invoice');
 const AdminLog = require('./AdminLog');
 const SystemConfig = require('./SystemConfig');
 const Promotion = require('./Promotion');
+const { MergeSession, MergeOTP, LinkedIdentity, MergeAudit } = require('./MergeSession');
 module.exports = {
   User,
   OTP,
@@ -21,4 +22,8 @@ module.exports = {
   AdminLog,
   SystemConfig,
   Promotion,
-};
+  MergeSession,
+  MergeOTP,
+  LinkedIdentity,
+  MergeAudit,
+};

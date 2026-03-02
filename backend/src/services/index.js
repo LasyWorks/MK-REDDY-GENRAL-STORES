@@ -10,6 +10,7 @@ const AdminService = require('./adminService');
 const SmsService = require('./smsService');
 const NotificationService = require('./notificationService');
 const PromotionService = require('./promotionService');
+const MergeService = require('./mergeService');
 module.exports = {
   AuthService,
   UserService,
@@ -23,4 +24,5 @@ module.exports = {
   SmsService,
   NotificationService,
   PromotionService,
-};
+  MergeService,
+};

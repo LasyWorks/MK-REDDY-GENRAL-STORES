@@ -15,6 +15,7 @@ import {
 import { GoogleLogin } from '@react-oauth/google';
 import api from "@/lib/api";
 import secureStorage from "@/lib/secureStorage";
+import MergeService from "@/services/mergeService";
 
 function LoginForm() {
   const router = useRouter();
@@ -46,6 +47,13 @@ function LoginForm() {
   const [success, setSuccess] = useState("");
   const [isProcessing, setIsProcessing] = useState(false); // Prevent double submission
   const verifyingRef = useRef(false); // Ref-based lock for OTP verification
+
+  // Account merge flow state
+  const [mergeSessionId, setMergeSessionId]   = useState(null);
+  const [mergeData, setMergeData]             = useState(null); // { existingMaskedEmail, newMaskedEmail }
+  const [mergeStep, setMergeStep]             = useState('primary'); // 'primary' | 'secondary'
+  const [mergeOtp, setMergeOtp]               = useState("");
+  const [mergePrimaryDone, setMergePrimaryDone] = useState(false);
 
   useEffect(() => {
     if (
@@ -128,6 +136,20 @@ function LoginForm() {
         address,
       });
 
+      if (data.requiresMerge) {
+        // Phone number already used by a different email — start merge flow
+        setMergeSessionId(data.mergeSessionId);
+        setMergeData({
+          existingMaskedEmail: data.existingMaskedEmail,
+          newMaskedEmail:      data.newMaskedEmail,
+        });
+        setStep("merge-prompt");
+        setError("");
+        setSuccess("");
+        setLoading(false);
+        return;
+      }
+
       const { user, accessToken, refreshToken } = data;
       secureStorage.setItem("token", accessToken);
       secureStorage.setItem("refreshToken", refreshToken);
@@ -141,14 +163,13 @@ function LoginForm() {
       
       setTimeout(() => router.push(redirectTo), 2000);
     } catch (err) {
-      console.error("Registration error:", err);
+      console.error("Google registration error:", err);
       setError(err.message || err.response?.data?.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Email OTP Handlers
   const handleSendOTP = async (e) => {
     e.preventDefault();
     
@@ -272,6 +293,20 @@ function LoginForm() {
         address,
       });
 
+      if (data.requiresMerge) {
+        // Phone number already used by a different email — start merge flow
+        setMergeSessionId(data.mergeSessionId);
+        setMergeData({
+          existingMaskedEmail: data.existingMaskedEmail,
+          newMaskedEmail:      data.newMaskedEmail,
+        });
+        setStep("merge-prompt");
+        setError("");
+        setSuccess("");
+        setLoading(false);
+        return;
+      }
+
       const { user, accessToken, refreshToken } = data;
       secureStorage.setItem("token", accessToken);
       secureStorage.setItem("refreshToken", refreshToken);
@@ -285,11 +320,95 @@ function LoginForm() {
       
       setTimeout(() => router.push(redirectTo), 2000);
     } catch (err) {
-      console.error("Registration error:", err);
+      console.error("Email OTP registration error:", err);
       setError(err.message || err.response?.data?.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
+  };
+
+  // ── Merge Flow Handlers ────────────────────────────────────────────────
+
+  /** Step 1: user clicked "Merge Accounts" — send OTPs to both emails */
+  const handleInitiateMerge = async () => {
+    setLoading(true);
+    setError("");
+    setSuccess("");
+    try {
+      const result = await MergeService.sendOTPs(mergeSessionId);
+      if (result._dev_primary_otp) {
+        console.log("[DEV] primary OTP:",   result._dev_primary_otp);
+        console.log("[DEV] secondary OTP:", result._dev_secondary_otp);
+      }
+      setMergeStep("primary");
+      setMergeOtp("");
+      setMergePrimaryDone(false);
+      setStep("merge-verify");
+      setSuccess(`Verification codes sent to both email addresses. Enter the code sent to ${mergeData.newMaskedEmail} first.`);
+    } catch (err) {
+      setError(err.message || "Failed to send verification codes. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /** Step 2: user submitted OTP for current side */
+  const handleMergeOtpVerify = async (e) => {
+    e.preventDefault();
+    if (!mergeOtp || mergeOtp.length !== 6) {
+      setError("Please enter the 6-digit code.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const result = await MergeService.verifyOTP(mergeSessionId, mergeStep, mergeOtp);
+      if (result.bothVerified && result.merged) {
+        // Merge complete — store tokens
+        secureStorage.setItem("token",        result.accessToken);
+        secureStorage.setItem("refreshToken", result.refreshToken);
+        secureStorage.setItem("user",         JSON.stringify(result.user));
+        window.dispatchEvent(new Event("authChange"));
+        setSuccess("Accounts merged! You are now logged in. Redirecting...");
+        setStep("complete");
+        setTimeout(() => router.push(redirectTo), 2000);
+      } else if (result.verified && mergeStep === "primary") {
+        // Primary done — now ask for secondary
+        setMergePrimaryDone(true);
+        setMergeStep("secondary");
+        setMergeOtp("");
+        setSuccess(`Your email verified! Now enter the code sent to the existing account (${mergeData.existingMaskedEmail}).`);
+        setError("");
+      }
+    } catch (err) {
+      setError(err.message || "Invalid code. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /** Resend OTPs (e.g. after expiry) */
+  const handleResendMergeOTPs = async () => {
+    setMergeOtp("");
+    setError("");
+    setSuccess("");
+    setMergeStep("primary");
+    setMergePrimaryDone(false);
+    await handleInitiateMerge();
+  };
+
+  /** User chose to use a different phone number — cancel the merge */
+  const handleCancelMerge = async () => {
+    try {
+      if (mergeSessionId) await MergeService.cancel(mergeSessionId);
+    } catch { /* fire-and-forget */ }
+    setMergeSessionId(null);
+    setMergeData(null);
+    setMergeOtp("");
+    setPhone("");
+    setStep("phone-collection");
+    setError("");
+    setSuccess("Please enter a different phone number.");
   };
 
   const handleResendOTP = async () => {
@@ -310,11 +429,13 @@ function LoginForm() {
           </div>
           <h1 className="text-3xl font-bold text-gray-900">MK Reddy Stores</h1>
           <p className="text-sm text-gray-500 mt-2">
-            {step === "method-select" && "Choose your sign-in method"}
-            {step === "email-input" && "Sign in with Email OTP"}
-            {step === "otp-verify" && "Verify your OTP"}
+            {step === "method-select"    && "Choose your sign-in method"}
+            {step === "email-input"      && "Sign in with Email OTP"}
+            {step === "otp-verify"       && "Verify your OTP"}
             {step === "phone-collection" && "Complete your profile"}
-            {step === "complete" && "Welcome to MK Reddy Stores!"}
+            {step === "merge-prompt"     && "Phone number conflict"}
+            {step === "merge-verify"     && "Verify both accounts"}
+            {step === "complete"         && "Welcome to MK Reddy Stores!"}
           </p>
         </div>
 
@@ -559,6 +680,16 @@ function LoginForm() {
           {step === "phone-collection" && (
             <form onSubmit={loginMethod === "email" ? handleEmailOTPPhoneSubmit : handleGooglePhoneSubmit} className="space-y-5">{" "}
               <div className="text-center mb-4">
+                {loginMethod === "google" && googleData?.picture && (
+                  <div className="flex justify-center mb-3">
+                    <img
+                      src={googleData.picture}
+                      alt={googleData.name || "Google account"}
+                      className="w-16 h-16 rounded-full object-cover ring-2 ring-green-400 shadow-md"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                )}
                 <h2 className="text-xl font-semibold text-gray-900 mb-1">
                   Complete Your Profile
                 </h2>
@@ -704,6 +835,163 @@ function LoginForm() {
                   "Complete Registration"
                 )}
               </button>
+            </form>
+          )}
+
+          {/* ── Merge Prompt Step ─────────────────────────────────────────── */}
+          {step === "merge-prompt" && (
+            <div className="space-y-5">
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl flex-shrink-0">⚠️</span>
+                  <div>
+                    <h3 className="font-semibold text-amber-900 mb-1">Phone Number Already Registered</h3>
+                    <p className="text-sm text-amber-800 leading-relaxed">
+                      This phone number is already linked to another account
+                      {mergeData?.existingMaskedEmail && (
+                        <> (<span className="font-mono font-semibold">{mergeData.existingMaskedEmail}</span>)</>
+                      )}.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-sm text-gray-600 leading-relaxed">
+                Would you like to <strong>merge</strong> both accounts? You'll need to verify both email
+                addresses with a one-time code before the merge is completed.
+              </p>
+
+              <div className="bg-gray-50 rounded-xl p-4 text-xs text-gray-600 space-y-1">
+                <p className="font-semibold text-gray-700 mb-2">What gets preserved after merge:</p>
+                <p>✓ All your orders and purchase history</p>
+                <p>✓ Your profile photo and preferences</p>
+                <p>✓ All login methods (Google, Email OTP)</p>
+                <p>✓ Both email addresses will work for login</p>
+              </div>
+
+              <button
+                onClick={handleInitiateMerge}
+                disabled={loading}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-xl transition-all shadow-md"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Sending codes...
+                  </span>
+                ) : (
+                  "🔗 Merge Accounts"
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCancelMerge}
+                disabled={loading}
+                className="w-full text-sm text-gray-600 hover:text-gray-800 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all"
+              >
+                Use a Different Phone Number
+              </button>
+            </div>
+          )}
+
+          {/* ── Merge OTP Verify Step ─────────────────────────────────────── */}
+          {step === "merge-verify" && (
+            <form onSubmit={handleMergeOtpVerify} className="space-y-5">
+              {/* Progress indicator */}
+              <div className="flex items-center gap-3 mb-2">
+                <div className={`flex-1 text-center py-2 rounded-lg text-xs font-semibold border ${
+                  mergePrimaryDone
+                    ? "bg-green-50 border-green-300 text-green-700"
+                    : mergeStep === "primary"
+                    ? "bg-blue-50 border-blue-300 text-blue-700"
+                    : "bg-gray-50 border-gray-200 text-gray-500"
+                }`}>
+                  {mergePrimaryDone ? "✓" : "1"} Your Email
+                </div>
+                <div className="text-gray-300 text-lg">&rarr;</div>
+                <div className={`flex-1 text-center py-2 rounded-lg text-xs font-semibold border ${
+                  mergeStep === "secondary"
+                    ? "bg-blue-50 border-blue-300 text-blue-700"
+                    : "bg-gray-50 border-gray-200 text-gray-500"
+                }`}>
+                  2 Existing Email
+                </div>
+              </div>
+
+              <div className="text-center">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {mergeStep === "primary"
+                    ? `Verify Your Email (${mergeData?.newMaskedEmail})`
+                    : `Verify Existing Account (${mergeData?.existingMaskedEmail})`}
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Enter the 6-digit code {
+                    mergeStep === "primary"
+                      ? "sent to your email"
+                      : "sent to the existing account's email"
+                  }
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Verification Code *
+                </label>
+                <div className="relative">
+                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={mergeOtp}
+                    onChange={(e) => setMergeOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="000000"
+                    required
+                    maxLength={6}
+                    className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-center text-2xl tracking-widest font-mono"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-2 text-center">Codes expire in 5 minutes</p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || mergeOtp.length !== 6}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-xl transition-all shadow-md"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Verifying...
+                  </span>
+                ) : (
+                  mergeStep === "primary" ? "Verify My Email" : "Complete Merge"
+                )}
+              </button>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleResendMergeOTPs}
+                  disabled={loading}
+                  className="flex-1 text-sm text-blue-600 hover:text-blue-700 py-2"
+                >
+                  Resend Codes
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelMerge}
+                  disabled={loading}
+                  className="flex-1 text-sm text-gray-500 hover:text-gray-700 py-2"
+                >
+                  Cancel
+                </button>
+              </div>
             </form>
           )}
 

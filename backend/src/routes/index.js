@@ -15,6 +15,7 @@ const invoiceRoutes = require('./invoiceRoutes');
 const adminRoutes = require('./adminRoutes');
 const promotionRoutes = require('./promotionRoutes');
 const healthRoutes = require('./healthRoutes');
+const mergeRoutes = require('./mergeRoutes');
 router.get('/health', async (req, res) => {
   const startAt = process.hrtime.bigint();
   const checks = { database: 'unknown' };
@@ -86,6 +87,7 @@ router.get('/cache/stats', authenticate, authorize('admin'), cacheStats);
 router.post('/cache/clear', authenticate, authorize('admin'), clearCache);
 
 router.use('/auth', authRoutes);
+router.use('/auth/merge', mergeRoutes);
 router.use('/users', userRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/products', productRoutes);

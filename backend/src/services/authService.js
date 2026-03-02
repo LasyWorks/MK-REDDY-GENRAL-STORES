@@ -55,6 +55,12 @@ class AuthService {
       await User.updateGoogleId(user.id, googleUser.googleId);
     }
 
+    // Refresh profile picture if Google provides a newer one
+    if (googleUser.picture && googleUser.picture !== user.profile_picture) {
+      await User.updateProfilePicture(user.id, googleUser.picture);
+      user.profile_picture = googleUser.picture;
+    }
+
     // Generate tokens and log login
     const tokens = await this.generateTokens(user, null, ipAddress);
     await User.updateLastLogin(user.id);
@@ -86,6 +92,25 @@ class AuthService {
     // Check if phone number is already taken
     const existingUserByPhone = await User.findByPhone(phone);
     if (existingUserByPhone) {
+      // Different email → do NOT auto-merge; surface merge flow to the user
+      if (existingUserByPhone.email !== email) {
+        const MergeService = require('./mergeService');
+        logger.info(`[AuthService] Phone conflict detected on Google registration — phone:${phone} existing:${existingUserByPhone.email} new:${email}`);
+        const mergeInfo = await MergeService.createSession({
+          newEmail:     email,
+          existingUser: existingUserByPhone,
+          phone,
+          newUserData:  { name, googleId, picture, user_type: user_type || 'retail', address },
+        });
+        return {
+          requiresMerge:       true,
+          existingMaskedEmail: mergeInfo.existingMaskedEmail,
+          newMaskedEmail:      mergeInfo.newMaskedEmail,
+          mergeSessionId:      mergeInfo.mergeSessionId,
+          expiresInSeconds:    mergeInfo.expiresInSeconds,
+        };
+      }
+      // Same phone + same email is caught above (existingUserByEmail check) — guard only
       throw ApiError.conflict('User with this phone number already exists');
     }
 
@@ -344,10 +369,26 @@ class AuthService {
     // Check if phone number is already taken
     const existingUserByPhone = await User.findByPhone(phone);
     if (existingUserByPhone) {
+      // Different email → surface merge flow instead of hard error
+      if (existingUserByPhone.email !== email) {
+        const MergeService = require('./mergeService');
+        logger.info(`[AuthService] Phone conflict detected on email-OTP registration — phone:${phone} existing:${existingUserByPhone.email} new:${email}`);
+        const mergeInfo = await MergeService.createSession({
+          newEmail:     email,
+          existingUser: existingUserByPhone,
+          phone,
+          newUserData:  { name, user_type: user_type || 'retail', address },
+        });
+        return {
+          requiresMerge:       true,
+          existingMaskedEmail: mergeInfo.existingMaskedEmail,
+          newMaskedEmail:      mergeInfo.newMaskedEmail,
+          mergeSessionId:      mergeInfo.mergeSessionId,
+          expiresInSeconds:    mergeInfo.expiresInSeconds,
+        };
+      }
       throw ApiError.conflict('User with this phone number already exists');
     }
-
-    // Validate user type — must match DB CHECK constraint: ('retail','wholesale','admin')
     const validUserTypes = ['retail', 'wholesale'];
     if (user_type && !validUserTypes.includes(user_type)) {
       throw ApiError.badRequest(`Invalid user type. Must be one of: ${validUserTypes.join(', ')}`);

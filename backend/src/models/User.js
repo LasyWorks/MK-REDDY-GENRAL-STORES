@@ -17,10 +17,21 @@ class User {
     );
   }
   static async findByEmail(email) {
-    return queryOne(
+    // Check primary email first
+    const user = await queryOne(
       `SELECT u.*, r.name AS role_name
        FROM users u JOIN roles r ON u.role_id = r.id
        WHERE u.email = $1`,
+      [email]
+    );
+    if (user) return user;
+    // Then check linked (secondary) emails created by account merges
+    return queryOne(
+      `SELECT u.*, r.name AS role_name
+       FROM users u
+       JOIN roles r ON u.role_id = r.id
+       JOIN linked_identities li ON li.primary_user_id = u.id
+       WHERE li.linked_email = $1`,
       [email]
     );
   }
@@ -33,7 +44,7 @@ class User {
     );
   }
   static async update(id, userData) {
-    const allowed = ['name', 'email', 'address', 'is_active', 'is_blocked', 'blocked_reason', 'last_login_at'];
+    const allowed = ['name', 'email', 'phone', 'address', 'profile_picture', 'is_active', 'is_blocked', 'blocked_reason', 'last_login_at'];
     const fields  = [];
     const values  = [];
     let   idx     = 1;
@@ -46,6 +57,10 @@ class User {
     if (fields.length === 0) return 0;
     values.push(id);
     return modify(`UPDATE users SET ${fields.join(', ')} WHERE id = $${idx}`, values);
+  }
+
+  static async updateProfilePicture(id, profilePicture) {
+    return modify('UPDATE users SET profile_picture = $1 WHERE id = $2', [profilePicture, id]);
   }
   static async delete(id) {
     return modify('DELETE FROM users WHERE id = $1', [id]);
