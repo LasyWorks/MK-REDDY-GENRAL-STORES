@@ -85,15 +85,20 @@ export default async function SubcategoryPage({ params, searchParams }) {
   );
   if (!mainCategory) notFound();
 
-  // Find subcategory
-  const subcategories = allCategories.filter(
+  // Find subcategory — search all siblings (including 0-product ones) so direct URLs still work
+  const allSubcategories = allCategories.filter(
     (c) => c.parent_id === mainCategory.id,
   );
-  const activeSubcategory = subcategories.find(
+  const activeSubcategory = allSubcategories.find(
     (c) => generateSlug(c.name) === subcategorySlug,
   );
 
   if (!activeSubcategory) notFound();
+
+  // Only show subcategories with products in the sidebar
+  const subcategories = allSubcategories.filter(
+    (c) => parseInt(c.product_count || 0) > 0,
+  );
 
   // Fetch products for subcategory
   const productsData = await fetchProducts(

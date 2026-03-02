@@ -25,9 +25,12 @@ export default function CategoryNav() {
   const [dropdownLeft, setDropdownLeft] = useState(0);
   const pathname = usePathname();
 
-  const parents = allCategories.filter((c) => !c.parent_id);
+  // Only show categories/subcategories that have at least 1 product
+  const parents = allCategories.filter(
+    (c) => !c.parent_id && parseInt(c.product_count || 0) > 0,
+  );
   const subMap = allCategories.reduce((acc, c) => {
-    if (c.parent_id) {
+    if (c.parent_id && parseInt(c.product_count || 0) > 0) {
       acc[c.parent_id] = acc[c.parent_id] || [];
       acc[c.parent_id].push(c);
     }
@@ -35,6 +38,7 @@ export default function CategoryNav() {
   }, {});
 
   useEffect(() => {
+    setLoading(true);
     (async () => {
       try {
         const res = await categoryService.getAll({ limit: 200 });
@@ -82,15 +86,21 @@ export default function CategoryNav() {
     setOpenMenu(parentId);
   };
 
+  // Always use English name for slug (URL must be stable across languages)
+  const slugOf = (c) => toSlug(c.name_en || c.name);
+
   const isParentActive = (parent) =>
-    pathname.startsWith(`/category/${toSlug(parent.name)}`);
+    pathname.startsWith(`/category/${slugOf(parent)}`);
 
   const isSubActive = (parent, sub) =>
-    pathname === `/category/${toSlug(parent.name)}/${toSlug(sub.name)}`;
+    pathname === `/category/${slugOf(parent)}/${slugOf(sub)}`;
 
   const openParent = parents.find((p) => p.id === openMenu);
   const openSubs = openParent ? subMap[openParent.id] || [] : [];
-  const openParentSlug = openParent ? toSlug(openParent.name) : "";
+  const openParentSlug = openParent ? slugOf(openParent) : "";
+
+  // Hide on admin pages
+  if (pathname?.startsWith("/admin")) return null;
 
   return (
     // overflow-visible on the sticky bar so the dropdown escapes it
@@ -140,7 +150,7 @@ export default function CategoryNav() {
             ) : (
               parents.map((parent) => {
                 const subs = subMap[parent.id] || [];
-                const parentSlug = toSlug(parent.name);
+                const parentSlug = slugOf(parent);
                 const active = isParentActive(parent);
                 return (
                   <div

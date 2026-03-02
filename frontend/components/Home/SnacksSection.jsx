@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
+import { useLanguage } from "@/context/LanguageContext";
 import {
   ChevronLeftIcon as ChevronLeft,
   ChevronRightIcon as ChevronRight,
@@ -50,6 +51,7 @@ function isSnack(product) {
 }
 
 export default function SnacksSection() {
+  const { lang } = useLanguage();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef(null);
@@ -59,11 +61,11 @@ export default function SnacksSection() {
       try {
         setLoading(true);
 
-        // Step 1: find the Snacks & Chocolates parent category by name
+        // Step 1: find the Snacks & Chocolates parent category by English name (stable across languages)
         const catRes = await categoryService.getAll({ limit: 200 });
         const allCats = catRes.data || [];
         const snackCat = allCats.find((c) =>
-          /snack|chocolate/i.test(c.name || ""),
+          /snack|chocolate/i.test(c.name_en || c.name || ""),
         );
 
         let fetched = [];
@@ -71,7 +73,7 @@ export default function SnacksSection() {
         if (snackCat) {
           // Step 2a: fetch by parent_category_id (covers all sub-categories too)
           const res = await fetch(
-            `${API_URL}/products?parent_category_id=${snackCat.id}&is_active=true&limit=40`,
+            `${API_URL}/products?parent_category_id=${snackCat.id}&is_active=true&limit=40&lang=${lang}`,
           );
           const json = await res.json();
           fetched = json.data || [];
@@ -79,7 +81,7 @@ export default function SnacksSection() {
           // Also fetch direct children categories' products
           if (!fetched.length) {
             const res2 = await fetch(
-              `${API_URL}/products?category_id=${snackCat.id}&is_active=true&limit=40`,
+              `${API_URL}/products?category_id=${snackCat.id}&is_active=true&limit=40&lang=${lang}`,
             );
             const json2 = await res2.json();
             fetched = json2.data || [];
@@ -89,7 +91,7 @@ export default function SnacksSection() {
         // Step 2b: fallback — keyword search, then filter to real snacks
         if (!fetched.length) {
           const res = await fetch(
-            `${API_URL}/products?search=chocolate+biscuit+chips+namkeen+cookie&is_active=true&limit=60`,
+            `${API_URL}/products?search=chocolate+biscuit+chips+namkeen+cookie&is_active=true&limit=60&lang=${lang}`,
           );
           const json = await res.json();
           fetched = (json.data || []).filter(isSnack);
@@ -102,7 +104,7 @@ export default function SnacksSection() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [lang]);
 
   const productGroups = useMemo(
     () => groupProductsByVariant(products),
@@ -124,7 +126,6 @@ export default function SnacksSection() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            
             <div>
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
                 Snacks &amp; Chocolates

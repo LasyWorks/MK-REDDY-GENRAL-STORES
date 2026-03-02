@@ -41,9 +41,13 @@ function CategoryClientView({
 }) {
   const { lang } = useLanguage();
   const [displayMain, setDisplayMain] = useState(mainCategory);
-  const [displaySubs, setDisplaySubs] = useState(subcategories);
+  // Filter out subcategories with 0 products on initial render
+  const activeSubs0 = subcategories.filter(
+    (s) => parseInt(s.product_count || 0) > 0,
+  );
+  const [displaySubs, setDisplaySubs] = useState(activeSubs0);
   const [activeSubcategory, setActiveSubcategory] = useState(
-    initialActiveSubcategory || subcategories[0] || null,
+    initialActiveSubcategory || activeSubs0[0] || null,
   );
   const [products, setProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(true);
@@ -67,17 +71,26 @@ function CategoryClientView({
     async function localise() {
       if (lang === "en") {
         setDisplayMain(mainCategory);
-        setDisplaySubs(subcategories);
+        // Only show subcategories with at least 1 product
+        const activeSubs = subcategories.filter(
+          (s) => parseInt(s.product_count || 0) > 0,
+        );
+        setDisplaySubs(activeSubs);
         setActiveSubcategory((prev) => {
-          const match = subcategories.find((s) => s.id === prev?.id);
-          return match || subcategories[0] || null;
+          const match = activeSubs.find((s) => s.id === prev?.id);
+          return match || activeSubs[0] || null;
         });
       } else {
         const all = await fetchCategoriesLang(lang);
         if (cancelled || !all) return;
         const newMain =
           all.find((c) => c.id === mainCategory.id) || mainCategory;
-        const newSubs = all.filter((c) => c.parent_id === mainCategory.id);
+        // Only show subcategories with at least 1 product
+        const newSubs = all.filter(
+          (c) =>
+            c.parent_id === mainCategory.id &&
+            parseInt(c.product_count || 0) > 0,
+        );
         setDisplayMain(newMain);
         setDisplaySubs(newSubs);
         setActiveSubcategory((prev) => {

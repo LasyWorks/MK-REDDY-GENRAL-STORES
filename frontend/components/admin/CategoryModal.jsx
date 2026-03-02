@@ -111,17 +111,21 @@ export default function CategoryModal({
     setSaving(true);
 
     try {
+      // Omit parent_id entirely when empty so the UUID validator skips it
+      const payload = { ...form };
+      if (!payload.parent_id) delete payload.parent_id;
+
       if (isEdit) {
         // Update existing category
-        await api.put(`/categories/${category.id}`, form);
+        await api.put(`/categories/${category.id}`, payload);
         onSaved();
       } else if (form.parent_id) {
         // Create new subcategory
-        await api.post("/categories", form);
+        await api.post("/categories", payload);
         onSaved();
       } else {
         // Create new parent category with subcategories
-        const parentData = { ...form };
+        const parentData = { ...payload };
         const parentRes = await api.post("/categories", parentData);
         const parentId = parentRes.data.id;
 

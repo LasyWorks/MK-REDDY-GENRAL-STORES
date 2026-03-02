@@ -55,7 +55,14 @@ class Category {
     const offsetIdx = idx++;
     const listParams = [...params, limit, offset];
     const rows = await query(
-      `SELECT c.*, ${TRANS_COLS}
+      `SELECT c.*, ${TRANS_COLS},
+       (
+         SELECT COUNT(*) FROM products p
+         WHERE (
+           p.category_id = c.id
+           OR p.category_id IN (SELECT id FROM categories WHERE parent_id = c.id)
+         ) AND p.is_active = TRUE
+       ) AS product_count
        FROM categories c ${TRANS_JOIN}
        ${where}
        ORDER BY c.display_order ASC, t_en.name ASC
@@ -108,40 +115,46 @@ class Category {
     // Validate parent_id changes to prevent circular references and enforce hierarchy
     if (data.parent_id !== undefined) {
       if (data.parent_id === id) {
-        throw new Error('A category cannot be its own parent');
+        throw new Error("A category cannot be its own parent");
       }
-      
+
       if (data.parent_id) {
         // Check if new parent exists
         const newParent = await this.findById(data.parent_id);
         if (!newParent) {
-          throw new Error('Parent category not found');
+          throw new Error("Parent category not found");
         }
-        
+
         // Prevent circular reference: new parent cannot be a child of this category
         const children = await query(
-          'SELECT id FROM categories WHERE parent_id = $1',
-          [id]
+          "SELECT id FROM categories WHERE parent_id = $1",
+          [id],
         );
-        const childIds = children.map(c => c.id);
+        const childIds = children.map((c) => c.id);
         if (childIds.includes(data.parent_id)) {
-          throw new Error('Cannot set a child category as parent (circular reference)');
+          throw new Error(
+            "Cannot set a child category as parent (circular reference)",
+          );
         }
-        
+
         // Enforce 2-level hierarchy: new parent must not have a parent itself
         if (newParent.parent_id) {
-          throw new Error('Cannot create more than 2 levels of categories. Selected parent is already a subcategory.');
+          throw new Error(
+            "Cannot create more than 2 levels of categories. Selected parent is already a subcategory.",
+          );
         }
       }
-      
+
       // Check if this category has children - if so, cannot become a subcategory
       if (data.parent_id) {
         const hasChildren = await queryOne(
-          'SELECT COUNT(*) as count FROM categories WHERE parent_id = $1',
-          [id]
+          "SELECT COUNT(*) as count FROM categories WHERE parent_id = $1",
+          [id],
         );
         if (parseInt(hasChildren.count, 10) > 0) {
-          throw new Error('Cannot convert a parent category with subcategories into a subcategory');
+          throw new Error(
+            "Cannot convert a parent category with subcategories into a subcategory",
+          );
         }
       }
     }

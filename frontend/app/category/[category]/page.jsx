@@ -88,8 +88,9 @@ export default async function CategoryPage({ params, searchParams }) {
 
   if (!category) notFound();
 
+  // Only show subcategories that have at least 1 product in the sidebar
   const subcategories = allCategories.filter(
-    (c) => c.parent_id === category.id,
+    (c) => c.parent_id === category.id && parseInt(c.product_count || 0) > 0,
   );
 
   // Fetch products

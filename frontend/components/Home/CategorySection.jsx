@@ -26,7 +26,10 @@ export default function CategorySection() {
       if (!res.ok) throw new Error("Failed");
       const json = await res.json();
       const all = json.data || [];
-      setCategories(all.filter((c) => !c.parent_id));
+      // Only show parent categories that have at least 1 product
+      setCategories(
+        all.filter((c) => !c.parent_id && parseInt(c.product_count || 0) > 0),
+      );
       setError(null);
     } catch {
       setError("Failed to load categories");
@@ -79,7 +82,7 @@ export default function CategorySection() {
               {categories.map((category) => (
                 <Link
                   key={category.id}
-                  href={`/category/${toSlug(category.name)}`}
+                  href={`/category/${toSlug(category.name_en || category.name)}`}
                   className="flex flex-col items-center flex-shrink-0 group cursor-pointer snap-start"
                 >
                   {}

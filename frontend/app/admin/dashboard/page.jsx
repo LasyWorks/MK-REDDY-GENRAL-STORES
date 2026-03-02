@@ -53,6 +53,7 @@ import FrequentlyBoughtProducts from "@/components/admin/FrequentlyBoughtProduct
 import RecentActivity from "@/components/admin/RecentActivity";
 import UserWiseSales from "@/components/admin/UserWiseSales";
 import CategoriesTab from "@/components/admin/CategoriesTab";
+import { usePromotions } from "@/context/PromotionContext";
 function useAdminGuard() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
@@ -158,40 +159,67 @@ function StatCard({ icon: Icon, label, value, sub, color }) {
 // Returns context-aware unit chips for the ProductModal based on category name
 function getUnitOptions(categoryName = "") {
   const n = categoryName.toLowerCase();
-  if (/rice|cereal|wheat/.test(n))          return ["1 kg","500 g","250 g","5 kg","2 kg","10 kg","25 kg"];
-  if (/atta|flour|maida|sooji|rava/.test(n)) return ["1 kg","500 g","2 kg","5 kg","250 g","10 kg"];
-  if (/dal|lentil|pulse|chana|moong|urad/.test(n)) return ["1 kg","500 g","250 g","2 kg","5 kg"];
-  if (/oil|ghee|vanaspati/.test(n))         return ["500 ml","1 L","2 L","5 L","200 ml","500 g","1 kg","1.5 L"];
-  if (/spice|masala|powder|pepper|chilli/.test(n)) return ["50 g","100 g","200 g","500 g","1 kg"];
-  if (/salt|sugar|jaggery|belam/.test(n))   return ["1 kg","500 g","2 kg","5 kg","250 g"];
-  if (/tamarind|imli|pickle|sauce|ketchup|chutney/.test(n)) return ["200 g","500 g","1 kg","250 ml","500 ml"];
-  if (/tea|chai/.test(n))                   return ["100 g","250 g","500 g","1 kg","50 g"];
-  if (/coffee/.test(n))                     return ["50 g","100 g","200 g","500 g","1 kg"];
-  if (/cold drink|juice|soda|aerated|energy/.test(n)) return ["200 ml","500 ml","600 ml","1 L","1.5 L","2 L"];
-  if (/water/.test(n))                      return ["500 ml","1 L","2 L","5 L","20 L"];
-  if (/health drink|malt|horlicks|bournvita/.test(n)) return ["200 g","500 g","1 kg","400 g"];
-  if (/biscuit|cookie/.test(n))             return ["100 g","200 g","400 g","500 g","1 kg"];
-  if (/chips|namkeen|snack/.test(n))        return ["25 g","50 g","100 g","200 g","500 g"];
-  if (/dry fruit|nut|almond|cashew|raisin/.test(n)) return ["100 g","250 g","500 g","1 kg"];
-  if (/chocolate|sweet|candy/.test(n))      return ["50 g","100 g","200 g","400 g","500 g"];
-  if (/noodle|pasta|vermicelli/.test(n))    return ["70 g","200 g","400 g","500 g","1 kg"];
-  if (/milk|curd|yogurt/.test(n))           return ["500 ml","1 L","200 ml","400 ml","100 ml"];
-  if (/butter|cheese|paneer|khoya/.test(n)) return ["100 g","200 g","500 g","400 g","1 kg"];
-  if (/bread|bakery/.test(n))              return ["1 pcs","400 g","200 g","pcs"];
-  if (/egg/.test(n))                       return ["6 pcs","12 pcs","30 pcs","pcs"];
-  if (/soap|body wash/.test(n))            return ["75 g","100 g","125 g","150 g","200 ml","500 ml"];
-  if (/shampoo|conditioner|hair oil/.test(n)) return ["100 ml","180 ml","200 ml","340 ml","400 ml","500 ml"];
-  if (/toothpaste|dental|oral/.test(n))    return ["50 g","80 g","100 g","150 g","200 g"];
-  if (/skin|lotion|cream|face/.test(n))    return ["50 ml","100 ml","200 ml","50 g","100 g"];
-  if (/detergent|washing powder|washing liquid/.test(n)) return ["500 g","1 kg","2 kg","3 kg","5 kg"];
-  if (/dishwash|kitchen clean/.test(n))    return ["250 ml","500 ml","1 L","250 g","500 g"];
-  if (/floor|toilet|bathroom|cleaner/.test(n)) return ["500 ml","1 L","2 L","100 ml"];
-  if (/air freshener|repellent/.test(n))   return ["200 ml","250 ml","300 ml","pcs"];
-  if (/vegetable|fruit|herb|leafy/.test(n)) return ["250 g","500 g","1 kg","250 g"];
-  if (/baby food|formula/.test(n))         return ["200 g","400 g","500 g","1 kg"];
-  if (/diaper|wipe/.test(n))               return ["20 pcs","40 pcs","80 pcs","pcs","pack"];
-  if (/stationery|writing|battery|electronic|pooja|agarbathi|general/.test(n)) return ["1 pcs","pcs","pack","set"];
-  return ["1 kg","500 g","250 g","1 L","500 ml","pcs","pack"];
+  if (/rice|cereal|wheat/.test(n))
+    return ["1 kg", "500 g", "250 g", "5 kg", "2 kg", "10 kg", "25 kg"];
+  if (/atta|flour|maida|sooji|rava/.test(n))
+    return ["1 kg", "500 g", "2 kg", "5 kg", "250 g", "10 kg"];
+  if (/dal|lentil|pulse|chana|moong|urad/.test(n))
+    return ["1 kg", "500 g", "250 g", "2 kg", "5 kg"];
+  if (/oil|ghee|vanaspati/.test(n))
+    return ["500 ml", "1 L", "2 L", "5 L", "200 ml", "500 g", "1 kg", "1.5 L"];
+  if (/spice|masala|powder|pepper|chilli/.test(n))
+    return ["50 g", "100 g", "200 g", "500 g", "1 kg"];
+  if (/salt|sugar|jaggery|belam/.test(n))
+    return ["1 kg", "500 g", "2 kg", "5 kg", "250 g"];
+  if (/tamarind|imli|pickle|sauce|ketchup|chutney/.test(n))
+    return ["200 g", "500 g", "1 kg", "250 ml", "500 ml"];
+  if (/tea|chai/.test(n)) return ["100 g", "250 g", "500 g", "1 kg", "50 g"];
+  if (/coffee/.test(n)) return ["50 g", "100 g", "200 g", "500 g", "1 kg"];
+  if (/cold drink|juice|soda|aerated|energy/.test(n))
+    return ["200 ml", "500 ml", "600 ml", "1 L", "1.5 L", "2 L"];
+  if (/water/.test(n)) return ["500 ml", "1 L", "2 L", "5 L", "20 L"];
+  if (/health drink|malt|horlicks|bournvita/.test(n))
+    return ["200 g", "500 g", "1 kg", "400 g"];
+  if (/biscuit|cookie/.test(n))
+    return ["100 g", "200 g", "400 g", "500 g", "1 kg"];
+  if (/chips|namkeen|snack/.test(n))
+    return ["25 g", "50 g", "100 g", "200 g", "500 g"];
+  if (/dry fruit|nut|almond|cashew|raisin/.test(n))
+    return ["100 g", "250 g", "500 g", "1 kg"];
+  if (/chocolate|sweet|candy/.test(n))
+    return ["50 g", "100 g", "200 g", "400 g", "500 g"];
+  if (/noodle|pasta|vermicelli/.test(n))
+    return ["70 g", "200 g", "400 g", "500 g", "1 kg"];
+  if (/milk|curd|yogurt/.test(n))
+    return ["500 ml", "1 L", "200 ml", "400 ml", "100 ml"];
+  if (/butter|cheese|paneer|khoya/.test(n))
+    return ["100 g", "200 g", "500 g", "400 g", "1 kg"];
+  if (/bread|bakery/.test(n)) return ["1 pcs", "400 g", "200 g", "pcs"];
+  if (/egg/.test(n)) return ["6 pcs", "12 pcs", "30 pcs", "pcs"];
+  if (/soap|body wash/.test(n))
+    return ["75 g", "100 g", "125 g", "150 g", "200 ml", "500 ml"];
+  if (/shampoo|conditioner|hair oil/.test(n))
+    return ["100 ml", "180 ml", "200 ml", "340 ml", "400 ml", "500 ml"];
+  if (/toothpaste|dental|oral/.test(n))
+    return ["50 g", "80 g", "100 g", "150 g", "200 g"];
+  if (/skin|lotion|cream|face/.test(n))
+    return ["50 ml", "100 ml", "200 ml", "50 g", "100 g"];
+  if (/detergent|washing powder|washing liquid/.test(n))
+    return ["500 g", "1 kg", "2 kg", "3 kg", "5 kg"];
+  if (/dishwash|kitchen clean/.test(n))
+    return ["250 ml", "500 ml", "1 L", "250 g", "500 g"];
+  if (/floor|toilet|bathroom|cleaner/.test(n))
+    return ["500 ml", "1 L", "2 L", "100 ml"];
+  if (/air freshener|repellent/.test(n))
+    return ["200 ml", "250 ml", "300 ml", "pcs"];
+  if (/vegetable|fruit|herb|leafy/.test(n))
+    return ["250 g", "500 g", "1 kg", "2 kg"];
+  if (/baby food|formula/.test(n)) return ["200 g", "400 g", "500 g", "1 kg"];
+  if (/diaper|wipe/.test(n))
+    return ["20 pcs", "40 pcs", "80 pcs", "pcs", "pack"];
+  if (/stationery|writing|battery|electronic|pooja|agarbathi|general/.test(n))
+    return ["1 pcs", "pcs", "pack", "set"];
+  return ["1 kg", "500 g", "250 g", "1 L", "500 ml", "pcs", "pack"];
 }
 function OverviewTab({ onSwitchTab }) {
   const [stats, setStats] = useState(null);
@@ -349,7 +377,7 @@ function ProductModal({ product, categories, onClose, onSaved }) {
     mrp: product?.mrp || "",
     price: product?.price || "",
     stock_quantity: product?.stock_quantity ?? "",
-    unit: product?.unit || "kg",
+    unit: product?.variant || product?.unit || "",
     category_id: product?.category_id || "",
     description_en: product?.description || "",
     is_active: product?.is_active !== false,
@@ -396,7 +424,13 @@ function ProductModal({ product, categories, onClose, onSaved }) {
     setError("");
     try {
       const imgs = imageUrls.filter(Boolean);
-      const payload = { ...form, image_urls: imgs, image_url: imgs[0] || null };
+      // map form.unit → variant (the DB column that stores "1 kg", "500 g" etc.)
+      const payload = {
+        ...form,
+        image_urls: imgs,
+        image_url: imgs[0] || null,
+        variant: form.unit,
+      };
       if (isEdit) await api.put(`/products/${product.id}`, payload);
       else await api.post("/products", payload);
       onSaved();
@@ -558,30 +592,42 @@ function ProductModal({ product, categories, onClose, onSaved }) {
               </label>
               {/* Smart chip picker — options change based on selected category */}
               {(() => {
-                const parentCat = categories.find(c => c.id === parentCategoryId);
-                const subcat    = categories.find(c => c.id === form.category_id);
-                const chips     = getUnitOptions(subcat?.name || parentCat?.name || "");
+                const parentCat = categories.find(
+                  (c) => c.id === parentCategoryId,
+                );
+                const subcat = categories.find(
+                  (c) => c.id === form.category_id,
+                );
+                const chips = getUnitOptions(
+                  subcat?.name || parentCat?.name || "",
+                );
                 return (
                   <div className="space-y-1.5">
                     <div className="flex flex-wrap gap-1.5">
-                      {chips.map(chip => (
-                        <button type="button" key={chip}
+                      {[...new Set(chips)].map((chip, i) => (
+                        <button
+                          type="button"
+                          key={`${chip}-${i}`}
                           onClick={() => set("unit", chip)}
                           className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border transition-all ${
                             form.unit === chip
                               ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
                               : "bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-600"
                           }`}
-                        >{chip}</button>
+                        >
+                          {chip}
+                        </button>
                       ))}
                     </div>
                     <input
                       value={form.unit}
-                      onChange={e => set("unit", e.target.value)}
+                      onChange={(e) => set("unit", e.target.value)}
                       placeholder="e.g. 1 kg / 500 g / pcs / 1 L"
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
-                    <p className="text-[10px] text-gray-400">Click a chip or type a custom unit</p>
+                    <p className="text-[10px] text-gray-400">
+                      Click a chip or type a custom unit
+                    </p>
                   </div>
                 );
               })()}
@@ -629,7 +675,7 @@ function ProductModal({ product, categories, onClose, onSaved }) {
                   const pid = e.target.value;
                   setParentCategoryId(pid);
                   set("category_id", ""); // Reset subcategory
-                  const parentCat = categories.find(c => c.id === pid);
+                  const parentCat = categories.find((c) => c.id === pid);
                   if (parentCat) {
                     const opts = getUnitOptions(parentCat.name);
                     if (opts.length) set("unit", opts[0]);
@@ -656,7 +702,7 @@ function ProductModal({ product, categories, onClose, onSaved }) {
                 onChange={(e) => {
                   const sid = e.target.value;
                   set("category_id", sid);
-                  const subcat = categories.find(c => c.id === sid);
+                  const subcat = categories.find((c) => c.id === sid);
                   if (subcat) {
                     const opts = getUnitOptions(subcat.name);
                     if (opts.length) set("unit", opts[0]);
@@ -747,13 +793,17 @@ function ProductRow({
   deleting,
   onToggleFeatured,
   togglingFeatured,
+  onToggleActive,
+  togglingActive,
 }) {
   const mrp = parseFloat(p.mrp || 0);
   const price = parseFloat(p.price || 0);
   const disc = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
   const img = Array.isArray(p.image_urls) ? p.image_urls[0] : p.image_url;
   return (
-    <tr className="hover:bg-gray-50 transition-colors">
+    <tr
+      className={`hover:bg-gray-50 transition-colors ${p.is_active === false ? "bg-gray-50 opacity-75" : ""}`}
+    >
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-gray-50 flex-shrink-0 overflow-hidden">
@@ -765,12 +815,19 @@ function ProductRow({
             />
           </div>
           <div>
-            <p className="font-medium text-gray-900 text-sm line-clamp-1">
-              {p.name}
-            </p>
-            {p.brand && (
+            <div className="flex items-center gap-1.5">
+              <p className="font-medium text-gray-900 text-sm line-clamp-1">
+                {p.name}
+              </p>
+              {p.is_active === false && (
+                <span className="bg-red-100 text-red-600 text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0">
+                  Inactive
+                </span>
+              )}
+            </div>
+            {(p.brand || p.variant || p.unit) && (
               <p className="text-xs text-gray-400">
-                {p.brand} · {p.unit}
+                {[p.brand, p.variant || p.unit].filter(Boolean).join(" · ")}
               </p>
             )}
           </div>
@@ -836,6 +893,26 @@ function ProductRow({
             <Pencil className="w-4 h-4" />
           </button>
           <button
+            onClick={() => onToggleActive(p)}
+            disabled={togglingActive === p.id}
+            title={
+              p.is_active === false ? "Activate product" : "Deactivate product"
+            }
+            className={`p-1.5 rounded-lg transition-colors ${
+              p.is_active === false
+                ? "text-green-500 hover:text-green-700 hover:bg-green-50"
+                : "text-gray-400 hover:text-orange-600 hover:bg-orange-50"
+            }`}
+          >
+            {togglingActive === p.id ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : p.is_active === false ? (
+              <Eye className="w-4 h-4" />
+            ) : (
+              <EyeOff className="w-4 h-4" />
+            )}
+          </button>
+          <button
             onClick={() => onDelete(p.id)}
             disabled={deleting === p.id}
             className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
@@ -885,6 +962,7 @@ function ProductsTab() {
   const [modal, setModal] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [togglingFeatured, setTogglingFeatured] = useState(null);
+  const [togglingActive, setTogglingActive] = useState(null);
   const [openCategories, setOpenCategories] = useState(new Set());
   const searchTimer = useRef(null);
   const load = useCallback(
@@ -895,7 +973,9 @@ function ProductsTab() {
         const params = { page: 1, limit: 500, ...(q ? { search: q } : {}) };
         const [pRes, cRes] = await Promise.all([
           api.get("/products/admin/all", params),
-          categories.length ? null : api.get("/categories", { limit: 200 }),
+          categories.length
+            ? null
+            : api.get("/categories/admin/all", { limit: 200 }),
         ]);
         setProducts(pRes.data || []);
         if (cRes) {
@@ -951,6 +1031,20 @@ function ProductsTab() {
       setTogglingFeatured(null);
     }
   }
+  async function handleToggleActive(p) {
+    setTogglingActive(p.id);
+    try {
+      const newActive = p.is_active === false ? true : false;
+      await api.put(`/products/${p.id}`, { is_active: newActive });
+      setProducts((prev) =>
+        prev.map((x) => (x.id === p.id ? { ...x, is_active: newActive } : x)),
+      );
+    } catch (e) {
+      alert(e.message || "Failed to update product status");
+    } finally {
+      setTogglingActive(null);
+    }
+  }
   function toggleCategory(name) {
     setOpenCategories((prev) => {
       const next = new Set(prev);
@@ -958,32 +1052,20 @@ function ProductsTab() {
       return next;
     });
   }
-  const mainCatName = useMemo(() => {
-    const byId = {};
-    for (const c of categories) byId[c.id] = c;
-    const resolve = (id) => {
-      const c = byId[id];
-      if (!c) return null;
-      return c.parent_id ? resolve(c.parent_id) : c.name;
-    };
-    const map = {};
-    for (const c of categories) map[c.id] = resolve(c.id);
-    return map;
-  }, [categories]);
   const grouped = useMemo(() => {
     const map = {};
     for (const p of products) {
-      const key =
-        p.category_id && mainCatName[p.category_id]
-          ? mainCatName[p.category_id]
-          : p.category_name || "Uncategorised";
+      // Use parent_category_name (for subcategories) or category_name (for top-level).
+      // Products with no resolved category are skipped — they don't belong to any backend category.
+      const key = p.parent_category_name || p.category_name;
+      if (!key) continue;
       if (!map[key]) map[key] = [];
       map[key].push(p);
     }
     return Object.entries(map)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([name, items]) => ({ name, items }));
-  }, [products, mainCatName]);
+  }, [products]);
   function expandAll() {
     setOpenCategories(new Set(grouped.map((g) => g.name)));
   }
@@ -1082,6 +1164,8 @@ function ProductsTab() {
                             deleting={deleting}
                             onToggleFeatured={handleToggleFeatured}
                             togglingFeatured={togglingFeatured}
+                            onToggleActive={handleToggleActive}
+                            togglingActive={togglingActive}
                           />
                         ))}
                       </tbody>
@@ -1296,46 +1380,84 @@ function OrdersTab() {
           <div className="px-6 py-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
             <p className="text-xs text-gray-500 shrink-0">
               Showing{" "}
-              <span className="font-bold text-gray-800">{total === 0 ? 0 : (page - 1) * LIMIT + 1}</span>
+              <span className="font-bold text-gray-800">
+                {total === 0 ? 0 : (page - 1) * LIMIT + 1}
+              </span>
               {"–"}
-              <span className="font-bold text-gray-800">{Math.min(page * LIMIT, total)}</span>
+              <span className="font-bold text-gray-800">
+                {Math.min(page * LIMIT, total)}
+              </span>
               {" of "}
               <span className="font-bold text-gray-800">{total}</span>
               {" orders"}
             </p>
             {totalPages > 1 && (
               <div className="flex items-center gap-1">
-                <button disabled={page === 1} onClick={() => setPage(1)} title="First"
-                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 text-xs font-bold disabled:opacity-30 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-all disabled:hover:bg-white disabled:hover:border-gray-200 disabled:hover:text-gray-500">
+                <button
+                  disabled={page === 1}
+                  onClick={() => setPage(1)}
+                  title="First"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 text-xs font-bold disabled:opacity-30 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-all disabled:hover:bg-white disabled:hover:border-gray-200 disabled:hover:text-gray-500"
+                >
                   &#171;
                 </button>
-                <button disabled={page === 1} onClick={() => setPage(p => p - 1)} title="Previous"
-                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-all disabled:hover:bg-white disabled:hover:border-gray-200 disabled:hover:text-gray-500">
+                <button
+                  disabled={page === 1}
+                  onClick={() => setPage((p) => p - 1)}
+                  title="Previous"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-all disabled:hover:bg-white disabled:hover:border-gray-200 disabled:hover:text-gray-500"
+                >
                   <ChevronRight className="w-3.5 h-3.5 rotate-180" />
                 </button>
                 {(() => {
-                  const nums = []; const delta = 2; const range = [];
-                  for (let i = Math.max(2, page - delta); i <= Math.min(totalPages - 1, page + delta); i++) range.push(i);
+                  const nums = [];
+                  const delta = 2;
+                  const range = [];
+                  for (
+                    let i = Math.max(2, page - delta);
+                    i <= Math.min(totalPages - 1, page + delta);
+                    i++
+                  )
+                    range.push(i);
                   nums.push(1);
                   if (range[0] > 2) nums.push("ellL");
-                  range.forEach(n => nums.push(n));
-                  if (range[range.length - 1] < totalPages - 1) nums.push("ellR");
+                  range.forEach((n) => nums.push(n));
+                  if (range[range.length - 1] < totalPages - 1)
+                    nums.push("ellR");
                   if (totalPages > 1) nums.push(totalPages);
-                  return nums.map(n =>
-                    typeof n === "string"
-                      ? <span key={n} className="w-8 h-8 flex items-center justify-center text-xs text-gray-400 select-none">…</span>
-                      : <button key={n} onClick={() => setPage(n)}
-                          className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all border ${page === n ? "bg-indigo-600 text-white border-indigo-600 shadow-sm" : "border-gray-200 text-gray-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600"}`}>
-                          {n}
-                        </button>
+                  return nums.map((n) =>
+                    typeof n === "string" ? (
+                      <span
+                        key={n}
+                        className="w-8 h-8 flex items-center justify-center text-xs text-gray-400 select-none"
+                      >
+                        …
+                      </span>
+                    ) : (
+                      <button
+                        key={n}
+                        onClick={() => setPage(n)}
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all border ${page === n ? "bg-indigo-600 text-white border-indigo-600 shadow-sm" : "border-gray-200 text-gray-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600"}`}
+                      >
+                        {n}
+                      </button>
+                    ),
                   );
                 })()}
-                <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)} title="Next"
-                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-all disabled:hover:bg-white disabled:hover:border-gray-200 disabled:hover:text-gray-500">
+                <button
+                  disabled={page === totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                  title="Next"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-all disabled:hover:bg-white disabled:hover:border-gray-200 disabled:hover:text-gray-500"
+                >
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
-                <button disabled={page === totalPages} onClick={() => setPage(totalPages)} title="Last"
-                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 text-xs font-bold disabled:opacity-30 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-all disabled:hover:bg-white disabled:hover:border-gray-200 disabled:hover:text-gray-500">
+                <button
+                  disabled={page === totalPages}
+                  onClick={() => setPage(totalPages)}
+                  title="Last"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 text-xs font-bold disabled:opacity-30 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-all disabled:hover:bg-white disabled:hover:border-gray-200 disabled:hover:text-gray-500"
+                >
                   &#187;
                 </button>
               </div>
@@ -2725,6 +2847,7 @@ function PromotionModal({ promo, onClose, onSaved }) {
   );
 }
 function PromotionsTab() {
+  const { refresh: refreshContext } = usePromotions();
   const [promotions, setPromotions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -2755,6 +2878,7 @@ function PromotionsTab() {
     try {
       await api.delete(`/promotions/${id}`);
       load();
+      refreshContext();
     } catch (e) {
       alert(e.message || "Delete failed");
     } finally {
@@ -2766,6 +2890,7 @@ function PromotionsTab() {
     try {
       await api.put(`/promotions/${id}/toggle-active`);
       load();
+      refreshContext();
     } catch (e) {
       alert(e.message || "Toggle failed");
     } finally {
@@ -2775,6 +2900,7 @@ function PromotionsTab() {
   function onSaved() {
     setModal(null);
     load();
+    refreshContext();
   }
   const fmtDate = (iso) => {
     const d = new Date(iso);

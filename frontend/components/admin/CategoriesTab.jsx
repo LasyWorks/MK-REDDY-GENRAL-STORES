@@ -28,7 +28,8 @@ export default function CategoriesTab() {
     setLoading(true);
     setError("");
     try {
-      const res = await api.get("/categories", { limit: 500 });
+      // Use admin endpoint so ALL categories (including inactive/hidden) are visible for management
+      const res = await api.get("/categories/admin/all", { limit: 500 });
       const allCategories = res.data || [];
       setCategories(allCategories);
 
@@ -72,10 +73,7 @@ export default function CategoriesTab() {
 
   const handleToggleActive = async (category) => {
     try {
-      await api.put(`/categories/${category.id}`, {
-        ...category,
-        is_active: !category.is_active,
-      });
+      await api.put(`/categories/${category.id}/toggle-active`);
       setCategories((prev) =>
         prev.map((c) =>
           c.id === category.id ? { ...c, is_active: !c.is_active } : c,
@@ -199,12 +197,21 @@ export default function CategoriesTab() {
 
                   {/* Category Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold text-gray-900">
                         {parent.name}
                       </h3>
                       <span className="text-xs font-medium text-gray-400">
                         ({subcategories.length} subcategories)
+                      </span>
+                      <span
+                        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                          parseInt(parent.product_count || 0) > 0
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-gray-100 text-gray-400"
+                        }`}
+                      >
+                        {parseInt(parent.product_count || 0)} products
                       </span>
                     </div>
                     {parent.description && (
@@ -280,9 +287,20 @@ export default function CategoriesTab() {
 
                           {/* Subcategory Info */}
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-gray-800 text-sm">
-                              {sub.name}
-                            </h4>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-medium text-gray-800 text-sm">
+                                {sub.name}
+                              </h4>
+                              <span
+                                className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${
+                                  parseInt(sub.product_count || 0) > 0
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-gray-100 text-gray-400"
+                                }`}
+                              >
+                                {parseInt(sub.product_count || 0)} items
+                              </span>
+                            </div>
                             {sub.description && (
                               <p className="text-xs text-gray-500 truncate">
                                 {sub.description}
