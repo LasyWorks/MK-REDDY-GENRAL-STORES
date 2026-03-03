@@ -762,8 +762,12 @@ function ProductModal({ product, categories, onClose, onSaved }) {
                   onChange={(e) => set("is_featured", e.target.checked)}
                   className="w-4 h-4 accent-yellow-500"
                 />
-                <label htmlFor="is_featured" className="text-sm text-gray-700 flex items-center gap-1">
-                  <StarIcon className="w-3.5 h-3.5 text-yellow-500" /> Featured (show on homepage)
+                <label
+                  htmlFor="is_featured"
+                  className="text-sm text-gray-700 flex items-center gap-1"
+                >
+                  <StarIcon className="w-3.5 h-3.5 text-yellow-500" /> Featured
+                  (show on homepage)
                 </label>
               </div>
             </div>
@@ -904,16 +908,16 @@ function ProductRow({
             }
             className={`p-1.5 rounded-lg transition-colors ${
               p.is_active === false
-                ? "text-green-500 hover:text-green-700 hover:bg-green-50"
-                : "text-gray-400 hover:text-orange-600 hover:bg-orange-50"
+                ? "text-gray-400 hover:text-orange-600 hover:bg-orange-50"
+                : "text-green-500 hover:text-green-700 hover:bg-green-50"
             }`}
           >
             {togglingActive === p.id ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : p.is_active === false ? (
-              <Eye className="w-4 h-4" />
-            ) : (
               <EyeOff className="w-4 h-4" />
+            ) : (
+              <Eye className="w-4 h-4" />
             )}
           </button>
           <button
@@ -1006,7 +1010,13 @@ function ProductsTab() {
     searchTimer.current = setTimeout(() => load(val), 400);
   }
   async function handleDelete(id) {
-    if (!(await confirm("Delete this product?", { danger: true, confirmLabel: "Delete" }))) return;
+    if (
+      !(await confirm("Delete this product?", {
+        danger: true,
+        confirmLabel: "Delete",
+      }))
+    )
+      return;
     setDeleting(id);
     try {
       await api.delete(`/products/${id}`);
@@ -1492,14 +1502,22 @@ function UsersTab() {
       setLoading(true);
       setError("");
       try {
-        const params = { page: p, limit: LIMIT };
-        if (q) params.search = q;
-        if (type !== "all") params.user_type = type;
-        if (status === "active") params.is_active = true;
-        if (status === "blocked") params.is_active = false;
-        const res = await api.get("/users", params);
-        setUsers(res.data || []);
-        setTotal(res.meta?.totalItems || res.meta?.total || 0);
+        if (status === "deleted") {
+          const params = { page: p, limit: LIMIT };
+          if (q) params.search = q;
+          const res = await api.get("/users/deleted", params);
+          setUsers(res.data || []);
+          setTotal(res.meta?.totalItems || res.meta?.total || 0);
+        } else {
+          const params = { page: p, limit: LIMIT };
+          if (q) params.search = q;
+          if (type !== "all") params.user_type = type;
+          if (status === "active") params.is_active = true;
+          if (status === "blocked") params.is_active = false;
+          const res = await api.get("/users", params);
+          setUsers(res.data || []);
+          setTotal(res.meta?.totalItems || res.meta?.total || 0);
+        }
       } catch (e) {
         setError(e.message || "Failed to load users");
       } finally {
@@ -1552,7 +1570,13 @@ function UsersTab() {
     }
   }
   async function handleDelete(id) {
-    if (!(await confirm("Permanently delete this user? This cannot be undone.", { danger: true, confirmLabel: "Delete", title: "Delete User" })))
+    if (
+      !(await confirm("Move this user to trash? They can be restored later.", {
+        danger: true,
+        confirmLabel: "Delete",
+        title: "Delete User",
+      }))
+    )
       return;
     setActing(id);
     try {
@@ -1565,6 +1589,26 @@ function UsersTab() {
       setActing(null);
     }
   }
+  async function handleRestore(id) {
+    if (
+      !(await confirm("Restore this user? Their account will be reactivated.", {
+        confirmLabel: "Restore",
+        title: "Restore User",
+      }))
+    )
+      return;
+    setActing(id);
+    try {
+      await api.put(`/users/${id}/restore`);
+      setUsers((prev) => prev.filter((u) => u.id !== id));
+      setTotal((t) => t - 1);
+      toast("User restored successfully", "success");
+    } catch (e) {
+      toast(e.message || "Restore failed", "error");
+    } finally {
+      setActing(null);
+    }
+  }
   async function handlePromoteDemote(user) {
     const isCurrentlyRetail = user.user_type === "retail";
     const newType = isCurrentlyRetail ? "wholesale" : "retail";
@@ -1572,7 +1616,13 @@ function UsersTab() {
       ? "Promote to Wholesale"
       : "Demote to Retail";
 
-    if (!(await confirm(`${action} customer: ${user.name || user.phone}?`, { confirmLabel: action, danger: !isCurrentlyRetail }))) return;
+    if (
+      !(await confirm(`${action} customer: ${user.name || user.phone}?`, {
+        confirmLabel: action,
+        danger: !isCurrentlyRetail,
+      }))
+    )
+      return;
 
     setActing(user.id);
     try {
@@ -1619,7 +1669,7 @@ function UsersTab() {
           ))}
           <div className="w-px bg-gray-200" />
           {}
-          {["all", "active", "blocked"].map((s) => (
+          {["all", "active", "blocked", "deleted"].map((s) => (
             <button
               key={s}
               onClick={() => {
@@ -1627,7 +1677,7 @@ function UsersTab() {
                 setPage(1);
               }}
               className={`capitalize px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
-                ${statusFilter === s ? "bg-blue-600 text-white" : "bg-white border border-gray-200 text-gray-600 hover:border-blue-400"}`}
+                ${statusFilter === s ? (s === "deleted" ? "bg-red-600 text-white" : "bg-blue-600 text-white") : "bg-white border border-gray-200 text-gray-600 hover:border-blue-400"}`}
             >
               {s === "all" ? "All Status" : s}
             </button>
@@ -1678,7 +1728,10 @@ function UsersTab() {
               )}
               {!loading &&
                 users.map((u) => (
-                  <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                  <tr
+                    key={u.id}
+                    className={`hover:bg-gray-50 transition-colors ${u.deleted_at ? "bg-red-50 opacity-80" : ""}`}
+                  >
                     {}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
@@ -1732,7 +1785,11 @@ function UsersTab() {
                     {}
                     <td className="px-4 py-3">
                       <div className="flex flex-col gap-1">
-                        {u.is_blocked ? (
+                        {u.deleted_at ? (
+                          <span className="bg-red-100 text-red-700 text-xs font-semibold px-2 py-0.5 rounded-full w-fit">
+                            Deleted
+                          </span>
+                        ) : u.is_blocked ? (
                           <span className="bg-red-100 text-red-700 text-xs font-semibold px-2 py-0.5 rounded-full w-fit">
                             Blocked
                           </span>
@@ -1741,7 +1798,7 @@ function UsersTab() {
                             Active
                           </span>
                         )}
-                        {!u.is_active && (
+                        {!u.deleted_at && !u.is_active && (
                           <span className="bg-gray-100 text-gray-500 text-xs font-semibold px-2 py-0.5 rounded-full w-fit">
                             Inactive
                           </span>
@@ -1761,13 +1818,29 @@ function UsersTab() {
                     </td>
                     {}
                     <td className="px-4 py-3 text-xs text-gray-500">
-                      {fmtDate(u.created_at)}
+                      {u.deleted_at ? (
+                        <span className="text-red-500 font-medium">
+                          Deleted {fmtDate(u.deleted_at)}
+                        </span>
+                      ) : (
+                        fmtDate(u.created_at)
+                      )}
                     </td>
                     {}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
                         {acting === u.id ? (
                           <Loader2 className="w-4 h-4 animate-spin text-green-600" />
+                        ) : u.deleted_at ? (
+                          // Deleted user — show only Restore button
+                          <button
+                            onClick={() => handleRestore(u.id)}
+                            title="Restore user"
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
+                          >
+                            <RefreshCcw className="w-3.5 h-3.5" />
+                            Restore
+                          </button>
                         ) : (
                           <>
                             {/* Promote/Demote (only for retail/wholesale customers) */}
@@ -1932,20 +2005,158 @@ function PromoStatusBadge({ promo }) {
 }
 /* ── Festival presets ─────────────────────────────────── */
 const FESTIVAL_PRESETS = [
-  { name: "Diwali",           color: "#c05621", badge: "DIWALI SPECIAL",  title: "Diwali Mega Sale",          desc: "Celebrate the festival of lights with exclusive deals on sweets, snacks & home essentials.",           discount: 30, banner_text: "🪔 Diwali Mega Sale — Up to 30% Off! Shop sweets, snacks & home essentials now.",              keywords: ["sweet", "snack", "oil", "ghee"] },
-  { name: "Holi",             color: "#7c3aed", badge: "HOLI SALE",       title: "Holi Festival Sale",         desc: "Play with colours and savings! Discounts on snacks, drinks & festive must-haves.",                       discount: 25, banner_text: "🎨 Holi Sale — Up to 25% Off on snacks, drinks & festive must-haves!",                       keywords: ["snack", "juice", "drink", "colour"] },
-  { name: "Eid",              color: "#047857", badge: "EID MUBARAK",     title: "Eid Special Sale",           desc: "Eid Mubarak! Special discounts on sweets, dry fruits & daily essentials.",                              discount: 20, banner_text: "🌙 Eid Mubarak — 20% Off on sweets, dry fruits & daily essentials!",                        keywords: ["dry fruit", "dates", "sweet", "biryani"] },
-  { name: "Pongal",           color: "#b45309", badge: "PONGAL OFFER",    title: "Pongal Harvest Sale",        desc: "Happy Pongal! Special deals on rice, jaggery, dal & all harvest essentials.",                           discount: 20, banner_text: "🌾 Happy Pongal — 20% Off on rice, jaggery, dal & harvest essentials!",                   keywords: ["rice", "jaggery", "dal", "sugarcane"] },
-  { name: "Christmas",        color: "#166534", badge: "XMAS SPECIAL",    title: "Christmas Sale",             desc: "Merry Christmas! Great deals on cakes, chocolates & holiday treats.",                                  discount: 15, banner_text: "🎄 Merry Christmas — 15% Off on cakes, chocolates & holiday treats!",                   keywords: ["cake", "chocolate", "biscuit", "dry fruit"] },
-  { name: "Onam",             color: "#9a3412", badge: "ONAM SPECIAL",    title: "Onam Harvest Sale",          desc: "Happy Onam! Celebrate with deals on rice, snacks & Kerala essentials.",                                discount: 20, banner_text: "🌸 Happy Onam — 20% Off on rice, snacks & Kerala essentials!",                         keywords: ["rice", "coconut", "banana", "papad"] },
-  { name: "Ugadi",            color: "#15803d", badge: "UGADI SPECIAL",   title: "Ugadi New Year Sale",        desc: "Happy Ugadi! Start the Telugu New Year with fresh deals on groceries & festive essentials.",             discount: 20, banner_text: "🌿 Happy Ugadi — 20% Off on groceries & festive essentials!",                         keywords: ["tamarind", "jaggery", "dal", "mango"] },
-  { name: "Vinayaka Chavithi",color: "#d97706", badge: "CHAVITHI OFFER",  title: "Vinayaka Chavithi Sale",     desc: "Special offers on modak ingredients, fruits & puja essentials.",                                     discount: 15, banner_text: "🐘 Vinayaka Chavithi — 15% Off on modak ingredients, fruits & puja items!",            keywords: ["modak", "coconut", "jaggery", "fruit"] },
-  { name: "Dasara",           color: "#6d28d9", badge: "DASARA SALE",     title: "Dasara Navratri Sale",       desc: "Dasara celebrations with big discounts on groceries & daily essentials.",                              discount: 25, banner_text: "🏹 Dasara Sale — Up to 25% Off on groceries & daily essentials!",                    keywords: ["rice", "dal", "oil", "spice"] },
-  { name: "Navratri",         color: "#e11d48", badge: "NAVRATRI OFFER",  title: "Navratri Special Sale",      desc: "Nine nights of amazing deals on pooja items, dry fruits & festive snacks.",                            discount: 20, banner_text: "🪔 Navratri Special — 20% Off on dry fruits, pooja items & festive snacks!",         keywords: ["dry fruit", "sabudana", "almond", "cashew"] },
-  { name: "Bathukamma",       color: "#c026d3", badge: "BATHUKAMMA",      title: "Bathukamma Festival Sale",   desc: "Celebrate the Telangana flower festival with great deals on essentials.",                             discount: 15, banner_text: "🌼 Bathukamma Festival — 15% Off on daily essentials & festive items!",              keywords: ["rice", "snack", "oil", "dal"] },
-  { name: "Rama Navami",      color: "#d97706", badge: "RAMA NAVAMI",     title: "Sri Rama Navami Sale",       desc: "Celebrate Sri Rama Navami with discounts on prasad items & daily essentials.",                         discount: 15, banner_text: "🙏 Sri Rama Navami — 15% Off on prasad items & daily essentials!",                keywords: ["panakam", "sweet", "jaggery", "milk"] },
-  { name: "Independence Day", color: "#1d4ed8", badge: "AZADI KA AMRIT",  title: "Independence Day Sale",      desc: "Celebrating our nation's freedom with special discounts on all essentials.",                           discount: 20, banner_text: "🇮🇳 Independence Day Sale — 20% Off on all essentials. Jai Hind!",                   keywords: ["rice", "dal", "oil", "atta"] },
-  { name: "Republic Day",     color: "#1d4ed8", badge: "REPUBLIC DAY",    title: "Republic Day Sale",          desc: "75+ years of Republic India — great deals on all categories.",                                        discount: 15, banner_text: "🇮🇳 Republic Day Sale — 15% Off across all categories. Jai Bharat!",              keywords: ["rice", "dal", "oil", "biscuit"] },
+  {
+    name: "Diwali",
+    color: "#c05621",
+    badge: "DIWALI SPECIAL",
+    title: "Diwali Mega Sale",
+    desc: "Celebrate the festival of lights with exclusive deals on sweets, snacks & home essentials.",
+    discount: 30,
+    banner_text:
+      "🪔 Diwali Mega Sale — Up to 30% Off! Shop sweets, snacks & home essentials now.",
+    keywords: ["sweet", "snack", "oil", "ghee"],
+  },
+  {
+    name: "Holi",
+    color: "#7c3aed",
+    badge: "HOLI SALE",
+    title: "Holi Festival Sale",
+    desc: "Play with colours and savings! Discounts on snacks, drinks & festive must-haves.",
+    discount: 25,
+    banner_text:
+      "🎨 Holi Sale — Up to 25% Off on snacks, drinks & festive must-haves!",
+    keywords: ["snack", "juice", "drink", "colour"],
+  },
+  {
+    name: "Eid",
+    color: "#047857",
+    badge: "EID MUBARAK",
+    title: "Eid Special Sale",
+    desc: "Eid Mubarak! Special discounts on sweets, dry fruits & daily essentials.",
+    discount: 20,
+    banner_text:
+      "🌙 Eid Mubarak — 20% Off on sweets, dry fruits & daily essentials!",
+    keywords: ["dry fruit", "dates", "sweet", "biryani"],
+  },
+  {
+    name: "Pongal",
+    color: "#b45309",
+    badge: "PONGAL OFFER",
+    title: "Pongal Harvest Sale",
+    desc: "Happy Pongal! Special deals on rice, jaggery, dal & all harvest essentials.",
+    discount: 20,
+    banner_text:
+      "🌾 Happy Pongal — 20% Off on rice, jaggery, dal & harvest essentials!",
+    keywords: ["rice", "jaggery", "dal", "sugarcane"],
+  },
+  {
+    name: "Christmas",
+    color: "#166534",
+    badge: "XMAS SPECIAL",
+    title: "Christmas Sale",
+    desc: "Merry Christmas! Great deals on cakes, chocolates & holiday treats.",
+    discount: 15,
+    banner_text:
+      "🎄 Merry Christmas — 15% Off on cakes, chocolates & holiday treats!",
+    keywords: ["cake", "chocolate", "biscuit", "dry fruit"],
+  },
+  {
+    name: "Onam",
+    color: "#9a3412",
+    badge: "ONAM SPECIAL",
+    title: "Onam Harvest Sale",
+    desc: "Happy Onam! Celebrate with deals on rice, snacks & Kerala essentials.",
+    discount: 20,
+    banner_text: "🌸 Happy Onam — 20% Off on rice, snacks & Kerala essentials!",
+    keywords: ["rice", "coconut", "banana", "papad"],
+  },
+  {
+    name: "Ugadi",
+    color: "#15803d",
+    badge: "UGADI SPECIAL",
+    title: "Ugadi New Year Sale",
+    desc: "Happy Ugadi! Start the Telugu New Year with fresh deals on groceries & festive essentials.",
+    discount: 20,
+    banner_text: "🌿 Happy Ugadi — 20% Off on groceries & festive essentials!",
+    keywords: ["tamarind", "jaggery", "dal", "mango"],
+  },
+  {
+    name: "Vinayaka Chavithi",
+    color: "#d97706",
+    badge: "CHAVITHI OFFER",
+    title: "Vinayaka Chavithi Sale",
+    desc: "Special offers on modak ingredients, fruits & puja essentials.",
+    discount: 15,
+    banner_text:
+      "🐘 Vinayaka Chavithi — 15% Off on modak ingredients, fruits & puja items!",
+    keywords: ["modak", "coconut", "jaggery", "fruit"],
+  },
+  {
+    name: "Dasara",
+    color: "#6d28d9",
+    badge: "DASARA SALE",
+    title: "Dasara Navratri Sale",
+    desc: "Dasara celebrations with big discounts on groceries & daily essentials.",
+    discount: 25,
+    banner_text:
+      "🏹 Dasara Sale — Up to 25% Off on groceries & daily essentials!",
+    keywords: ["rice", "dal", "oil", "spice"],
+  },
+  {
+    name: "Navratri",
+    color: "#e11d48",
+    badge: "NAVRATRI OFFER",
+    title: "Navratri Special Sale",
+    desc: "Nine nights of amazing deals on pooja items, dry fruits & festive snacks.",
+    discount: 20,
+    banner_text:
+      "🪔 Navratri Special — 20% Off on dry fruits, pooja items & festive snacks!",
+    keywords: ["dry fruit", "sabudana", "almond", "cashew"],
+  },
+  {
+    name: "Bathukamma",
+    color: "#c026d3",
+    badge: "BATHUKAMMA",
+    title: "Bathukamma Festival Sale",
+    desc: "Celebrate the Telangana flower festival with great deals on essentials.",
+    discount: 15,
+    banner_text:
+      "🌼 Bathukamma Festival — 15% Off on daily essentials & festive items!",
+    keywords: ["rice", "snack", "oil", "dal"],
+  },
+  {
+    name: "Rama Navami",
+    color: "#d97706",
+    badge: "RAMA NAVAMI",
+    title: "Sri Rama Navami Sale",
+    desc: "Celebrate Sri Rama Navami with discounts on prasad items & daily essentials.",
+    discount: 15,
+    banner_text:
+      "🙏 Sri Rama Navami — 15% Off on prasad items & daily essentials!",
+    keywords: ["panakam", "sweet", "jaggery", "milk"],
+  },
+  {
+    name: "Independence Day",
+    color: "#1d4ed8",
+    badge: "AZADI KA AMRIT",
+    title: "Independence Day Sale",
+    desc: "Celebrating our nation's freedom with special discounts on all essentials.",
+    discount: 20,
+    banner_text:
+      "🇮🇳 Independence Day Sale — 20% Off on all essentials. Jai Hind!",
+    keywords: ["rice", "dal", "oil", "atta"],
+  },
+  {
+    name: "Republic Day",
+    color: "#1d4ed8",
+    badge: "REPUBLIC DAY",
+    title: "Republic Day Sale",
+    desc: "75+ years of Republic India — great deals on all categories.",
+    discount: 15,
+    banner_text:
+      "🇮🇳 Republic Day Sale — 15% Off across all categories. Jai Bharat!",
+    keywords: ["rice", "dal", "oil", "biscuit"],
+  },
 ];
 
 /* ── Countdown for live preview ──────────────────────── */
@@ -1973,10 +2184,21 @@ function PromoCountdown({ endTime, color, compact = false }) {
     );
   return (
     <div className="flex gap-2 mt-2">
-      {[{ v: p(t.h), l: "HRS" }, { v: p(t.m), l: "MIN" }, { v: p(t.s), l: "SEC" }].map(({ v, l }) => (
+      {[
+        { v: p(t.h), l: "HRS" },
+        { v: p(t.m), l: "MIN" },
+        { v: p(t.s), l: "SEC" },
+      ].map(({ v, l }) => (
         <div key={l} className="flex flex-col items-center">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold border-2 bg-white text-gray-800" style={{ borderColor: color }}>{v}</div>
-          <span className="text-[8px] text-gray-400 mt-0.5 tracking-widest">{l}</span>
+          <div
+            className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold border-2 bg-white text-gray-800"
+            style={{ borderColor: color }}
+          >
+            {v}
+          </div>
+          <span className="text-[8px] text-gray-400 mt-0.5 tracking-widest">
+            {l}
+          </span>
         </div>
       ))}
     </div>
@@ -1994,7 +2216,9 @@ function PromoLivePreview({ form, mode, onModeChange }) {
     : "Special Discount";
   const desc = form.description || "Get the best deals this season.";
   const badge = form.badge_text || "SPECIAL OFFER";
-  const endsAt = form.ends_at ? new Date(form.ends_at).getTime() : Date.now() + 12 * 3600_000;
+  const endsAt = form.ends_at
+    ? new Date(form.ends_at).getTime()
+    : Date.now() + 12 * 3600_000;
 
   return (
     <div className="flex flex-col h-full">
@@ -2006,7 +2230,9 @@ function PromoLivePreview({ form, mode, onModeChange }) {
             type="button"
             onClick={() => onModeChange(m)}
             className={`px-3 py-1.5 rounded-md text-xs font-semibold capitalize transition-all ${
-              mode === m ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"
+              mode === m
+                ? "bg-white shadow text-gray-900"
+                : "text-gray-500 hover:text-gray-700"
             }`}
           >
             {m}
@@ -2015,43 +2241,87 @@ function PromoLivePreview({ form, mode, onModeChange }) {
       </div>
 
       {mode === "banner" ? (
-        <div className="rounded-2xl overflow-hidden shadow border border-gray-200 flex-1" style={{ background: "#fff4e6" }}>
+        <div
+          className="rounded-2xl overflow-hidden shadow border border-gray-200 flex-1"
+          style={{ background: "#fff4e6" }}
+        >
           <div className="p-5 flex flex-col gap-3">
             <span
               className="inline-flex items-center text-[10px] font-bold tracking-widest px-3 py-1.5 rounded-full w-fit border"
-              style={{ background: accent + "18", borderColor: accent + "60", color: accent }}
+              style={{
+                background: accent + "18",
+                borderColor: accent + "60",
+                color: accent,
+              }}
             >
               {badge}
             </span>
             <div>
-              <p className="text-xl font-extrabold text-gray-900 leading-tight">{title}</p>
-              <p className="text-lg font-extrabold leading-tight" style={{ color: accent }}>{discountText}</p>
+              <p className="text-xl font-extrabold text-gray-900 leading-tight">
+                {title}
+              </p>
+              <p
+                className="text-lg font-extrabold leading-tight"
+                style={{ color: accent }}
+              >
+                {discountText}
+              </p>
             </div>
-            <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{desc}</p>
+            <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">
+              {desc}
+            </p>
             <PromoCountdown endTime={endsAt} color={accent} />
             <div className="flex gap-2">
-              <span className="px-4 py-2 rounded-xl text-xs font-bold text-white" style={{ background: accent }}>Shop Now →</span>
-              <span className="px-4 py-2 rounded-xl text-xs font-semibold border-2 text-gray-700" style={{ borderColor: accent }}>View Offers</span>
+              <span
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white"
+                style={{ background: accent }}
+              >
+                Shop Now →
+              </span>
+              <span
+                className="px-4 py-2 rounded-xl text-xs font-semibold border-2 text-gray-700"
+                style={{ borderColor: accent }}
+              >
+                View Offers
+              </span>
             </div>
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl border-2 overflow-hidden shadow flex-1" style={{ borderColor: accent }}>
+        <div
+          className="rounded-2xl border-2 overflow-hidden shadow flex-1"
+          style={{ borderColor: accent }}
+        >
           <div className="h-1.5 w-full" style={{ background: accent }} />
           <div className="p-4 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[9px] font-bold tracking-widest px-2.5 py-1 rounded-full" style={{ background: accent + "20", color: accent }}>{badge}</span>
-              {form.is_active && <span className="text-[9px] font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">● Live</span>}
+              <span
+                className="text-[9px] font-bold tracking-widest px-2.5 py-1 rounded-full"
+                style={{ background: accent + "20", color: accent }}
+              >
+                {badge}
+              </span>
+              {form.is_active && (
+                <span className="text-[9px] font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                  ● Live
+                </span>
+              )}
             </div>
-            <p className="text-lg font-extrabold text-gray-900 leading-snug">{title}</p>
-            <p className="text-xl font-black" style={{ color: accent }}>{discountText}</p>
+            <p className="text-lg font-extrabold text-gray-900 leading-snug">
+              {title}
+            </p>
+            <p className="text-xl font-black" style={{ color: accent }}>
+              {discountText}
+            </p>
             <p className="text-xs text-gray-500 line-clamp-2">{desc}</p>
             <PromoCountdown endTime={endsAt} color={accent} compact />
           </div>
         </div>
       )}
 
-      <p className="text-[10px] text-gray-400 text-center mt-3">Live preview — updates as you type</p>
+      <p className="text-[10px] text-gray-400 text-center mt-3">
+        Live preview — updates as you type
+      </p>
     </div>
   );
 }
@@ -2096,18 +2366,34 @@ function PromotionModal({ promo, onClose, onSaved }) {
   const [freeProductSearch, setFreeProductSearch] = useState("");
   const [freeProductResults, setFreeProductResults] = useState([]);
   const [freeProductSelected, setFreeProductSelected] = useState(
-    promo?.free_product_id ? { id: promo.free_product_id, name: promo.free_product_name || promo.free_product_id, image_url: promo.free_product_image || null, variant: promo.free_product_variant || null } : null
+    promo?.free_product_id
+      ? {
+          id: promo.free_product_id,
+          name: promo.free_product_name || promo.free_product_id,
+          image_url: promo.free_product_image || null,
+          variant: promo.free_product_variant || null,
+        }
+      : null,
   );
   const freeSearchTimer = useRef(null);
   const handleFreeProductSearch = (val) => {
     setFreeProductSearch(val);
     clearTimeout(freeSearchTimer.current);
-    if (!val || val.length < 2) { setFreeProductResults([]); return; }
+    if (!val || val.length < 2) {
+      setFreeProductResults([]);
+      return;
+    }
     freeSearchTimer.current = setTimeout(async () => {
       try {
-        const res = await api.get("/products", { search: val, limit: 20, is_active: true });
+        const res = await api.get("/products", {
+          search: val,
+          limit: 20,
+          is_active: true,
+        });
         setFreeProductResults(res.data || []);
-      } catch { setFreeProductResults([]); }
+      } catch {
+        setFreeProductResults([]);
+      }
     }, 300);
   };
   const [showVariantSelector, setShowVariantSelector] = useState(false);
@@ -2131,7 +2417,14 @@ function PromotionModal({ promo, onClose, onSaved }) {
             fullPromo?.product_ids?.map((p) =>
               typeof p === "string"
                 ? { id: p, deal_limit: null, item_limit: null }
-                : { id: p.id, name: p.name, image_url: p.image_url, variant: p.variant, deal_limit: p.deal_limit ?? null, item_limit: p.item_limit ?? null },
+                : {
+                    id: p.id,
+                    name: p.name,
+                    image_url: p.image_url,
+                    variant: p.variant,
+                    deal_limit: p.deal_limit ?? null,
+                    item_limit: p.item_limit ?? null,
+                  },
             ) || [],
           );
         })
@@ -2162,21 +2455,33 @@ function PromotionModal({ promo, onClose, onSaved }) {
       setSuggestedForFestival(null);
       Promise.all(
         preset.keywords.map((kw) =>
-          api.get("/products", { search: kw, limit: 6, is_active: true })
+          api
+            .get("/products", { search: kw, limit: 6, is_active: true })
             .then((r) => r.data || [])
-            .catch(() => [])
-        )
-      ).then((results) => {
-        const seen = new Set();
-        const suggested = results
-          .flat()
-          .filter((p) => { if (seen.has(p.id)) return false; seen.add(p.id); return true; })
-          .map((p) => ({ id: p.id, name: p.name, image_url: p.image_url, variant: p.variant }));
-        if (suggested.length > 0) {
-          setSelectedProducts(suggested);
-          setSuggestedForFestival(preset.name);
-        }
-      }).finally(() => setSuggestingProducts(false));
+            .catch(() => []),
+        ),
+      )
+        .then((results) => {
+          const seen = new Set();
+          const suggested = results
+            .flat()
+            .filter((p) => {
+              if (seen.has(p.id)) return false;
+              seen.add(p.id);
+              return true;
+            })
+            .map((p) => ({
+              id: p.id,
+              name: p.name,
+              image_url: p.image_url,
+              variant: p.variant,
+            }));
+          if (suggested.length > 0) {
+            setSelectedProducts(suggested);
+            setSuggestedForFestival(preset.name);
+          }
+        })
+        .finally(() => setSuggestingProducts(false));
     }
   };
   const applyDuration = (hours) => {
@@ -2247,18 +2552,26 @@ function PromotionModal({ promo, onClose, onSaved }) {
     setSelectedProducts((prev) =>
       prev.map((p) =>
         p.id === pid
-          ? { ...p, deal_limit: value === "" ? null : Math.max(1, parseInt(value) || 1) }
-          : p
-      )
+          ? {
+              ...p,
+              deal_limit:
+                value === "" ? null : Math.max(1, parseInt(value) || 1),
+            }
+          : p,
+      ),
     );
   };
   const updateProductItemLimit = (pid, value) => {
     setSelectedProducts((prev) =>
       prev.map((p) =>
         p.id === pid
-          ? { ...p, item_limit: value === "" ? null : Math.max(1, parseInt(value) || 1) }
-          : p
-      )
+          ? {
+              ...p,
+              item_limit:
+                value === "" ? null : Math.max(1, parseInt(value) || 1),
+            }
+          : p,
+      ),
     );
   };
   const addSelectedVariants = () => {
@@ -2367,9 +2680,16 @@ function PromotionModal({ promo, onClose, onSaved }) {
         ends_at: new Date(form.ends_at).toISOString(),
         discount_value: parseFloat(form.discount_value) || 0,
         priority: parseInt(form.priority) || 0,
-        min_order_amount: form.discount_type === "threshold" ? (parseFloat(form.min_order_amount) || null) : null,
-        reward_type: form.discount_type === "threshold" ? (form.reward_type || null) : null,
-        free_product_id: (form.discount_type === "threshold" && form.reward_type === "free_item") ? (form.free_product_id || null) : null,
+        min_order_amount:
+          form.discount_type === "threshold"
+            ? parseFloat(form.min_order_amount) || null
+            : null,
+        reward_type:
+          form.discount_type === "threshold" ? form.reward_type || null : null,
+        free_product_id:
+          form.discount_type === "threshold" && form.reward_type === "free_item"
+            ? form.free_product_id || null
+            : null,
         product_ids: selectedProducts.map((p) => ({
           id: p.id,
           deal_limit: p.deal_limit ?? null,
@@ -2389,14 +2709,16 @@ function PromotionModal({ promo, onClose, onSaved }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       {/* ── Main split-panel modal ── */}
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] flex flex-col">
-
         {/* Sticky header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
           <h2 className="font-bold text-lg text-gray-900 flex items-center gap-2">
             <Megaphone className="w-5 h-5 text-orange-500" />
             {isEdit ? "Edit Promotion" : "Create Promotion"}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 rounded-lg p-1 hover:bg-gray-100 transition-colors">
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 rounded-lg p-1 hover:bg-gray-100 transition-colors"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -2407,7 +2729,10 @@ function PromotionModal({ promo, onClose, onSaved }) {
             <p className="text-[10px] font-bold text-orange-400 uppercase tracking-widest mb-2">
               Quick Festival Presets — one click to fill
             </p>
-            <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+            <div
+              className="flex gap-2 overflow-x-auto pb-1"
+              style={{ scrollbarWidth: "none" }}
+            >
               {FESTIVAL_PRESETS.map((preset) => (
                 <button
                   key={preset.name}
@@ -2417,7 +2742,10 @@ function PromotionModal({ promo, onClose, onSaved }) {
                   style={{
                     borderColor: preset.color,
                     color: form.title === preset.title ? "#fff" : preset.color,
-                    background: form.title === preset.title ? preset.color : preset.color + "14",
+                    background:
+                      form.title === preset.title
+                        ? preset.color
+                        : preset.color + "14",
                   }}
                 >
                   {preset.name}
@@ -2429,9 +2757,12 @@ function PromotionModal({ promo, onClose, onSaved }) {
 
         {/* Body: left form + right preview */}
         <div className="flex flex-1 min-h-0">
-
           {/* ── Left: scrollable form ── */}
-          <form onSubmit={save} id="promo-form" className="flex-1 overflow-y-auto p-6 space-y-5">
+          <form
+            onSubmit={save}
+            id="promo-form"
+            className="flex-1 overflow-y-auto p-6 space-y-5"
+          >
             {error && (
               <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0" /> {error}
@@ -2441,7 +2772,9 @@ function PromotionModal({ promo, onClose, onSaved }) {
             {/* Basic info */}
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Title *</label>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  Title *
+                </label>
                 <input
                   value={form.title}
                   onChange={(e) => set("title", e.target.value)}
@@ -2450,7 +2783,9 @@ function PromotionModal({ promo, onClose, onSaved }) {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Description</label>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  Description
+                </label>
                 <textarea
                   rows={2}
                   value={form.description}
@@ -2460,14 +2795,18 @@ function PromotionModal({ promo, onClose, onSaved }) {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Type</label>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  Type
+                </label>
                 <select
                   value={form.type}
                   onChange={(e) => set("type", e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   {PROMO_TYPES.map((t) => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -2480,7 +2819,9 @@ function PromotionModal({ promo, onClose, onSaved }) {
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Type</label>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Type
+                  </label>
                   <select
                     value={form.discount_type}
                     onChange={(e) => set("discount_type", e.target.value)}
@@ -2488,13 +2829,16 @@ function PromotionModal({ promo, onClose, onSaved }) {
                   >
                     <option value="percentage">Percentage (%)</option>
                     <option value="flat">Flat (₹)</option>
-                    <option value="threshold">Threshold (Spend &amp; Save)</option>
+                    <option value="threshold">
+                      Threshold (Spend &amp; Save)
+                    </option>
                   </select>
                 </div>
                 {form.discount_type !== "threshold" && (
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1">
-                      Value {form.discount_type === "percentage" ? "(%)" : "(₹)"}
+                      Value{" "}
+                      {form.discount_type === "percentage" ? "(%)" : "(₹)"}
                     </label>
                     <input
                       type="number"
@@ -2509,7 +2853,9 @@ function PromotionModal({ promo, onClose, onSaved }) {
               {form.discount_type === "threshold" && (
                 <div className="grid grid-cols-2 gap-3 mt-3">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Min Cart Amount (₹) *</label>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">
+                      Min Cart Amount (₹) *
+                    </label>
                     <input
                       type="number"
                       value={form.min_order_amount}
@@ -2519,7 +2865,9 @@ function PromotionModal({ promo, onClose, onSaved }) {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Reward Type</label>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">
+                      Reward Type
+                    </label>
                     <select
                       value={form.reward_type}
                       onChange={(e) => set("reward_type", e.target.value)}
@@ -2530,55 +2878,110 @@ function PromotionModal({ promo, onClose, onSaved }) {
                       <option value="free_item">Free Item</option>
                     </select>
                   </div>
-                  {(form.reward_type === "cash_off" || form.reward_type === "percentage") && (
+                  {(form.reward_type === "cash_off" ||
+                    form.reward_type === "percentage") && (
                     <div className="col-span-2">
                       <label className="block text-xs font-semibold text-gray-600 mb-1">
-                        {form.reward_type === "percentage" ? "Discount (%) *" : "Discount Amount (₹) *"}
+                        {form.reward_type === "percentage"
+                          ? "Discount (%) *"
+                          : "Discount Amount (₹) *"}
                       </label>
                       <input
                         type="number"
                         value={form.discount_value}
                         onChange={(e) => set("discount_value", e.target.value)}
-                        placeholder={form.reward_type === "percentage" ? "e.g. 10" : "e.g. 50"}
+                        placeholder={
+                          form.reward_type === "percentage"
+                            ? "e.g. 10"
+                            : "e.g. 50"
+                        }
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
                       />
                     </div>
                   )}
                   {form.reward_type === "free_item" && (
                     <div className="col-span-2">
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Free Product *</label>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">
+                        Free Product *
+                      </label>
                       {freeProductSelected ? (
                         <div className="flex items-center gap-2 bg-white border border-orange-200 rounded-lg px-3 py-2">
                           {freeProductSelected.image_url && (
-                            <img src={freeProductSelected.image_url} alt="" className="w-7 h-7 rounded object-contain bg-gray-50 flex-shrink-0" referrerPolicy="no-referrer" />
+                            <img
+                              src={freeProductSelected.image_url}
+                              alt=""
+                              className="w-7 h-7 rounded object-contain bg-gray-50 flex-shrink-0"
+                              referrerPolicy="no-referrer"
+                            />
                           )}
                           <span className="flex-1 text-sm font-medium text-gray-800 truncate">
                             {freeProductSelected.name}
-                            {freeProductSelected.variant && <span className="text-gray-400 ml-1 text-xs">({freeProductSelected.variant})</span>}
+                            {freeProductSelected.variant && (
+                              <span className="text-gray-400 ml-1 text-xs">
+                                ({freeProductSelected.variant})
+                              </span>
+                            )}
                           </span>
-                          <button type="button" onClick={() => { setFreeProductSelected(null); set("free_product_id", ""); setFreeProductSearch(""); }} className="w-5 h-5 rounded-full bg-gray-100 hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition-colors flex-shrink-0"><X className="w-3 h-3" /></button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFreeProductSelected(null);
+                              set("free_product_id", "");
+                              setFreeProductSearch("");
+                            }}
+                            className="w-5 h-5 rounded-full bg-gray-100 hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition-colors flex-shrink-0"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
                         </div>
                       ) : (
                         <div className="relative">
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                           <input
                             value={freeProductSearch}
-                            onChange={(e) => handleFreeProductSearch(e.target.value)}
+                            onChange={(e) =>
+                              handleFreeProductSearch(e.target.value)
+                            }
                             placeholder="Search product to give free…"
                             className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
                           />
                           {freeProductResults.length > 0 && (
                             <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto z-20">
                               {freeProductResults.map((p) => (
-                                <button key={p.id} type="button" onClick={() => { setFreeProductSelected(p); set("free_product_id", p.id); setFreeProductSearch(""); setFreeProductResults([]); }} className="w-full flex items-center gap-3 px-3 py-2 hover:bg-orange-50 text-left text-sm border-b border-gray-50 last:border-0">
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setFreeProductSelected(p);
+                                    set("free_product_id", p.id);
+                                    setFreeProductSearch("");
+                                    setFreeProductResults([]);
+                                  }}
+                                  className="w-full flex items-center gap-3 px-3 py-2 hover:bg-orange-50 text-left text-sm border-b border-gray-50 last:border-0"
+                                >
                                   <div className="w-8 h-8 rounded bg-gray-100 flex-shrink-0 overflow-hidden">
-                                    {p.image_url && <img src={p.image_url} alt="" className="w-full h-full object-contain" referrerPolicy="no-referrer" />}
+                                    {p.image_url && (
+                                      <img
+                                        src={p.image_url}
+                                        alt=""
+                                        className="w-full h-full object-contain"
+                                        referrerPolicy="no-referrer"
+                                      />
+                                    )}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className="truncate font-medium">{p.name}</p>
-                                    {p.variant && <p className="text-xs text-gray-400">{p.variant}</p>}
+                                    <p className="truncate font-medium">
+                                      {p.name}
+                                    </p>
+                                    {p.variant && (
+                                      <p className="text-xs text-gray-400">
+                                        {p.variant}
+                                      </p>
+                                    )}
                                   </div>
-                                  <span className="text-xs text-gray-400 flex-shrink-0">₹{p.price}</span>
+                                  <span className="text-xs text-gray-400 flex-shrink-0">
+                                    ₹{p.price}
+                                  </span>
                                 </button>
                               ))}
                             </div>
@@ -2610,7 +3013,9 @@ function PromotionModal({ promo, onClose, onSaved }) {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Starts At *</label>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Starts At *
+                  </label>
                   <input
                     type="datetime-local"
                     value={form.starts_at}
@@ -2619,7 +3024,9 @@ function PromotionModal({ promo, onClose, onSaved }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Ends At *</label>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Ends At *
+                  </label>
                   <input
                     type="datetime-local"
                     value={form.ends_at}
@@ -2637,7 +3044,9 @@ function PromotionModal({ promo, onClose, onSaved }) {
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Badge Text</label>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Badge Text
+                  </label>
                   <input
                     value={form.badge_text}
                     onChange={(e) => set("badge_text", e.target.value)}
@@ -2646,7 +3055,9 @@ function PromotionModal({ promo, onClose, onSaved }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Theme Color</label>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Theme Color
+                  </label>
                   <div className="flex gap-2 items-center">
                     <input
                       type="color"
@@ -2662,7 +3073,11 @@ function PromotionModal({ promo, onClose, onSaved }) {
                   </div>
                   {/* Preset color swatches from FESTIVAL_PRESETS */}
                   <div className="flex flex-wrap gap-1.5 mt-2">
-                    {[...new Map(FESTIVAL_PRESETS.map((p) => [p.color, p])).values()].map((p) => (
+                    {[
+                      ...new Map(
+                        FESTIVAL_PRESETS.map((p) => [p.color, p]),
+                      ).values(),
+                    ].map((p) => (
                       <button
                         key={p.color}
                         type="button"
@@ -2671,14 +3086,19 @@ function PromotionModal({ promo, onClose, onSaved }) {
                         className="w-5 h-5 rounded-full border-2 transition-transform hover:scale-125"
                         style={{
                           background: p.color,
-                          borderColor: form.theme_color === p.color ? "#1f2937" : "transparent",
+                          borderColor:
+                            form.theme_color === p.color
+                              ? "#1f2937"
+                              : "transparent",
                         }}
                       />
                     ))}
                   </div>
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Banner Text</label>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Banner Text
+                  </label>
                   <input
                     value={form.banner_text}
                     onChange={(e) => set("banner_text", e.target.value)}
@@ -2687,7 +3107,9 @@ function PromotionModal({ promo, onClose, onSaved }) {
                   />
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Banner Image URL</label>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Banner Image URL
+                  </label>
                   <div className="flex gap-2">
                     <input
                       value={form.banner_image_url}
@@ -2705,7 +3127,15 @@ function PromotionModal({ promo, onClose, onSaved }) {
                   </div>
                   {form.banner_image_url && (
                     <div className="mt-2 w-full h-20 rounded-lg border border-gray-200 bg-gray-50 overflow-hidden">
-                      <img src={form.banner_image_url} alt="Banner preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                      <img
+                        src={form.banner_image_url}
+                        alt="Banner preview"
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
                     </div>
                   )}
                 </div>
@@ -2713,108 +3143,199 @@ function PromotionModal({ promo, onClose, onSaved }) {
             </div>
 
             {/* Products — hidden for threshold promos */}
-            {form.discount_type !== "threshold" && <div className="bg-green-50 rounded-xl p-4 space-y-3">
-              <h3 className="text-sm font-semibold text-green-800 flex items-center gap-1.5 flex-wrap">
-                <Package className="w-4 h-4" />
-                Linked Products ({(loadingProducts || suggestingProducts) ? "…" : selectedProducts.length})
-                {suggestingProducts && (
-                  <span className="ml-1 text-[10px] font-normal text-green-600 flex items-center gap-1">
-                    <Loader2 className="w-3 h-3 animate-spin" /> auto-suggesting for {form.title ? form.title.split(" ")[0] : "festival"}…
-                  </span>
-                )}
-                {!suggestingProducts && suggestedForFestival && selectedProducts.length > 0 && (
-                  <span className="ml-auto flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
-                    ✨ Based on {suggestedForFestival}
-                    <button
-                      type="button"
-                      title="Clear suggested products"
-                      onClick={() => { setSelectedProducts([]); setSuggestedForFestival(null); }}
-                      className="ml-0.5 text-amber-400 hover:text-red-500 transition-colors"
-                    >
-                      <X className="w-2.5 h-2.5" />
-                    </button>
-                  </span>
-                )}
-              </h3>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  value={productSearch}
-                  onChange={(e) => handleProductSearch(e.target.value)}
-                  placeholder="Search products to add…"
-                  className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
-                />
-                {groupedResults.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-56 overflow-y-auto z-20">
-                    {groupedResults.map((group, idx) => {
-                      const first = group.variants[0];
-                      const hasMultiple = group.variants.length > 1;
-                      return (
-                        <button key={idx} type="button" onClick={() => handleProductClick(group)} className="w-full flex items-center gap-3 px-3 py-2 hover:bg-green-50 text-left text-sm border-b border-gray-50 last:border-0">
-                          <div className="w-8 h-8 rounded bg-gray-100 flex-shrink-0 overflow-hidden">
-                            {first.image_url && <img src={first.image_url} alt="" className="w-full h-full object-contain" referrerPolicy="no-referrer" />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="truncate font-medium">{group.name}</span>
-                              {hasMultiple && <span className="flex-shrink-0 bg-green-100 text-green-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{group.variants.length} variants</span>}
-                            </div>
-                            {hasMultiple && <p className="text-xs text-gray-400 truncate">{group.variants.map((v) => v.variant || v.unit_type).filter(Boolean).join(", ")}</p>}
-                            {!hasMultiple && first.variant && <p className="text-xs text-gray-400">{first.variant}</p>}
-                          </div>
-                          <span className="text-xs text-gray-400 flex-shrink-0">₹{first.price}</span>
+            {form.discount_type !== "threshold" && (
+              <div className="bg-green-50 rounded-xl p-4 space-y-3">
+                <h3 className="text-sm font-semibold text-green-800 flex items-center gap-1.5 flex-wrap">
+                  <Package className="w-4 h-4" />
+                  Linked Products (
+                  {loadingProducts || suggestingProducts
+                    ? "…"
+                    : selectedProducts.length}
+                  )
+                  {suggestingProducts && (
+                    <span className="ml-1 text-[10px] font-normal text-green-600 flex items-center gap-1">
+                      <Loader2 className="w-3 h-3 animate-spin" />{" "}
+                      auto-suggesting for{" "}
+                      {form.title ? form.title.split(" ")[0] : "festival"}…
+                    </span>
+                  )}
+                  {!suggestingProducts &&
+                    suggestedForFestival &&
+                    selectedProducts.length > 0 && (
+                      <span className="ml-auto flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                        ✨ Based on {suggestedForFestival}
+                        <button
+                          type="button"
+                          title="Clear suggested products"
+                          onClick={() => {
+                            setSelectedProducts([]);
+                            setSuggestedForFestival(null);
+                          }}
+                          className="ml-0.5 text-amber-400 hover:text-red-500 transition-colors"
+                        >
+                          <X className="w-2.5 h-2.5" />
                         </button>
-                      );
-                    })}
+                      </span>
+                    )}
+                </h3>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    value={productSearch}
+                    onChange={(e) => handleProductSearch(e.target.value)}
+                    placeholder="Search products to add…"
+                    className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+                  />
+                  {groupedResults.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-56 overflow-y-auto z-20">
+                      {groupedResults.map((group, idx) => {
+                        const first = group.variants[0];
+                        const hasMultiple = group.variants.length > 1;
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => handleProductClick(group)}
+                            className="w-full flex items-center gap-3 px-3 py-2 hover:bg-green-50 text-left text-sm border-b border-gray-50 last:border-0"
+                          >
+                            <div className="w-8 h-8 rounded bg-gray-100 flex-shrink-0 overflow-hidden">
+                              {first.image_url && (
+                                <img
+                                  src={first.image_url}
+                                  alt=""
+                                  className="w-full h-full object-contain"
+                                  referrerPolicy="no-referrer"
+                                />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="truncate font-medium">
+                                  {group.name}
+                                </span>
+                                {hasMultiple && (
+                                  <span className="flex-shrink-0 bg-green-100 text-green-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                                    {group.variants.length} variants
+                                  </span>
+                                )}
+                              </div>
+                              {hasMultiple && (
+                                <p className="text-xs text-gray-400 truncate">
+                                  {group.variants
+                                    .map((v) => v.variant || v.unit_type)
+                                    .filter(Boolean)
+                                    .join(", ")}
+                                </p>
+                              )}
+                              {!hasMultiple && first.variant && (
+                                <p className="text-xs text-gray-400">
+                                  {first.variant}
+                                </p>
+                              )}
+                            </div>
+                            <span className="text-xs text-gray-400 flex-shrink-0">
+                              ₹{first.price}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                {(loadingProducts || suggestingProducts) && (
+                  <div className="text-center py-2">
+                    <Loader2 className="w-5 h-5 animate-spin text-green-600 inline" />
                   </div>
                 )}
-              </div>
-              {(loadingProducts || suggestingProducts) && <div className="text-center py-2"><Loader2 className="w-5 h-5 animate-spin text-green-600 inline" /></div>}
-              {!loadingProducts && !suggestingProducts && selectedProducts.length > 0 && (
-                <div className="space-y-1.5 mt-2">
-                  {selectedProducts.map((p) => (
-                    <div key={p.id} className="flex items-center gap-2 bg-white border border-green-200 rounded-lg pl-2 pr-2 py-1.5">
-                      {p.image_url && <img src={p.image_url} alt="" className="w-6 h-6 rounded object-contain bg-gray-50 flex-shrink-0" referrerPolicy="no-referrer" />}
-                      <span className="flex-1 text-xs font-medium text-green-700 min-w-0 truncate">
-                        {p.name || p.id.slice(0, 8)}
-                        {p.variant && <span className="text-gray-400 ml-1">({p.variant})</span>}
-                      </span>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <div className="flex items-center gap-1">
-                          <label className="text-[9px] text-orange-500 font-bold whitespace-nowrap">Orders</label>
-                          <input
-                            type="number"
-                            min="1"
-                            placeholder="∞"
-                            value={p.deal_limit ?? ""}
-                            onChange={(e) => updateProductDealLimit(p.id, e.target.value)}
-                            title="Max orders that can use this deal (blank = unlimited)"
-                            className="w-12 border border-orange-200 rounded px-1 py-0.5 text-[10px] text-center focus:outline-none focus:ring-1 focus:ring-orange-400"
-                          />
+                {!loadingProducts &&
+                  !suggestingProducts &&
+                  selectedProducts.length > 0 && (
+                    <div className="space-y-1.5 mt-2">
+                      {selectedProducts.map((p) => (
+                        <div
+                          key={p.id}
+                          className="flex items-center gap-2 bg-white border border-green-200 rounded-lg pl-2 pr-2 py-1.5"
+                        >
+                          {p.image_url && (
+                            <img
+                              src={p.image_url}
+                              alt=""
+                              className="w-6 h-6 rounded object-contain bg-gray-50 flex-shrink-0"
+                              referrerPolicy="no-referrer"
+                            />
+                          )}
+                          <span className="flex-1 text-xs font-medium text-green-700 min-w-0 truncate">
+                            {p.name || p.id.slice(0, 8)}
+                            {p.variant && (
+                              <span className="text-gray-400 ml-1">
+                                ({p.variant})
+                              </span>
+                            )}
+                          </span>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <div className="flex items-center gap-1">
+                              <label className="text-[9px] text-orange-500 font-bold whitespace-nowrap">
+                                Orders
+                              </label>
+                              <input
+                                type="number"
+                                min="1"
+                                placeholder="∞"
+                                value={p.deal_limit ?? ""}
+                                onChange={(e) =>
+                                  updateProductDealLimit(p.id, e.target.value)
+                                }
+                                title="Max orders that can use this deal (blank = unlimited)"
+                                className="w-12 border border-orange-200 rounded px-1 py-0.5 text-[10px] text-center focus:outline-none focus:ring-1 focus:ring-orange-400"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <label className="text-[9px] text-purple-500 font-bold whitespace-nowrap">
+                                Units
+                              </label>
+                              <input
+                                type="number"
+                                min="1"
+                                placeholder="∞"
+                                value={p.item_limit ?? ""}
+                                onChange={(e) =>
+                                  updateProductItemLimit(p.id, e.target.value)
+                                }
+                                title="Max total units that can be sold at promo price (blank = unlimited)"
+                                className="w-12 border border-purple-200 rounded px-1 py-0.5 text-[10px] text-center focus:outline-none focus:ring-1 focus:ring-purple-400"
+                              />
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeProduct(p.id)}
+                            className="w-5 h-5 rounded-full bg-green-100 hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition-colors flex-shrink-0"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <label className="text-[9px] text-purple-500 font-bold whitespace-nowrap">Units</label>
-                          <input
-                            type="number"
-                            min="1"
-                            placeholder="∞"
-                            value={p.item_limit ?? ""}
-                            onChange={(e) => updateProductItemLimit(p.id, e.target.value)}
-                            title="Max total units that can be sold at promo price (blank = unlimited)"
-                            className="w-12 border border-purple-200 rounded px-1 py-0.5 text-[10px] text-center focus:outline-none focus:ring-1 focus:ring-purple-400"
-                          />
-                        </div>
-                      </div>
-                      <button type="button" onClick={() => removeProduct(p.id)} className="w-5 h-5 rounded-full bg-green-100 hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition-colors flex-shrink-0"><X className="w-3 h-3" /></button>
+                      ))}
+                      <p className="text-[9px] text-gray-400 pl-1">
+                        <span className="text-orange-500 font-bold">
+                          Orders
+                        </span>{" "}
+                        = max orders getting the discount.{" "}
+                        <span className="text-purple-500 font-bold">Units</span>{" "}
+                        = max total units at promo price. Leave blank for
+                        unlimited.
+                      </p>
                     </div>
-                  ))}
-                  <p className="text-[9px] text-gray-400 pl-1"><span className="text-orange-500 font-bold">Orders</span> = max orders getting the discount. <span className="text-purple-500 font-bold">Units</span> = max total units at promo price. Leave blank for unlimited.</p>
-                </div>
-              )}
-              {!loadingProducts && !suggestingProducts && selectedProducts.length === 0 && (
-                <p className="text-xs text-gray-400">No products linked — promotion will apply as a general banner only.</p>
-              )}
-            </div>}
+                  )}
+                {!loadingProducts &&
+                  !suggestingProducts &&
+                  selectedProducts.length === 0 && (
+                    <p className="text-xs text-gray-400">
+                      No products linked — promotion will apply as a general
+                      banner only.
+                    </p>
+                  )}
+              </div>
+            )}
 
             {/* Advanced toggle */}
             <div>
@@ -2823,13 +3344,17 @@ function PromotionModal({ promo, onClose, onSaved }) {
                 onClick={() => setShowAdvanced((v) => !v)}
                 className="flex items-center gap-2 text-xs font-semibold text-gray-500 hover:text-gray-700 transition-colors"
               >
-                <ChevronDown className={`w-4 h-4 transition-transform ${showAdvanced ? "rotate-180" : ""}`} />
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform ${showAdvanced ? "rotate-180" : ""}`}
+                />
                 Advanced Options
               </button>
               {showAdvanced && (
                 <div className="mt-3 grid grid-cols-2 gap-3 bg-gray-50 rounded-xl p-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Priority (higher = shown first)</label>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">
+                      Priority (higher = shown first)
+                    </label>
                     <input
                       type="number"
                       value={form.priority}
@@ -2839,7 +3364,9 @@ function PromotionModal({ promo, onClose, onSaved }) {
                   </div>
                   {form.type === "recurring" && (
                     <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Recurrence Rule</label>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">
+                        Recurrence Rule
+                      </label>
                       <input
                         value={form.recurrence_rule}
                         onChange={(e) => set("recurrence_rule", e.target.value)}
@@ -2855,12 +3382,30 @@ function PromotionModal({ promo, onClose, onSaved }) {
             {/* Footer actions */}
             <div className="flex items-center gap-4 pt-2 border-t border-gray-100">
               <div className="flex items-center gap-2">
-                <input type="checkbox" id="promo_active" checked={form.is_active} onChange={(e) => set("is_active", e.target.checked)} className="w-4 h-4 accent-orange-600" />
-                <label htmlFor="promo_active" className="text-sm text-gray-700">Active</label>
+                <input
+                  type="checkbox"
+                  id="promo_active"
+                  checked={form.is_active}
+                  onChange={(e) => set("is_active", e.target.checked)}
+                  className="w-4 h-4 accent-orange-600"
+                />
+                <label htmlFor="promo_active" className="text-sm text-gray-700">
+                  Active
+                </label>
               </div>
               <div className="flex-1" />
-              <button type="button" onClick={onClose} className="px-5 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 hover:bg-gray-50">Cancel</button>
-              <button type="submit" disabled={saving} className="px-5 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold flex items-center gap-2 disabled:opacity-60">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-5 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-5 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold flex items-center gap-2 disabled:opacity-60"
+              >
                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                 {isEdit ? "Save Changes" : "Create Promotion"}
               </button>
@@ -2869,21 +3414,39 @@ function PromotionModal({ promo, onClose, onSaved }) {
 
           {/* ── Right: sticky live preview ── */}
           <div className="w-72 flex-shrink-0 border-l border-gray-100 p-5 overflow-y-auto bg-gray-50/50">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Live Preview</p>
-            <PromoLivePreview form={form} mode={previewMode} onModeChange={setPreviewMode} />
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">
+              Live Preview
+            </p>
+            <PromoLivePreview
+              form={form}
+              mode={previewMode}
+              onModeChange={setPreviewMode}
+            />
           </div>
         </div>
       </div>
 
       {/* ── Image search modal ── */}
       {showImageSearch && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4" onClick={() => setShowImageSearch(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
+          onClick={() => setShowImageSearch(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
-                <Search className="w-5 h-5 text-purple-600" /> Search Banner Images
+                <Search className="w-5 h-5 text-purple-600" /> Search Banner
+                Images
               </h3>
-              <button onClick={() => setShowImageSearch(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+              <button
+                onClick={() => setShowImageSearch(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
             <div className="p-6 space-y-4">
               <div className="flex gap-2">
@@ -2895,8 +3458,20 @@ function PromotionModal({ promo, onClose, onSaved }) {
                   className="flex-1 border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                   autoFocus
                 />
-                <button onClick={searchBannerImages} disabled={imageSearchLoading || !imageSearchQuery.trim()} className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
-                  {imageSearchLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Searching...</> : <><Search className="w-4 h-4" /> Search</>}
+                <button
+                  onClick={searchBannerImages}
+                  disabled={imageSearchLoading || !imageSearchQuery.trim()}
+                  className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                >
+                  {imageSearchLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Searching...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-4 h-4" /> Search
+                    </>
+                  )}
                 </button>
               </div>
               {imageSearchError && (
@@ -2904,41 +3479,78 @@ function PromotionModal({ promo, onClose, onSaved }) {
                   <div className="flex items-start gap-2">
                     <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-red-900">Search Failed</p>
-                      <p className="text-xs text-red-700 mt-1">{imageSearchError}</p>
+                      <p className="text-sm font-medium text-red-900">
+                        Search Failed
+                      </p>
+                      <p className="text-xs text-red-700 mt-1">
+                        {imageSearchError}
+                      </p>
                     </div>
-                    <button onClick={() => setImageSearchError("")} className="text-red-400 hover:text-red-600"><X className="w-4 h-4" /></button>
+                    <button
+                      onClick={() => setImageSearchError("")}
+                      className="text-red-400 hover:text-red-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               )}
               <div className="overflow-y-auto max-h-[60vh]">
-                {imageSearchResults.length === 0 && !imageSearchLoading && !imageSearchError && (
-                  <div className="py-12 text-center text-gray-400">
-                    <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                    <p className="text-sm font-medium mb-1">Search for banner images</p>
-                    <p className="text-xs mb-4">Enter keywords like "festival sale", "ugadi celebration", etc.</p>
-                    <p className="text-xs text-gray-400 bg-gray-50 rounded-lg px-4 py-2 inline-flex items-center gap-1.5">
-                      <LightBulbIcon className="w-3.5 h-3.5 text-yellow-500 shrink-0" /> Tip: You can also paste direct image URLs in the field above
-                    </p>
-                  </div>
-                )}
+                {imageSearchResults.length === 0 &&
+                  !imageSearchLoading &&
+                  !imageSearchError && (
+                    <div className="py-12 text-center text-gray-400">
+                      <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                      <p className="text-sm font-medium mb-1">
+                        Search for banner images
+                      </p>
+                      <p className="text-xs mb-4">
+                        Enter keywords like "festival sale", "ugadi
+                        celebration", etc.
+                      </p>
+                      <p className="text-xs text-gray-400 bg-gray-50 rounded-lg px-4 py-2 inline-flex items-center gap-1.5">
+                        <LightBulbIcon className="w-3.5 h-3.5 text-yellow-500 shrink-0" />{" "}
+                        Tip: You can also paste direct image URLs in the field
+                        above
+                      </p>
+                    </div>
+                  )}
                 {imageSearchLoading && (
                   <div className="py-12 text-center">
                     <Loader2 className="w-8 h-8 animate-spin text-purple-600 inline mb-3" />
-                    <p className="text-sm text-gray-500">Searching for images...</p>
+                    <p className="text-sm text-gray-500">
+                      Searching for images...
+                    </p>
                   </div>
                 )}
                 {imageSearchResults.length > 0 && (
                   <div className="grid grid-cols-3 gap-3">
                     {imageSearchResults.map((img) => (
-                      <button key={img.id} type="button" onClick={() => selectBannerImage(img.url)} className="group relative aspect-video rounded-lg overflow-hidden border-2 border-gray-200 hover:border-purple-500 transition-all hover:scale-105 bg-gray-100">
-                        <img src={img.thumbnail || img.url} alt={img.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                      <button
+                        key={img.id}
+                        type="button"
+                        onClick={() => selectBannerImage(img.url)}
+                        className="group relative aspect-video rounded-lg overflow-hidden border-2 border-gray-200 hover:border-purple-500 transition-all hover:scale-105 bg-gray-100"
+                      >
+                        <img
+                          src={img.thumbnail || img.url}
+                          alt={img.title}
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                          <div className="opacity-0 group-hover:opacity-100 bg-white rounded-full p-2 transition-opacity"><Check className="w-5 h-5 text-purple-600" /></div>
+                          <div className="opacity-0 group-hover:opacity-100 bg-white rounded-full p-2 transition-opacity">
+                            <Check className="w-5 h-5 text-purple-600" />
+                          </div>
                         </div>
                         {img.title && (
                           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-                            <p className="text-xs text-white line-clamp-1">{img.title}</p>
+                            <p className="text-xs text-white line-clamp-1">
+                              {img.title}
+                            </p>
                           </div>
                         )}
                       </button>
@@ -2948,7 +3560,10 @@ function PromotionModal({ promo, onClose, onSaved }) {
               </div>
               <div className="text-xs text-gray-400 text-center space-y-1">
                 <p>Click on an image to select it as your banner</p>
-                <p className="text-[10px]">Note: Search quota is limited. You can also paste direct image URLs instead.</p>
+                <p className="text-[10px]">
+                  Note: Search quota is limited. You can also paste direct image
+                  URLs instead.
+                </p>
               </div>
             </div>
           </div>
@@ -2957,48 +3572,112 @@ function PromotionModal({ promo, onClose, onSaved }) {
 
       {/* ── Variant selector modal ── */}
       {showVariantSelector && selectedProductGroup && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4" onClick={() => setShowVariantSelector(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4"
+          onClick={() => setShowVariantSelector(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
                 <Package className="w-5 h-5 text-green-600" /> Select Variants
               </h3>
-              <button onClick={() => setShowVariantSelector(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+              <button
+                onClick={() => setShowVariantSelector(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <p className="text-sm font-medium text-gray-900">{selectedProductGroup.name}</p>
-                {selectedProductGroup.brand && <p className="text-xs text-gray-500">Brand: {selectedProductGroup.brand}</p>}
-                <p className="text-xs text-gray-400 mt-1">{selectedProductGroup.variants.length} variants available</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {selectedProductGroup.name}
+                </p>
+                {selectedProductGroup.brand && (
+                  <p className="text-xs text-gray-500">
+                    Brand: {selectedProductGroup.brand}
+                  </p>
+                )}
+                <p className="text-xs text-gray-400 mt-1">
+                  {selectedProductGroup.variants.length} variants available
+                </p>
               </div>
-              <button type="button" onClick={addAllVariants} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-sm font-medium transition-colors border border-green-200">
-                <Check className="w-4 h-4" /> Add All {selectedProductGroup.variants.length} Variants
+              <button
+                type="button"
+                onClick={addAllVariants}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-sm font-medium transition-colors border border-green-200"
+              >
+                <Check className="w-4 h-4" /> Add All{" "}
+                {selectedProductGroup.variants.length} Variants
               </button>
               <div className="relative">
-                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200" /></div>
-                <div className="relative flex justify-center text-xs"><span className="bg-white px-2 text-gray-400">or select specific variants</span></div>
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-white px-2 text-gray-400">
+                    or select specific variants
+                  </span>
+                </div>
               </div>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {selectedProductGroup.variants.map((variant) => (
-                  <label key={variant.id} className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all cursor-pointer ${selectedVariants.has(variant.id) ? "border-green-500 bg-green-50" : "border-gray-200 hover:border-green-300 bg-white"}`}>
-                    <input type="checkbox" checked={selectedVariants.has(variant.id)} onChange={() => toggleVariant(variant.id)} className="w-4 h-4 accent-green-600 rounded" />
+                  <label
+                    key={variant.id}
+                    className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all cursor-pointer ${selectedVariants.has(variant.id) ? "border-green-500 bg-green-50" : "border-gray-200 hover:border-green-300 bg-white"}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedVariants.has(variant.id)}
+                      onChange={() => toggleVariant(variant.id)}
+                      className="w-4 h-4 accent-green-600 rounded"
+                    />
                     <div className="w-10 h-10 rounded bg-gray-100 flex-shrink-0 overflow-hidden">
-                      {variant.image_url && <img src={variant.image_url} alt="" className="w-full h-full object-contain" referrerPolicy="no-referrer" />}
+                      {variant.image_url && (
+                        <img
+                          src={variant.image_url}
+                          alt=""
+                          className="w-full h-full object-contain"
+                          referrerPolicy="no-referrer"
+                        />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{variant.variant || variant.unit_type || "Standard"}</p>
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {variant.variant || variant.unit_type || "Standard"}
+                      </p>
                       <div className="flex items-center gap-2 text-xs text-gray-500">
                         <span>₹{variant.price}</span>
-                        {variant.stock_quantity > 0 ? <span className="text-green-600">• In stock</span> : <span className="text-red-600">• Out of stock</span>}
+                        {variant.stock_quantity > 0 ? (
+                          <span className="text-green-600">• In stock</span>
+                        ) : (
+                          <span className="text-red-600">• Out of stock</span>
+                        )}
                       </div>
                     </div>
                   </label>
                 ))}
               </div>
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowVariantSelector(false)} className="flex-1 px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 transition-colors">Cancel</button>
-                <button type="button" onClick={addSelectedVariants} disabled={selectedVariants.size === 0} className="flex-1 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                  Add {selectedVariants.size > 0 ? `${selectedVariants.size}` : ""} Selected
+                <button
+                  type="button"
+                  onClick={() => setShowVariantSelector(false)}
+                  className="flex-1 px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={addSelectedVariants}
+                  disabled={selectedVariants.size === 0}
+                  className="flex-1 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Add{" "}
+                  {selectedVariants.size > 0 ? `${selectedVariants.size}` : ""}{" "}
+                  Selected
                 </button>
               </div>
             </div>
@@ -3037,7 +3716,13 @@ function PromotionsTab() {
     load();
   }, [load]);
   async function handleDelete(id) {
-    if (!(await confirm("Delete this promotion?", { danger: true, confirmLabel: "Delete" }))) return;
+    if (
+      !(await confirm("Delete this promotion?", {
+        danger: true,
+        confirmLabel: "Delete",
+      }))
+    )
+      return;
     setDeleting(id);
     try {
       await api.delete(`/promotions/${id}`);
@@ -3087,7 +3772,12 @@ function PromotionsTab() {
       }
       load();
       refreshContext();
-      toast(choice === "continue" ? "Promotion resumed!" : "Promotion restarted from now!", "success");
+      toast(
+        choice === "continue"
+          ? "Promotion resumed!"
+          : "Promotion restarted from now!",
+        "success",
+      );
     } catch (e) {
       toast(e.message || "Failed to enable promotion", "error");
     } finally {
@@ -3243,8 +3933,8 @@ function PromotionsTab() {
                           {p.discount_type === "percentage"
                             ? `${p.discount_value}%`
                             : p.discount_type === "threshold"
-                            ? `₹${parseFloat(p.min_order_amount || 0)}`
-                            : `₹${p.discount_value}`}
+                              ? `₹${parseFloat(p.min_order_amount || 0)}`
+                              : `₹${p.discount_value}`}
                         </span>
                         <p className="text-[10px] text-orange-400 uppercase font-semibold">
                           {p.discount_type === "threshold" ? "min cart" : "off"}
@@ -3302,29 +3992,47 @@ function PromotionsTab() {
       )}
       {}
       {resumeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setResumeModal(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setResumeModal(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
                 <Megaphone className="w-5 h-5 text-orange-600" />
               </div>
-              <button onClick={() => setResumeModal(null)} className="text-gray-400 hover:text-gray-600 mt-0.5">
+              <button
+                onClick={() => setResumeModal(null)}
+                className="text-gray-400 hover:text-gray-600 mt-0.5"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div>
-              <h3 className="font-bold text-gray-900 text-base">Re-enable Promotion</h3>
+              <h3 className="font-bold text-gray-900 text-base">
+                Re-enable Promotion
+              </h3>
               <p className="text-sm text-gray-500 mt-1">
-                <span className="font-medium text-gray-700">{resumeModal.title}</span> was paused. How would you like to resume?
+                <span className="font-medium text-gray-700">
+                  {resumeModal.title}
+                </span>{" "}
+                was paused. How would you like to resume?
               </p>
             </div>
             {/* Original schedule info */}
             <div className="bg-gray-50 rounded-xl p-3 text-xs text-gray-500 space-y-1">
-              <p className="font-semibold text-gray-600 mb-1">Original schedule</p>
+              <p className="font-semibold text-gray-600 mb-1">
+                Original schedule
+              </p>
               <p>Start: {fmtDate(resumeModal.starts_at)}</p>
               <p>End: &nbsp;&nbsp;{fmtDate(resumeModal.ends_at)}</p>
               {new Date(resumeModal.ends_at) < new Date() && (
-                <p className="text-red-500 font-medium mt-1">⚠ Schedule has already expired</p>
+                <p className="text-red-500 font-medium mt-1">
+                  ⚠ Schedule has already expired
+                </p>
               )}
             </div>
             <div className="grid grid-cols-2 gap-3 pt-1">
@@ -3334,7 +4042,9 @@ function PromotionsTab() {
               >
                 <Eye className="w-4 h-4" />
                 Continue
-                <span className="text-[10px] font-normal text-blue-500 text-center leading-tight">Keep original dates</span>
+                <span className="text-[10px] font-normal text-blue-500 text-center leading-tight">
+                  Keep original dates
+                </span>
               </button>
               <button
                 onClick={() => handleResumeChoice(resumeModal, "start_over")}
@@ -3342,10 +4052,15 @@ function PromotionsTab() {
               >
                 <Loader2 className="w-4 h-4" />
                 Start Over
-                <span className="text-[10px] font-normal text-orange-500 text-center leading-tight">Reset to now, same duration</span>
+                <span className="text-[10px] font-normal text-orange-500 text-center leading-tight">
+                  Reset to now, same duration
+                </span>
               </button>
             </div>
-            <button onClick={() => setResumeModal(null)} className="w-full text-xs text-gray-400 hover:text-gray-600 transition-colors pt-1">
+            <button
+              onClick={() => setResumeModal(null)}
+              className="w-full text-xs text-gray-400 hover:text-gray-600 transition-colors pt-1"
+            >
               Cancel
             </button>
           </div>

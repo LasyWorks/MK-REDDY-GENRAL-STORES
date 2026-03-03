@@ -4,7 +4,7 @@
  * MergeSession  – one row per pending / completed merge flow
  * MergeOTP      – individual OTPs for each side (primary / secondary)
  */
-const { query, queryOne, insert, modify } = require('../config/database');
+const { query, queryOne, insert, modify } = require("../config/database");
 
 /* ═══════════════════════════════════════════════════════════════════
    MergeSession
@@ -14,7 +14,14 @@ class MergeSession {
    * Create a new merge session.
    * Returns the generated UUID id.
    */
-  static async create({ newEmail, existingUserId, phone, newUserData = {}, ipAddress = null, expiryMinutes = 15 }) {
+  static async create({
+    newEmail,
+    existingUserId,
+    phone,
+    newUserData = {},
+    ipAddress = null,
+    expiryMinutes = 15,
+  }) {
     const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1_000);
     return insert(
       `INSERT INTO merge_sessions
@@ -28,7 +35,7 @@ class MergeSession {
         JSON.stringify(newUserData),
         ipAddress,
         expiresAt,
-      ]
+      ],
     );
   }
 
@@ -39,7 +46,7 @@ class MergeSession {
        WHERE id = $1
          AND expires_at > NOW()
          AND status NOT IN ('completed','cancelled')`,
-      [id]
+      [id],
     );
   }
 
@@ -49,7 +56,7 @@ class MergeSession {
       `SELECT COUNT(*) AS count FROM merge_sessions
        WHERE new_email = $1
          AND created_at > NOW() - ($2 * INTERVAL '1 minute')`,
-      [newEmail.toLowerCase().trim(), windowMinutes]
+      [newEmail.toLowerCase().trim(), windowMinutes],
     );
     return parseInt(r.count, 10);
   }
@@ -63,7 +70,7 @@ class MergeSession {
              ELSE 'primary_verified'
            END
        WHERE id = $1`,
-      [id]
+      [id],
     );
   }
 
@@ -76,21 +83,21 @@ class MergeSession {
              ELSE 'pending'
            END
        WHERE id = $1`,
-      [id]
+      [id],
     );
   }
 
   static async markCompleted(id) {
     return modify(
       `UPDATE merge_sessions SET status = 'completed' WHERE id = $1`,
-      [id]
+      [id],
     );
   }
 
   static async cancel(id) {
     return modify(
       `UPDATE merge_sessions SET status = 'cancelled' WHERE id = $1`,
-      [id]
+      [id],
     );
   }
 
@@ -104,20 +111,26 @@ class MergeSession {
 ═══════════════════════════════════════════════════════════════════ */
 class MergeOTP {
   static EXPIRY_MINUTES = 5;
-  static MAX_ATTEMPTS   = 5;
+  static MAX_ATTEMPTS = 5;
 
   /**
    * Insert (or replace) an OTP for one side of a merge.
    * Old unverified OTPs for the same session + side are deleted first.
    */
-  static async create({ mergeSessionId, email, side, otpHash, expiryMinutes = MergeOTP.EXPIRY_MINUTES }) {
+  static async create({
+    mergeSessionId,
+    email,
+    side,
+    otpHash,
+    expiryMinutes = MergeOTP.EXPIRY_MINUTES,
+  }) {
     const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1_000);
 
     // Clear any previous OTP for this session+side to avoid replay
     await modify(
       `DELETE FROM merge_otps
        WHERE merge_session_id = $1 AND side = $2`,
-      [mergeSessionId, side]
+      [mergeSessionId, side],
     );
 
     return insert(
@@ -125,7 +138,7 @@ class MergeOTP {
          (merge_session_id, email, side, otp_hash, expires_at)
        VALUES ($1,$2,$3,$4,$5)
        RETURNING id`,
-      [mergeSessionId, email.toLowerCase().trim(), side, otpHash, expiresAt]
+      [mergeSessionId, email.toLowerCase().trim(), side, otpHash, expiresAt],
     );
   }
 
@@ -139,29 +152,27 @@ class MergeOTP {
          AND expires_at > NOW()
        ORDER BY created_at DESC
        LIMIT 1`,
-      [mergeSessionId, side]
+      [mergeSessionId, side],
     );
   }
 
   static async incrementAttempts(id) {
     return modify(
       `UPDATE merge_otps SET attempts = attempts + 1 WHERE id = $1`,
-      [id]
+      [id],
     );
   }
 
   static async markVerified(id) {
-    return modify(
-      `UPDATE merge_otps SET is_verified = TRUE WHERE id = $1`,
-      [id]
-    );
+    return modify(`UPDATE merge_otps SET is_verified = TRUE WHERE id = $1`, [
+      id,
+    ]);
   }
 
   static async deleteForSession(mergeSessionId) {
-    return modify(
-      `DELETE FROM merge_otps WHERE merge_session_id = $1`,
-      [mergeSessionId]
-    );
+    return modify(`DELETE FROM merge_otps WHERE merge_session_id = $1`, [
+      mergeSessionId,
+    ]);
   }
 }
 
@@ -175,7 +186,7 @@ class LinkedIdentity {
        VALUES ($1,$2)
        ON CONFLICT (linked_email) DO NOTHING
        RETURNING id`,
-      [primaryUserId, linkedEmail.toLowerCase().trim()]
+      [primaryUserId, linkedEmail.toLowerCase().trim()],
     );
   }
 
@@ -185,15 +196,14 @@ class LinkedIdentity {
        FROM linked_identities li
        JOIN users u ON u.id = li.primary_user_id
        WHERE li.linked_email = $1`,
-      [email.toLowerCase().trim()]
+      [email.toLowerCase().trim()],
     );
   }
 
   static async findByUser(primaryUserId) {
-    return query(
-      `SELECT * FROM linked_identities WHERE primary_user_id = $1`,
-      [primaryUserId]
-    );
+    return query(`SELECT * FROM linked_identities WHERE primary_user_id = $1`, [
+      primaryUserId,
+    ]);
   }
 }
 
@@ -201,7 +211,16 @@ class LinkedIdentity {
    MergeAudit
 ═══════════════════════════════════════════════════════════════════ */
 class MergeAudit {
-  static async log({ mergeSessionId, primaryUserId, existingEmail, newEmail, phone, action, detail = null, ipAddress = null }) {
+  static async log({
+    mergeSessionId,
+    primaryUserId,
+    existingEmail,
+    newEmail,
+    phone,
+    action,
+    detail = null,
+    ipAddress = null,
+  }) {
     return insert(
       `INSERT INTO merge_audit_log
          (merge_session_id, primary_user_id, existing_email, new_email, phone, action, detail, ip_address)
@@ -210,13 +229,13 @@ class MergeAudit {
       [
         mergeSessionId || null,
         primaryUserId,
-        existingEmail.toLowerCase().trim(),
+        existingEmail ? existingEmail.toLowerCase().trim() : null,
         newEmail.toLowerCase().trim(),
         phone,
         action,
         detail ? JSON.stringify(detail) : null,
         ipAddress,
-      ]
+      ],
     );
   }
 }

@@ -1,41 +1,50 @@
-const { User, AdminLog } = require('../models');
-const config = require('../config');
-const ApiError = require('../utils/ApiError');
-const { getRoleIdByUserType } = require('../utils/helpers');
+const { User, AdminLog } = require("../models");
+const { pool } = require("../config/database");
+const config = require("../config");
+const ApiError = require("../utils/ApiError");
+const { getRoleIdByUserType } = require("../utils/helpers");
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 class UserService {
   static async getById(id) {
     if (!id || !UUID_RE.test(id)) {
-      throw ApiError.notFound('User not found');
+      throw ApiError.notFound("User not found");
     }
     const user = await User.findById(id);
     if (!user) {
-      throw ApiError.notFound('User not found');
+      throw ApiError.notFound("User not found");
     }
     return this.sanitizeUser(user);
   }
   static async getAll(options = {}) {
     const { page, limit, role, userType, isActive, search } = options;
-    const result = await User.findAll({ page, limit, role, userType, isActive, search });
+    const result = await User.findAll({
+      page,
+      limit,
+      role,
+      userType,
+      isActive,
+      search,
+    });
     return {
-      users: result.users.map(user => this.sanitizeUser(user)),
+      users: result.users.map((user) => this.sanitizeUser(user)),
       total: result.total,
     };
   }
   static async update(id, userData, adminId = null) {
     const user = await User.findById(id);
     if (!user) {
-      throw ApiError.notFound('User not found');
+      throw ApiError.notFound("User not found");
     }
     const oldData = { ...user };
     await User.update(id, userData);
     if (adminId && adminId !== id) {
       await AdminLog.create({
         adminId,
-        action: 'UPDATE_USER',
-        entityType: 'user',
+        action: "UPDATE_USER",
+        entityType: "user",
         entityId: id,
         oldValue: this.sanitizeUser(oldData),
         newValue: userData,
@@ -46,97 +55,153 @@ class UserService {
   static async delete(id, adminId) {
     const user = await User.findById(id);
     if (!user) {
-      throw ApiError.notFound('User not found');
+      throw ApiError.notFound("User not found");
     }
-    if (user.role_name === 'admin') {
-      throw ApiError.forbidden('Cannot delete admin users');
+    if (user.role_name === "admin") {
+      throw ApiError.forbidden("Cannot delete admin users");
     }
-    await User.delete(id);
+
+    // Soft delete — mark user as deleted and revoke all sessions
+    await User.softDelete(id);
+
+    // Revoke all refresh tokens so the user is logged out immediately
+    const client = await pool.connect();
+    try {
+      await client.query(
+        `UPDATE refresh_tokens SET revoked = TRUE, revoked_at = NOW() WHERE user_id = $1`,
+        [id],
+      );
+    } finally {
+      client.release();
+    }
+
     if (adminId) {
       await AdminLog.create({
         adminId,
-        action: 'DELETE_USER',
-        entityType: 'user',
+        action: "DELETE_USER",
+        entityType: "user",
         entityId: id,
         oldValue: this.sanitizeUser(user),
       });
     }
-    return { message: 'User deleted successfully' };
+    return { message: "User deleted successfully" };
+  }
+
+  static async restore(id, adminId) {
+    // Find in deleted users (bypass the deleted_at IS NULL filter)
+    const client = await pool.connect();
+    let user;
+    try {
+      const result = await client.query(
+        `SELECT u.*, r.name AS role_name
+         FROM users u JOIN roles r ON u.role_id = r.id
+         WHERE u.id = $1 AND u.deleted_at IS NOT NULL`,
+        [id],
+      );
+      user = result.rows[0];
+    } finally {
+      client.release();
+    }
+
+    if (!user) {
+      throw ApiError.notFound("Deleted user not found");
+    }
+
+    await User.restore(id);
+
+    if (adminId) {
+      await AdminLog.create({
+        adminId,
+        action: "RESTORE_USER",
+        entityType: "user",
+        entityId: id,
+        newValue: { restored: true },
+      });
+    }
+    return { message: "User restored successfully" };
+  }
+
+  static async getDeleted(options = {}) {
+    const result = await User.findDeleted(options);
+    return {
+      users: result.users.map((u) => this.sanitizeUser(u)),
+      total: result.total,
+    };
   }
   static async block(id, reason, adminId) {
     const user = await User.findById(id);
     if (!user) {
-      throw ApiError.notFound('User not found');
+      throw ApiError.notFound("User not found");
     }
-    if (user.role_name === 'admin') {
-      throw ApiError.forbidden('Cannot block admin users');
+    if (user.role_name === "admin") {
+      throw ApiError.forbidden("Cannot block admin users");
     }
     if (user.is_blocked) {
-      throw ApiError.badRequest('User is already blocked');
+      throw ApiError.badRequest("User is already blocked");
     }
     await User.block(id, reason);
     await AdminLog.create({
       adminId,
-      action: 'BLOCK_USER',
-      entityType: 'user',
+      action: "BLOCK_USER",
+      entityType: "user",
       entityId: id,
       newValue: { reason },
     });
-    return { message: 'User blocked successfully' };
+    return { message: "User blocked successfully" };
   }
   static async unblock(id, adminId) {
     const user = await User.findById(id);
     if (!user) {
-      throw ApiError.notFound('User not found');
+      throw ApiError.notFound("User not found");
     }
     if (!user.is_blocked) {
-      throw ApiError.badRequest('User is not blocked');
+      throw ApiError.badRequest("User is not blocked");
     }
     await User.unblock(id);
     await AdminLog.create({
       adminId,
-      action: 'UNBLOCK_USER',
-      entityType: 'user',
+      action: "UNBLOCK_USER",
+      entityType: "user",
       entityId: id,
     });
-    return { message: 'User unblocked successfully' };
+    return { message: "User unblocked successfully" };
   }
   static async activate(id, adminId) {
     const user = await User.findById(id);
     if (!user) {
-      throw ApiError.notFound('User not found');
+      throw ApiError.notFound("User not found");
     }
     if (user.is_active) {
-      throw ApiError.badRequest('User is already active');
+      throw ApiError.badRequest("User is already active");
     }
     await User.update(id, { is_active: true });
     await AdminLog.create({
       adminId,
-      action: 'ACTIVATE_USER',
-      entityType: 'user',
+      action: "ACTIVATE_USER",
+      entityType: "user",
       entityId: id,
     });
-    return { message: 'User activated successfully' };
+    return { message: "User activated successfully" };
   }
   static async deactivate(id, adminId) {
     const user = await User.findById(id);
     if (!user) {
-      throw ApiError.notFound('User not found');
+      throw ApiError.notFound("User not found");
     }
-    if (user.role_name === 'admin') {
-      throw ApiError.forbidden('Cannot deactivate admin users');
+    if (user.role_name === "admin") {
+      throw ApiError.forbidden("Cannot deactivate admin users");
     }
     if (!user.is_active) {
-      throw ApiError.badRequest('User is already inactive');
+      throw ApiError.badRequest("User is already inactive");
     }
     await User.update(id, { is_active: false });
     await AdminLog.create({
       adminId,
-      action: 'DEACTIVATE_USER',
-      entityType: 'user',
+      action: "DEACTIVATE_USER",
+      entityType: "user",
       entityId: id,
     });
-    return { message: 'User deactivated successfully' };
+    return { message: "User deactivated successfully" };
   }
   static async getCustomerCount() {
     const count = await User.countCustomers();
@@ -151,11 +216,12 @@ class UserService {
     const users = result.users;
     const roles = {};
     const types = {};
-    let active = 0, blocked = 0;
-    users.forEach(u => {
-      const role = u.role_name || 'unknown';
+    let active = 0,
+      blocked = 0;
+    users.forEach((u) => {
+      const role = u.role_name || "unknown";
       roles[role] = (roles[role] || 0) + 1;
-      const type = u.user_type || 'unknown';
+      const type = u.user_type || "unknown";
       types[type] = (types[type] || 0) + 1;
       if (u.is_active) active++;
       if (u.is_blocked) blocked++;
@@ -169,34 +235,54 @@ class UserService {
       by_type: types,
     };
   }
-  static async create({ name, phone, email, user_type = 'retail', address, role_id, password }) {
-    const bcrypt = require('bcryptjs');
-    const securityConfig = require('../config/security');
-    const { getRoleIdByUserType } = require('../utils/helpers');
+  static async create({
+    name,
+    phone,
+    email,
+    user_type = "retail",
+    address,
+    role_id,
+    password,
+  }) {
+    const bcrypt = require("bcryptjs");
+    const securityConfig = require("../config/security");
+    const { getRoleIdByUserType } = require("../utils/helpers");
     const existing = await User.findByPhone(phone);
     if (existing) {
-      throw ApiError.conflict('Phone number already registered');
+      throw ApiError.conflict("Phone number already registered");
     }
-    const resolvedRoleId = role_id || await getRoleIdByUserType(user_type);
+    const resolvedRoleId = role_id || (await getRoleIdByUserType(user_type));
     // Using bcrypt factor 12 (OWASP recommendation) for better security against brute force
-    const password_hash = password ? await bcrypt.hash(password, securityConfig.password.bcryptRounds) : null;
-    const newId = await User.create({ name, phone, email, user_type, address, role_id: resolvedRoleId, password_hash });
+    const password_hash = password
+      ? await bcrypt.hash(password, securityConfig.password.bcryptRounds)
+      : null;
+    const newId = await User.create({
+      name,
+      phone,
+      email,
+      user_type,
+      address,
+      role_id: resolvedRoleId,
+      password_hash,
+    });
     const fullUser = await User.findById(newId);
     return this.sanitizeUser(fullUser);
   }
   static async updateCustomerType(id, customerType, adminId) {
     const user = await User.findById(id);
-    if (!user) throw ApiError.notFound('User not found');
-    const validTypes = ['retail', 'wholesale'];
+    if (!user) throw ApiError.notFound("User not found");
+    const validTypes = ["retail", "wholesale"];
     if (!validTypes.includes(customerType)) {
-      throw ApiError.badRequest(`customer_type must be one of: ${validTypes.join(', ')}`);
+      throw ApiError.badRequest(
+        `customer_type must be one of: ${validTypes.join(", ")}`,
+      );
     }
     const newRoleId = await getRoleIdByUserType(customerType);
     await User.updateUserType(id, customerType, newRoleId);
     await AdminLog.create({
       adminId,
-      action: 'UPDATE_CUSTOMER_TYPE',
-      entityType: 'user',
+      action: "UPDATE_CUSTOMER_TYPE",
+      entityType: "user",
       entityId: id,
       newValue: { user_type: customerType },
     });

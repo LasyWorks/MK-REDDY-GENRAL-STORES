@@ -1,7 +1,7 @@
-const { UserService } = require('../services');
-const { asyncHandler } = require('../middlewares');
-const ApiResponse = require('../utils/ApiResponse');
-const { getPaginationParams } = require('../utils/helpers');
+const { UserService } = require("../services");
+const { asyncHandler } = require("../middlewares");
+const ApiResponse = require("../utils/ApiResponse");
+const { getPaginationParams } = require("../utils/helpers");
 const getUsers = asyncHandler(async (req, res) => {
   const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
   const { role, user_type, is_active, search } = req.query;
@@ -10,7 +10,7 @@ const getUsers = asyncHandler(async (req, res) => {
     limit,
     role,
     userType: user_type,
-    isActive: is_active !== undefined ? is_active === 'true' : null,
+    isActive: is_active !== undefined ? is_active === "true" : null,
     search,
   });
   ApiResponse.paginated(res, result.users, {
@@ -26,21 +26,35 @@ const getUser = asyncHandler(async (req, res) => {
 const updateUser = asyncHandler(async (req, res) => {
   const { name, address, email } = req.body;
   const userId = req.params.id;
-  const isAdmin = req.user.role === 'admin';
+  const isAdmin = req.user.role === "admin";
   const isSelf = req.user.id === userId;
   if (!isAdmin && !isSelf) {
-    return ApiResponse.error(res, 'Not authorized', 403);
+    return ApiResponse.error(res, "Not authorized", 403);
   }
   const user = await UserService.update(
     userId,
     { name, address, email },
-    isAdmin && !isSelf ? req.user.id : null
+    isAdmin && !isSelf ? req.user.id : null,
   );
-  ApiResponse.success(res, user, 'User updated successfully');
+  ApiResponse.success(res, user, "User updated successfully");
 });
 const deleteUser = asyncHandler(async (req, res) => {
   await UserService.delete(req.params.id, req.user.id);
-  ApiResponse.success(res, null, 'User deleted successfully');
+  ApiResponse.success(res, null, "User deleted successfully");
+});
+const restoreUser = asyncHandler(async (req, res) => {
+  const result = await UserService.restore(req.params.id, req.user.id);
+  ApiResponse.success(res, result, "User restored successfully");
+});
+const getDeletedUsers = asyncHandler(async (req, res) => {
+  const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
+  const { search } = req.query;
+  const result = await UserService.getDeleted({ page, limit, search });
+  ApiResponse.paginated(res, result.users, {
+    page,
+    limit,
+    totalItems: result.total,
+  });
 });
 const blockUser = asyncHandler(async (req, res) => {
   const { reason } = req.body;
@@ -68,27 +82,35 @@ const getUserStats = asyncHandler(async (req, res) => {
   ApiResponse.success(res, result);
 });
 const createUser = asyncHandler(async (req, res) => {
-  const { name, phone, email, user_type, address, role_id, password } = req.body;
+  const { name, phone, email, user_type, address, role_id, password } =
+    req.body;
   const user = await UserService.create({
     name,
     phone,
     email,
-    user_type: user_type || 'retail',
+    user_type: user_type || "retail",
     address,
-    role_id: role_id || undefined, 
+    role_id: role_id || undefined,
     password,
   });
-  ApiResponse.created(res, user, 'User created successfully');
+  ApiResponse.created(res, user, "User created successfully");
 });
 const updateCustomerType = asyncHandler(async (req, res) => {
   const { customer_type } = req.body;
-  const user = await UserService.updateCustomerType(req.params.id, customer_type, req.user.id);
-  ApiResponse.success(res, user, 'Customer type updated successfully');
+  const user = await UserService.updateCustomerType(
+    req.params.id,
+    customer_type,
+    req.user.id,
+  );
+  ApiResponse.success(res, user, "Customer type updated successfully");
 });
 const getUserOrders = asyncHandler(async (req, res) => {
-  const { OrderService } = require('../services');
+  const { OrderService } = require("../services");
   const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
-  const result = await OrderService.getUserOrders(req.params.id, { page, limit });
+  const result = await OrderService.getUserOrders(req.params.id, {
+    page,
+    limit,
+  });
   ApiResponse.paginated(res, result.orders, {
     page,
     limit,
@@ -102,6 +124,8 @@ module.exports = {
   createUser,
   updateUser,
   deleteUser,
+  restoreUser,
+  getDeletedUsers,
   blockUser,
   unblockUser,
   activateUser,
@@ -109,4 +133,4 @@ module.exports = {
   updateCustomerType,
   getUserOrders,
   getCustomerCount,
-};
+};

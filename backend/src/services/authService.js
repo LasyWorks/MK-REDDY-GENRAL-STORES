@@ -1,17 +1,21 @@
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const config = require('../config');
-const securityConfig = require('../config/security');
-const { User, OTP, RefreshToken } = require('../models');
-const { generateOTP, hashOTP, getRoleIdByUserType } = require('../utils/helpers');
-const EmailService = require('./emailService');
-const GoogleOAuthService = require('./GoogleOAuthService');
-const ApiError = require('../utils/ApiError');
-const logger = require('../utils/logger');
-const AccountLockout = require('../utils/accountLockout');
-const { sendSecurityAlert } = require('../utils/alerting');
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const config = require("../config");
+const securityConfig = require("../config/security");
+const { User, OTP, RefreshToken } = require("../models");
+const {
+  generateOTP,
+  hashOTP,
+  getRoleIdByUserType,
+} = require("../utils/helpers");
+const EmailService = require("./emailService");
+const GoogleOAuthService = require("./GoogleOAuthService");
+const ApiError = require("../utils/ApiError");
+const logger = require("../utils/logger");
+const AccountLockout = require("../utils/accountLockout");
+const { sendSecurityAlert } = require("../utils/alerting");
 // Prevent OTP spam attacks by limiting resend frequency
-const OTP_RESEND_COOLDOWN_SECS = 30; 
+const OTP_RESEND_COOLDOWN_SECS = 30;
 class AuthService {
   // Login user with Google account
   static async googleLogin(idToken, ipAddress = null) {
@@ -19,7 +23,7 @@ class AuthService {
     const googleUser = await GoogleOAuthService.verifyIdToken(idToken);
 
     if (!googleUser.emailVerified) {
-      throw ApiError.forbidden('Please verify your email with Google first');
+      throw ApiError.forbidden("Please verify your email with Google first");
     }
 
     // Check if user exists by email or Google ID
@@ -43,11 +47,13 @@ class AuthService {
 
     // User exists - perform security checks
     if (!user.is_active) {
-      throw ApiError.forbidden('Account is inactive. Please contact support.');
+      throw ApiError.forbidden("Account is inactive. Please contact support.");
     }
 
     if (user.is_blocked) {
-      throw ApiError.forbidden(`Account is blocked: ${user.blocked_reason || 'Contact support'}`);
+      throw ApiError.forbidden(
+        `Account is blocked: ${user.blocked_reason || "Contact support"}`,
+      );
     }
 
     // Update Google ID if not set
@@ -76,52 +82,84 @@ class AuthService {
 
   // Complete registration for new Google users (needs phone number)
   static async completeGoogleRegistration(userData) {
-    const { name, phone, email, googleId, picture, user_type, address } = userData;
+    const { name, phone, email, googleId, picture, user_type, address } =
+      userData;
 
     // Validate required fields
     if (!email || !googleId || !phone || !name) {
-      throw ApiError.badRequest('Email, Google ID, phone number, and name are required');
+      throw ApiError.badRequest(
+        "Email, Google ID, phone number, and name are required",
+      );
     }
 
     // Check if user already exists by email
     const existingUserByEmail = await User.findByEmail(email);
     if (existingUserByEmail) {
-      throw ApiError.conflict('User with this email already exists');
+      throw ApiError.conflict("User with this email already exists");
     }
 
     // Check if phone number is already taken
     const existingUserByPhone = await User.findByPhone(phone);
     if (existingUserByPhone) {
+      // Phone-only account (no email) → link Google account directly
+      if (!existingUserByPhone.email) {
+        await User.updateGoogleId(existingUserByPhone.id, googleId);
+        await User.update(existingUserByPhone.id, {
+          email,
+          email_verified: true,
+        });
+        if (picture)
+          await User.updateProfilePicture(existingUserByPhone.id, picture);
+        const updatedUser = await User.findById(existingUserByPhone.id);
+        const tokens = await this.generateTokens(updatedUser);
+        logger.info(
+          `Linked Google account to phone-only user ${updatedUser.id} (${phone})`,
+        );
+        return {
+          user: this.sanitizeUser(updatedUser),
+          ...tokens,
+        };
+      }
       // Different email → do NOT auto-merge; surface merge flow to the user
       if (existingUserByPhone.email !== email) {
-        const MergeService = require('./mergeService');
-        logger.info(`[AuthService] Phone conflict detected on Google registration — phone:${phone} existing:${existingUserByPhone.email} new:${email}`);
+        const MergeService = require("./mergeService");
+        logger.info(
+          `[AuthService] Phone conflict detected on Google registration — phone:${phone} existing:${existingUserByPhone.email} new:${email}`,
+        );
         const mergeInfo = await MergeService.createSession({
-          newEmail:     email,
+          newEmail: email,
           existingUser: existingUserByPhone,
           phone,
-          newUserData:  { name, googleId, picture, user_type: user_type || 'retail', address },
+          newUserData: {
+            name,
+            googleId,
+            picture,
+            user_type: user_type || "retail",
+            address,
+          },
         });
         return {
-          requiresMerge:       true,
+          requiresMerge: true,
           existingMaskedEmail: mergeInfo.existingMaskedEmail,
-          newMaskedEmail:      mergeInfo.newMaskedEmail,
-          mergeSessionId:      mergeInfo.mergeSessionId,
-          expiresInSeconds:    mergeInfo.expiresInSeconds,
+          newMaskedEmail: mergeInfo.newMaskedEmail,
+          mergeSessionId: mergeInfo.mergeSessionId,
+          expiresInSeconds: mergeInfo.expiresInSeconds,
         };
       }
       // Same phone + same email is caught above (existingUserByEmail check) — guard only
-      throw ApiError.conflict('User with this phone number already exists');
+      throw ApiError.conflict("User with this phone number already exists");
     }
 
     // Check customer limit
     const customerCount = await User.countCustomers();
     if (customerCount >= config.limits.maxCustomers) {
-      throw ApiError.forbidden('Maximum customer limit reached. Please contact support.');
+      throw ApiError.forbidden(
+        "Maximum customer limit reached. Please contact support.",
+      );
     }
 
     // Get role ID
-    const roleId = await getRoleIdByUserType(user_type || 'retail');
+    const roleId = await getRoleIdByUserType(user_type || "retail");
 
     // Create user with Google OAuth data
     const userId = await User.create({
@@ -130,7 +168,7 @@ class AuthService {
       email,
       google_id: googleId,
       profile_picture: picture,
-      user_type: user_type || 'retail',
+      user_type: user_type || "retail",
       role_id: roleId,
       address,
       email_verified: true, // Email is verified by Google
@@ -147,12 +185,12 @@ class AuthService {
     };
   }
 
-  static async sendOTP(phone, purpose = 'login') {
+  static async sendOTP(phone, purpose = "login") {
     // Check if user is trying to request OTPs too quickly (potential abuse)
     const recentCount = await OTP.countRecent(phone, OTP_RESEND_COOLDOWN_SECS);
     if (recentCount > 0) {
       throw ApiError.tooManyRequests(
-        `Please wait ${OTP_RESEND_COOLDOWN_SECS} seconds before requesting a new OTP.`
+        `Please wait ${OTP_RESEND_COOLDOWN_SECS} seconds before requesting a new OTP.`,
       );
     }
     const otp = generateOTP(6);
@@ -160,45 +198,50 @@ class AuthService {
     const hashedOTP = hashOTP(otp);
     await OTP.create(phone, hashedOTP, purpose, config.otp.expiryMinutes);
     const smsResult = await SmsService.sendOtp(phone, otp);
-    if (config.env !== 'development' && !smsResult.success) {
+    if (config.env !== "development" && !smsResult.success) {
       logger.warn(`OTP SMS delivery failure for ${phone}: ${smsResult.error}`);
     }
     return {
-      message: 'OTP sent successfully',
+      message: "OTP sent successfully",
       expiresIn: config.otp.expiryMinutes * 60,
       // Only reveal OTP in development for testing - never in production for security
-      ...(config.env === 'development' && { otp }),
+      ...(config.env === "development" && { otp }),
     };
   }
   static async sendOTPByEmail(email) {
-    if (!email || !email.includes('@')) {
-      throw ApiError.badRequest('Valid email address is required');
+    if (!email || !email.includes("@")) {
+      throw ApiError.badRequest("Valid email address is required");
     }
     const user = await User.findByEmail(email);
     if (!user) {
-      throw ApiError.notFound('No account found with this email address');
+      throw ApiError.notFound("No account found with this email address");
     }
     if (!user.phone) {
-      throw ApiError.badRequest('No phone number associated with this account');
+      throw ApiError.badRequest("No phone number associated with this account");
     }
     if (!user.is_active) {
-      throw ApiError.forbidden('Account is inactive');
+      throw ApiError.forbidden("Account is inactive");
     }
     if (user.is_blocked) {
-      throw ApiError.forbidden(`Account is blocked: ${user.blocked_reason || 'Contact support'}`);
+      throw ApiError.forbidden(
+        `Account is blocked: ${user.blocked_reason || "Contact support"}`,
+      );
     }
 
     // Check if user is trying to request OTPs too quickly (potential abuse)
-    const recentCount = await OTP.countRecent(user.phone, OTP_RESEND_COOLDOWN_SECS);
+    const recentCount = await OTP.countRecent(
+      user.phone,
+      OTP_RESEND_COOLDOWN_SECS,
+    );
     if (recentCount > 0) {
       throw ApiError.tooManyRequests(
-        `Please wait ${OTP_RESEND_COOLDOWN_SECS} seconds before requesting a new OTP.`
+        `Please wait ${OTP_RESEND_COOLDOWN_SECS} seconds before requesting a new OTP.`,
       );
     }
 
     const otp = generateOTP(6);
     const hashedOTP = hashOTP(otp);
-    await OTP.create(user.phone, hashedOTP, 'login', config.otp.expiryMinutes);
+    await OTP.create(user.phone, hashedOTP, "login", config.otp.expiryMinutes);
 
     // Send OTP via email
     try {
@@ -206,60 +249,70 @@ class AuthService {
       logger.info(`OTP email sent successfully to ${email}`);
     } catch (error) {
       logger.error(`Failed to send OTP email to ${email}:`, error);
-      throw ApiError.internal('Failed to send OTP email. Please try again.');
+      throw ApiError.internal("Failed to send OTP email. Please try again.");
     }
 
     return {
-      message: 'OTP sent successfully to your email',
+      message: "OTP sent successfully to your email",
       expiresIn: config.otp.expiryMinutes * 60,
-      phone: user.phone, 
+      phone: user.phone,
       email: user.email,
       // Only reveal OTP in development for testing
-      ...(config.env === 'development' && { otp }),
+      ...(config.env === "development" && { otp }),
     };
   }
-  
+
   // Send OTP code to customer's email for login or registration
   static async sendCustomerEmailOTP(email) {
-    if (!email || !email.includes('@')) {
-      throw ApiError.badRequest('Valid email address is required');
+    if (!email || !email.includes("@")) {
+      throw ApiError.badRequest("Valid email address is required");
     }
 
     // Normalize email to lowercase for consistency
     email = email.toLowerCase().trim();
 
     // Check for rate limiting
-    const recentCount = await OTP.countRecentByEmail(email, OTP_RESEND_COOLDOWN_SECS);
+    const recentCount = await OTP.countRecentByEmail(
+      email,
+      OTP_RESEND_COOLDOWN_SECS,
+    );
     if (recentCount > 0) {
       throw ApiError.tooManyRequests(
-        `Please wait ${OTP_RESEND_COOLDOWN_SECS} seconds before requesting a new OTP.`
+        `Please wait ${OTP_RESEND_COOLDOWN_SECS} seconds before requesting a new OTP.`,
       );
     }
 
     // Check if user exists
     const user = await User.findByEmail(email);
-    
+
     // If user exists, check account status
     if (user) {
       if (!user.is_active) {
-        throw ApiError.forbidden('Account is inactive');
+        throw ApiError.forbidden("Account is inactive");
       }
       if (user.is_blocked) {
-        throw ApiError.forbidden(`Account is blocked: ${user.blocked_reason || 'Contact support'}`);
+        throw ApiError.forbidden(
+          `Account is blocked: ${user.blocked_reason || "Contact support"}`,
+        );
       }
     }
 
     const otp = generateOTP(6);
     const hashedOTP = hashOTP(otp);
-    await OTP.createByEmail(email, hashedOTP, 'login', config.otp.expiryMinutes);
+    await OTP.createByEmail(
+      email,
+      hashedOTP,
+      "login",
+      config.otp.expiryMinutes,
+    );
 
     // Send OTP via email
     try {
-      await EmailService.sendOTP(email, otp, user?.name || 'User');
+      await EmailService.sendOTP(email, otp, user?.name || "User");
       logger.info(`Customer OTP email sent successfully to ${email}`);
-      
+
       // Debug logging in development
-      if (config.env === 'development') {
+      if (config.env === "development") {
         logger.debug(`OTP Generation Debug:
           Email: ${email}
           OTP: ${otp}
@@ -268,15 +321,15 @@ class AuthService {
       }
     } catch (error) {
       logger.error(`Failed to send customer OTP email to ${email}:`, error);
-      throw ApiError.internal('Failed to send OTP email. Please try again.');
+      throw ApiError.internal("Failed to send OTP email. Please try again.");
     }
 
     return {
-      message: 'OTP sent successfully to your email',
+      message: "OTP sent successfully to your email",
       expiresIn: config.otp.expiryMinutes * 60,
       email,
       // Only reveal OTP in development for testing
-      ...(config.env === 'development' && { otp }),
+      ...(config.env === "development" && { otp }),
     };
   }
 
@@ -284,25 +337,27 @@ class AuthService {
   static async verifyCustomerEmailOTP(email, otp) {
     // Normalize email to lowercase for consistency
     email = email.toLowerCase().trim();
-    
-    const otpRecord = await OTP.findValidByEmail(email, 'login');
-    
+
+    const otpRecord = await OTP.findValidByEmail(email, "login");
+
     if (!otpRecord) {
-      throw ApiError.badRequest('OTP expired or not found');
+      throw ApiError.badRequest("OTP expired or not found");
     }
 
     // Prevent brute force attacks by limiting guess attempts per OTP
     if (otpRecord.attempts >= config.otp.maxAttempts) {
       await OTP.delete(otpRecord.id);
-      throw ApiError.tooManyRequests('Maximum OTP attempts exceeded. Please request a new OTP.');
+      throw ApiError.tooManyRequests(
+        "Maximum OTP attempts exceeded. Please request a new OTP.",
+      );
     }
 
     // Trim and convert to string to ensure consistency
     const cleanOTP = String(otp).trim();
     const hashedOTP = hashOTP(cleanOTP);
-    
+
     // Debug logging in development
-    if (config.env === 'development') {
+    if (config.env === "development") {
       logger.debug(`OTP Verification Debug:
         Email: ${email}
         Input OTP: "${otp}" (type: ${typeof otp})
@@ -312,10 +367,10 @@ class AuthService {
         Match: ${hashedOTP === otpRecord.otp_hash}
       `);
     }
-    
+
     if (hashedOTP !== otpRecord.otp_hash) {
       await OTP.incrementAttempts(otpRecord.id);
-      throw ApiError.badRequest('Invalid OTP');
+      throw ApiError.badRequest("Invalid OTP");
     }
 
     await OTP.markVerified(otpRecord.id);
@@ -334,11 +389,13 @@ class AuthService {
     }
 
     if (!user.is_active) {
-      throw ApiError.forbidden('Account is inactive');
+      throw ApiError.forbidden("Account is inactive");
     }
 
     if (user.is_blocked) {
-      throw ApiError.forbidden(`Account is blocked: ${user.blocked_reason || 'Contact support'}`);
+      throw ApiError.forbidden(
+        `Account is blocked: ${user.blocked_reason || "Contact support"}`,
+      );
     }
 
     const tokens = await this.generateTokens(user);
@@ -357,13 +414,13 @@ class AuthService {
 
     // Validate required fields - phone is mandatory
     if (!email || !phone || !name) {
-      throw ApiError.badRequest('Email, phone number, and name are required');
+      throw ApiError.badRequest("Email, phone number, and name are required");
     }
 
     // Check if user already exists by email
     const existingUserByEmail = await User.findByEmail(email);
     if (existingUserByEmail) {
-      throw ApiError.conflict('User with this email already exists');
+      throw ApiError.conflict("User with this email already exists");
     }
 
     // Check if phone number is already taken
@@ -371,38 +428,42 @@ class AuthService {
     if (existingUserByPhone) {
       // Different email → surface merge flow instead of hard error
       if (existingUserByPhone.email !== email) {
-        const MergeService = require('./mergeService');
-        logger.info(`[AuthService] Phone conflict detected on email-OTP registration — phone:${phone} existing:${existingUserByPhone.email} new:${email}`);
+        const MergeService = require("./mergeService");
+        logger.info(
+          `[AuthService] Phone conflict detected on email-OTP registration — phone:${phone} existing:${existingUserByPhone.email} new:${email}`,
+        );
         const mergeInfo = await MergeService.createSession({
-          newEmail:     email,
+          newEmail: email,
           existingUser: existingUserByPhone,
           phone,
-          newUserData:  { name, user_type: user_type || 'retail', address },
+          newUserData: { name, user_type: user_type || "retail", address },
         });
         return {
-          requiresMerge:       true,
+          requiresMerge: true,
           existingMaskedEmail: mergeInfo.existingMaskedEmail,
-          newMaskedEmail:      mergeInfo.newMaskedEmail,
-          mergeSessionId:      mergeInfo.mergeSessionId,
-          expiresInSeconds:    mergeInfo.expiresInSeconds,
+          newMaskedEmail: mergeInfo.newMaskedEmail,
+          mergeSessionId: mergeInfo.mergeSessionId,
+          expiresInSeconds: mergeInfo.expiresInSeconds,
         };
       }
-      throw ApiError.conflict('User with this phone number already exists');
+      throw ApiError.conflict("User with this phone number already exists");
     }
-    const validUserTypes = ['retail', 'wholesale'];
+    const validUserTypes = ["retail", "wholesale"];
     if (user_type && !validUserTypes.includes(user_type)) {
-      throw ApiError.badRequest(`Invalid user type. Must be one of: ${validUserTypes.join(', ')}`);
+      throw ApiError.badRequest(
+        `Invalid user type. Must be one of: ${validUserTypes.join(", ")}`,
+      );
     }
 
     // Get role ID based on user type
-    const roleId = await getRoleIdByUserType(user_type || 'retail');
+    const roleId = await getRoleIdByUserType(user_type || "retail");
 
     // Create the user
     const userId = await User.create({
       name,
       phone,
       email,
-      user_type: user_type || 'retail',
+      user_type: user_type || "retail",
       role_id: roleId,
       address,
       email_verified: true, // Email is verified via OTP
@@ -420,21 +481,23 @@ class AuthService {
       ...tokens,
     };
   }
-  
+
   static async verifyCustomerOTP(phone, otp) {
-    const otpRecord = await OTP.findValid(phone, 'login');
+    const otpRecord = await OTP.findValid(phone, "login");
     if (!otpRecord) {
-      throw ApiError.badRequest('OTP expired or not found');
+      throw ApiError.badRequest("OTP expired or not found");
     }
     // Prevent brute force attacks by limiting guess attempts per OTP
     if (otpRecord.attempts >= config.otp.maxAttempts) {
       await OTP.delete(otpRecord.id);
-      throw ApiError.tooManyRequests('Maximum OTP attempts exceeded. Please request a new OTP.');
+      throw ApiError.tooManyRequests(
+        "Maximum OTP attempts exceeded. Please request a new OTP.",
+      );
     }
     const hashedOTP = hashOTP(otp);
     if (hashedOTP !== otpRecord.otp_hash) {
       await OTP.incrementAttempts(otpRecord.id);
-      throw ApiError.badRequest('Invalid OTP');
+      throw ApiError.badRequest("Invalid OTP");
     }
     await OTP.markVerified(otpRecord.id);
     await OTP.delete(otpRecord.id);
@@ -448,10 +511,12 @@ class AuthService {
       };
     }
     if (!user.is_active) {
-      throw ApiError.forbidden('Account is inactive');
+      throw ApiError.forbidden("Account is inactive");
     }
     if (user.is_blocked) {
-      throw ApiError.forbidden(`Account is blocked: ${user.blocked_reason || 'Contact support'}`);
+      throw ApiError.forbidden(
+        `Account is blocked: ${user.blocked_reason || "Contact support"}`,
+      );
     }
     const tokens = await this.generateTokens(user);
     await User.updateLastLogin(user.id);
@@ -465,11 +530,13 @@ class AuthService {
     const { name, phone, user_type, address } = userData;
     const existingUser = await User.findByPhone(phone);
     if (existingUser) {
-      throw ApiError.conflict('User with this phone number already exists');
+      throw ApiError.conflict("User with this phone number already exists");
     }
     const customerCount = await User.countCustomers();
     if (customerCount >= config.limits.maxCustomers) {
-      throw ApiError.forbidden('Maximum customer limit reached. Please contact support.');
+      throw ApiError.forbidden(
+        "Maximum customer limit reached. Please contact support.",
+      );
     }
     const roleId = await getRoleIdByUserType(user_type);
     const userId = await User.create({
@@ -491,39 +558,44 @@ class AuthService {
     const lockStatus = await AccountLockout.isLocked(identifier);
     if (lockStatus.locked) {
       throw ApiError.forbidden(
-        `Account temporarily locked due to multiple failed login attempts. Try again after ${lockStatus.lockedUntil.toLocaleString()}`
+        `Account temporarily locked due to multiple failed login attempts. Try again after ${lockStatus.lockedUntil.toLocaleString()}`,
       );
     }
 
     let user = null;
-    if (identifier.includes('@')) {
+    if (identifier.includes("@")) {
       user = await User.findByEmail(identifier);
     } else {
       user = await User.findByPhone(identifier);
     }
     if (!user) {
       await AccountLockout.recordFailedAttempt(identifier, ipAddress);
-      throw ApiError.unauthorized('Invalid credentials');
+      throw ApiError.unauthorized("Invalid credentials");
     }
-    if (user.role_name !== 'admin') {
+    if (user.role_name !== "admin") {
       await AccountLockout.recordFailedAttempt(identifier, ipAddress);
-      throw ApiError.forbidden('Access denied');
+      throw ApiError.forbidden("Access denied");
     }
     if (!user.is_active) {
-      throw ApiError.forbidden('Account is inactive');
+      throw ApiError.forbidden("Account is inactive");
     }
     if (!user.password_hash) {
-      throw ApiError.unauthorized('Password not set. Contact administrator.');
+      throw ApiError.unauthorized("Password not set. Contact administrator.");
     }
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     if (!isPasswordValid) {
-      const lockResult = await AccountLockout.recordFailedAttempt(identifier, ipAddress);
+      const lockResult = await AccountLockout.recordFailedAttempt(
+        identifier,
+        ipAddress,
+      );
       if (lockResult.locked) {
         throw ApiError.forbidden(
-          `Account locked after ${securityConfig.accountLockout.maxFailedAttempts} failed attempts. Locked until ${lockResult.lockedUntil.toLocaleString()}`
+          `Account locked after ${securityConfig.accountLockout.maxFailedAttempts} failed attempts. Locked until ${lockResult.lockedUntil.toLocaleString()}`,
         );
       }
-      throw ApiError.unauthorized(`Invalid credentials. ${lockResult.attemptsRemaining} attempt(s) remaining.`);
+      throw ApiError.unauthorized(
+        `Invalid credentials. ${lockResult.attemptsRemaining} attempt(s) remaining.`,
+      );
     }
 
     // Reset failed attempts on successful login
@@ -539,36 +611,36 @@ class AuthService {
   static async adminLogin(email, phone) {
     const user = await User.findByEmail(email);
     if (!user) {
-      throw ApiError.unauthorized('Invalid credentials');
+      throw ApiError.unauthorized("Invalid credentials");
     }
     if (user.phone !== phone) {
-      throw ApiError.unauthorized('Invalid credentials');
+      throw ApiError.unauthorized("Invalid credentials");
     }
-    if (user.role_name !== 'admin') {
-      throw ApiError.forbidden('Access denied');
+    if (user.role_name !== "admin") {
+      throw ApiError.forbidden("Access denied");
     }
     if (!user.is_active) {
-      throw ApiError.forbidden('Account is inactive');
+      throw ApiError.forbidden("Account is inactive");
     }
-    return this.sendOTP(phone, 'login');
+    return this.sendOTP(phone, "login");
   }
   static async verifyAdminOTP(email, phone, otp) {
     const user = await User.findByEmail(email);
-    if (!user || user.phone !== phone || user.role_name !== 'admin') {
-      throw ApiError.unauthorized('Invalid credentials');
+    if (!user || user.phone !== phone || user.role_name !== "admin") {
+      throw ApiError.unauthorized("Invalid credentials");
     }
-    const otpRecord = await OTP.findValid(phone, 'login');
+    const otpRecord = await OTP.findValid(phone, "login");
     if (!otpRecord) {
-      throw ApiError.badRequest('OTP expired or not found');
+      throw ApiError.badRequest("OTP expired or not found");
     }
     if (otpRecord.attempts >= config.otp.maxAttempts) {
       await OTP.delete(otpRecord.id);
-      throw ApiError.tooManyRequests('Maximum OTP attempts exceeded');
+      throw ApiError.tooManyRequests("Maximum OTP attempts exceeded");
     }
     const hashedOTP = hashOTP(otp);
     if (hashedOTP !== otpRecord.otp_hash) {
       await OTP.incrementAttempts(otpRecord.id);
-      throw ApiError.badRequest('Invalid OTP');
+      throw ApiError.badRequest("Invalid OTP");
     }
     await OTP.delete(otpRecord.id);
     const tokens = await this.generateTokens(user);
@@ -582,53 +654,66 @@ class AuthService {
     const accessToken = jwt.sign(
       { userId: user.id, role: user.role_name },
       config.jwt.secret,
-      { expiresIn: config.jwt.expiresIn }
+      { expiresIn: config.jwt.expiresIn },
     );
     const refreshToken = jwt.sign(
       { userId: user.id },
       config.jwt.refreshSecret,
-      { expiresIn: config.jwt.refreshExpiresIn }
+      { expiresIn: config.jwt.refreshExpiresIn },
     );
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); 
-    await RefreshToken.create(user.id, refreshToken, expiresAt, deviceInfo, ipAddress);
+    expiresAt.setDate(expiresAt.getDate() + 7);
+    await RefreshToken.create(
+      user.id,
+      refreshToken,
+      expiresAt,
+      deviceInfo,
+      ipAddress,
+    );
     return {
       accessToken,
       refreshToken,
-      tokenType: 'Bearer',
+      tokenType: "Bearer",
       expiresIn: config.jwt.expiresIn,
     };
   }
-  static async refreshTokens(refreshToken, deviceInfo = null, ipAddress = null) {
+  static async refreshTokens(
+    refreshToken,
+    deviceInfo = null,
+    ipAddress = null,
+  ) {
     let decoded;
     try {
       decoded = jwt.verify(refreshToken, config.jwt.refreshSecret);
     } catch (error) {
-      throw ApiError.unauthorized('Invalid refresh token');
+      throw ApiError.unauthorized("Invalid refresh token");
     }
     const tokenRecord = await RefreshToken.findByToken(refreshToken);
     if (!tokenRecord) {
-      throw ApiError.unauthorized('Invalid or expired refresh token');
+      throw ApiError.unauthorized("Invalid or expired refresh token");
     }
 
     // Check if token is within grace period (for rotation)
     const gracePeriodEnd = new Date(tokenRecord.revoked_at);
-    gracePeriodEnd.setSeconds(gracePeriodEnd.getSeconds() + securityConfig.refreshToken.gracePeriodSeconds);
-    
+    gracePeriodEnd.setSeconds(
+      gracePeriodEnd.getSeconds() +
+        securityConfig.refreshToken.gracePeriodSeconds,
+    );
+
     if (tokenRecord.revoked && new Date() > gracePeriodEnd) {
-      throw ApiError.unauthorized('Refresh token has been revoked');
+      throw ApiError.unauthorized("Refresh token has been revoked");
     }
 
     const user = await User.findById(decoded.userId);
     if (!user || !user.is_active) {
-      throw ApiError.unauthorized('User not found or inactive');
+      throw ApiError.unauthorized("User not found or inactive");
     }
 
     // Refresh Token Rotation: Revoke old token and issue new one
     if (securityConfig.refreshToken.rotationEnabled) {
       // Mark old token as revoked (but keep for grace period)
       await RefreshToken.revoke(tokenRecord.id);
-      
+
       logger.info(`Refresh token rotated for user ${user.id}`);
     }
 
