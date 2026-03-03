@@ -21,8 +21,10 @@ class Order {
   }
   static async getOrderItems(orderId, lang = 'en') {
     const items = await query(
-      `SELECT oi.*, COALESCE(pt_req.name, oi.product_name_en) AS product_name
+      `SELECT oi.*, p.image_url,
+              COALESCE(pt_req.name, oi.product_name_en) AS product_name
        FROM order_items oi
+       LEFT JOIN products p ON oi.product_id = p.id
        LEFT JOIN product_translations pt_req ON oi.product_id = pt_req.product_id AND pt_req.lang_code = $2
        WHERE oi.order_id = $1`,
       [orderId, lang]
@@ -33,6 +35,7 @@ class Order {
       quantity: i.quantity, unit_type: i.unit_type,
       unit_price: parseFloat(i.unit_price), gst_percentage: parseFloat(i.gst_percentage),
       gst_amount: parseFloat(i.gst_amount), subtotal: parseFloat(i.subtotal), total: parseFloat(i.total),
+      image_url: i.image_url || null,
     }));
   }
   static async findByUser(userId, options = {}) {
@@ -43,12 +46,26 @@ class Order {
     const where = conds.join(' AND ');
     const countRow = await queryOne(`SELECT COUNT(*) AS total FROM orders o WHERE ${where}`, params);
     const rows = await query(
-      `SELECT o.*, u.name AS customer_name, u.phone AS customer_phone, u.user_type
+      `SELECT o.*, u.name AS customer_name, u.phone AS customer_phone, u.user_type,
+              (SELECT COUNT(*) FROM order_items WHERE order_id = o.id) AS item_count,
+              ARRAY(
+                SELECT p.image_url FROM order_items oi
+                JOIN products p ON oi.product_id = p.id
+                WHERE oi.order_id = o.id AND p.image_url IS NOT NULL
+                LIMIT 4
+              ) AS item_images
        FROM orders o JOIN users u ON o.user_id = u.id
        WHERE ${where} ORDER BY o.created_at DESC LIMIT $${idx++} OFFSET $${idx++}`,
       [...params, limit, offset]
     );
-    return { orders: rows.map(r => this.formatOrder(r)), total: parseInt(countRow.total, 10) };
+    return {
+      orders: rows.map(r => ({
+        ...this.formatOrder(r),
+        item_count: parseInt(r.item_count || 0, 10),
+        item_images: r.item_images || [],
+      })),
+      total: parseInt(countRow.total, 10),
+    };
   }
   static async findAll(options = {}) {
     const { page = 1, limit = 10, status = null, userId = null, startDate = null, endDate = null } = options;
@@ -69,7 +86,7 @@ class Order {
     return { orders: rows.map(r => this.formatOrder(r)), total: parseInt(countRow.total, 10) };
   }
   static async createFromCart(userId, cart, notes = null, promo = {}) {
-    const { promotionId = null, promotionDiscount = 0, promotionTitle = null } = promo;
+    const { promotionId = null, promotionDiscount = 0, promotionTitle = null, freeProductId = null } = promo;
     return withTransaction(async (client) => {
       const orderNumber = generateOrderNumber();
       const finalTotal = parseFloat((cart.total - promotionDiscount).toFixed(2));
@@ -96,6 +113,25 @@ class Order {
           throw new Error(`Insufficient stock for "${item.product_name_en || item.product_name}". Only limited quantity available — please update your cart.`);
         }
       }
+      // Insert free product as ₹0 order item when a free_item threshold promo was applied
+      if (freeProductId) {
+        const fpRes = await client.query(
+          `SELECT p.id, p.unit_type, p.gst_percentage, COALESCE(pt.name, p.sku, 'Free Item') AS name_en
+           FROM products p
+           LEFT JOIN product_translations pt ON pt.product_id = p.id AND pt.lang_code = 'en'
+           WHERE p.id = $1 AND p.is_active = TRUE LIMIT 1`,
+          [freeProductId]
+        );
+        if (fpRes.rows.length > 0) {
+          const fp = fpRes.rows[0];
+          await client.query(
+            `INSERT INTO order_items (order_id, product_id, product_name_en, quantity, unit_type, unit_price, gst_percentage, gst_amount, subtotal, total)
+             VALUES ($1,$2,$3,1,$4,0,0,0,0,0)`,
+            [orderId, freeProductId, fp.name_en, fp.unit_type || 'pcs']
+          );
+          // Do NOT decrement stock — free items are handled manually by the store
+        }
+      }
       // Clean up cart after successful order - user starts fresh
       const cartRow = await client.query('SELECT id FROM carts WHERE user_id = $1', [userId]);
       if (cartRow.rows.length) { await client.query('DELETE FROM cart_items WHERE cart_id = $1', [cartRow.rows[0].id]); }
@@ -113,10 +149,76 @@ class Order {
   }
   static async cancel(id, reason = null) {
     return withTransaction(async (client) => {
-      const items = await client.query('SELECT product_id, quantity FROM order_items WHERE order_id = $1', [id]);
+      // 1. Fetch order to get promotion_id and items
+      const orderRow = await client.query(
+        'SELECT promotion_id FROM orders WHERE id = $1',
+        [id]
+      );
+      const promotionId = orderRow.rows[0]?.promotion_id || null;
+      const items = await client.query(
+        'SELECT product_id, quantity FROM order_items WHERE order_id = $1',
+        [id]
+      );
+      // 2. Restore stock
       for (const item of items.rows) {
-        await client.query('UPDATE products SET stock_quantity = stock_quantity + $1 WHERE id = $2', [item.quantity, item.product_id]);
+        await client.query(
+          'UPDATE products SET stock_quantity = stock_quantity + $1 WHERE id = $2',
+          [item.quantity, item.product_id]
+        );
       }
+      // 3. Unclaim deal slots so they become available again
+      if (promotionId) {
+        // Fetch promotion type to know how to unclaim
+        const promoTypeRow = await client.query(
+          'SELECT discount_type FROM promotions WHERE id = $1',
+          [promotionId]
+        );
+        const discountType = promoTypeRow.rows[0]?.discount_type;
+
+        if (discountType === 'flat') {
+          // Flat = one deal slot was claimed on the FIRST qualifying product.
+          // Decrement that one product; items_claimed by sum of ALL order quantities.
+          const totalQtyRow = await client.query(
+            `SELECT COALESCE(SUM(oi.quantity), 0)::int AS total_qty
+               FROM order_items oi
+              WHERE oi.order_id = $1`,
+            [id]
+          );
+          const totalQty = totalQtyRow.rows[0]?.total_qty || 0;
+          await client.query(
+            `UPDATE promotion_products pp
+                SET deals_claimed = GREATEST(0, pp.deals_claimed - 1),
+                    items_claimed = GREATEST(0, pp.items_claimed - $3)
+              WHERE pp.promotion_id = $2
+                AND pp.product_id = (
+                  SELECT oi.product_id
+                    FROM order_items oi
+                   WHERE oi.order_id = $1
+                     AND EXISTS (
+                       SELECT 1 FROM promotion_products pp2
+                       WHERE pp2.promotion_id = $2
+                         AND pp2.product_id = oi.product_id
+                     )
+                   ORDER BY oi.product_id
+                   LIMIT 1
+                )`,
+            [id, promotionId, totalQty]
+          );
+        } else {
+          // Percentage = one deal slot per product — decrement each via JOIN.
+          await client.query(
+            `UPDATE promotion_products pp
+                SET deals_claimed = GREATEST(0, pp.deals_claimed - 1),
+                    items_claimed = GREATEST(0, pp.items_claimed - oi.quantity)
+               FROM order_items oi
+              WHERE oi.order_id     = $1
+                AND pp.promotion_id = $2
+                AND pp.product_id   = oi.product_id`,
+            [id, promotionId]
+          );
+        }
+      }
+      // 4. Mark order as cancelled
       await client.query(
         `UPDATE orders SET status = 'cancelled', cancelled_at = NOW(), cancellation_reason = $1 WHERE id = $2`,
         [reason, id]

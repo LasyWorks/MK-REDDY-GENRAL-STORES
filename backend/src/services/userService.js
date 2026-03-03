@@ -1,6 +1,7 @@
 const { User, AdminLog } = require('../models');
 const config = require('../config');
 const ApiError = require('../utils/ApiError');
+const { getRoleIdByUserType } = require('../utils/helpers');
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -190,7 +191,8 @@ class UserService {
     if (!validTypes.includes(customerType)) {
       throw ApiError.badRequest(`customer_type must be one of: ${validTypes.join(', ')}`);
     }
-    await User.update(id, { user_type: customerType });
+    const newRoleId = await getRoleIdByUserType(customerType);
+    await User.updateUserType(id, customerType, newRoleId);
     await AdminLog.create({
       adminId,
       action: 'UPDATE_CUSTOMER_TYPE',

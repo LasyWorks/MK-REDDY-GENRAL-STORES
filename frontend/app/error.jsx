@@ -4,6 +4,7 @@ import {
   ArrowPathIcon as RefreshCw,
   HomeIcon as Home,
   ExclamationTriangleIcon as AlertTriangle,
+  ShoppingBagIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 export default function ErrorPage({ error, reset }) {
@@ -14,16 +15,14 @@ export default function ErrorPage({ error, reset }) {
     <main className="min-h-[80vh] bg-gradient-to-b from-orange-50/30 to-white flex flex-col items-center justify-center px-4 py-20 text-center">
       {}
       <div className="relative mb-8 select-none">
-        <span
-          className="text-8xl sm:text-9xl block"
+        <ShoppingBagIcon
+          className="w-32 sm:w-40 h-32 sm:h-40 text-orange-400"
           role="img"
           aria-label="Spilled grocery bag"
           style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.10))" }}
-        >
-          🛍️
-        </span>
-        <span className="absolute -bottom-2 -right-4 text-4xl animate-pulse">
-          ⚠️
+        />
+        <span className="absolute -bottom-2 -right-4">
+          <AlertTriangle className="w-10 h-10 text-orange-500 animate-pulse" />
         </span>
       </div>
       {}

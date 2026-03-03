@@ -27,12 +27,42 @@ function ProductCardWithVariants({ variants }) {
   const [selectedVariantId, setSelectedVariantId] = useState(null);
   const mrp = parseFloat(previewProduct.mrp || 0);
   const price = parseFloat(previewProduct.price || 0);
-  const hasDiscount = mrp > price;
-  const discountPercent = hasDiscount
-    ? Math.round(((mrp - price) / mrp) * 100)
-    : 0;
   const isOutOfStock = (previewProduct.stock_quantity ?? 0) <= 0;
   const promo = productPromoMap[previewProduct.id] || null;
+
+  // ── Promo-aware price calculation ────────────────────────────────────────
+  const promoType  = promo?.discount_type;
+  const promoValue = parseFloat(promo?.discount_value || 0);
+
+  let displayPrice    = price;
+  let cardStrikePrice = null;
+  let cardBadgePct    = null;
+  let cardFlatAmt     = null;
+
+  if (promo && promoValue > 0) {
+    if (promoType === 'percentage') {
+      const promoPrice = parseFloat((price * (1 - promoValue / 100)).toFixed(2));
+      displayPrice    = promoPrice;
+      cardStrikePrice = price;
+      cardBadgePct    = mrp > promoPrice
+        ? Math.round(((mrp - promoPrice) / mrp) * 100)
+        : Math.round(promoValue);
+    } else if (promoType === 'flat') {
+      // Flat = ₹X off this product regardless of quantity
+      displayPrice    = parseFloat(Math.max(0, price - promoValue).toFixed(2));
+      cardStrikePrice = price;
+      cardFlatAmt     = promoValue;
+      if (mrp > displayPrice) {
+        cardBadgePct = Math.round(((mrp - displayPrice) / mrp) * 100);
+      }
+    }
+  } else if (mrp > price) {
+    cardStrikePrice = mrp;
+    cardBadgePct    = Math.round(((mrp - price) / mrp) * 100);
+  }
+
+  const hasDiscount = cardBadgePct != null || cardFlatAmt != null || (cardStrikePrice != null && cardStrikePrice > displayPrice);
+  const discountPercent = cardBadgePct ?? 0;
   const handleCardClick = (e) => {
     e.preventDefault();
     setShowModal(true);
@@ -71,9 +101,9 @@ function ProductCardWithVariants({ variants }) {
               {promo.badge_text || "OFFER"}
             </span>
           )}
-          {hasDiscount && !isOutOfStock && (
+          {!isOutOfStock && (cardBadgePct != null || cardFlatAmt != null) && (
             <span className="absolute top-2 left-2 z-10 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-              {discountPercent}% off
+              {cardFlatAmt != null ? `₹${cardFlatAmt} off` : `${cardBadgePct}% off`}
             </span>
           )}
           {isOutOfStock && (
@@ -122,7 +152,7 @@ function ProductCardWithVariants({ variants }) {
           <div className="flex items-center justify-between pt-2 border-t border-gray-50">
             <div className="flex flex-col">
               <span className="text-sm font-bold text-gray-900">
-                ₹{price.toFixed(2)}
+                ₹{displayPrice.toFixed(2)}
                 {displayVariants.length > 1 && (
                   <span className="text-xs text-gray-400 font-normal">
                     {" "}
@@ -130,9 +160,9 @@ function ProductCardWithVariants({ variants }) {
                   </span>
                 )}
               </span>
-              {hasDiscount && (
+              {cardStrikePrice != null && cardStrikePrice > displayPrice && (
                 <span className="text-[10px] text-gray-400 line-through leading-none">
-                  ₹{mrp.toFixed(2)}
+                  ₹{cardStrikePrice.toFixed(2)}
                 </span>
               )}
             </div>
@@ -182,15 +212,38 @@ function ProductCardWithVariants({ variants }) {
             <div className="flex-1 overflow-y-auto p-4">
               <div className="grid grid-cols-1 gap-3">
                 {displayVariants.map((variant) => {
-                  const variantMrp = parseFloat(variant.mrp || 0);
-                  const variantPrice = parseFloat(variant.price || 0);
-                  const variantDiscount =
-                    variantMrp > variantPrice
-                      ? Math.round(
-                          ((variantMrp - variantPrice) / variantMrp) * 100,
-                        )
-                      : 0;
+                  const variantMrp   = parseFloat(variant.mrp   || 0);
+                  const variantPrice = parseFloat(variant.price  || 0);
                   const variantPromo = productPromoMap[variant.id];
+
+                  // Promo-aware pricing for each variant in the modal
+                  const vPromoType  = variantPromo?.discount_type;
+                  const vPromoValue = parseFloat(variantPromo?.discount_value || 0);
+                  let vDisplayPrice   = variantPrice;
+                  let vStrikePrice    = null;
+                  let vBadgePct       = null;
+                  let vFlatAmt        = null;
+                  if (variantPromo && vPromoValue > 0) {
+                    if (vPromoType === 'percentage') {
+                      const vPromoPrice = parseFloat((variantPrice * (1 - vPromoValue / 100)).toFixed(2));
+                      vDisplayPrice = vPromoPrice;
+                      vStrikePrice  = variantPrice;
+                      vBadgePct     = variantMrp > vPromoPrice
+                        ? Math.round(((variantMrp - vPromoPrice) / variantMrp) * 100)
+                        : Math.round(vPromoValue);
+                    } else if (vPromoType === 'flat') {
+                      vDisplayPrice = parseFloat(Math.max(0, variantPrice - vPromoValue).toFixed(2));
+                      vStrikePrice  = variantPrice;
+                      vFlatAmt      = vPromoValue;
+                      if (variantMrp > vDisplayPrice) {
+                        vBadgePct = Math.round(((variantMrp - vDisplayPrice) / variantMrp) * 100);
+                      }
+                    }
+                  } else if (variantMrp > variantPrice) {
+                    vStrikePrice = variantMrp;
+                    vBadgePct    = Math.round(((variantMrp - variantPrice) / variantMrp) * 100);
+                  }
+                  const variantDiscount = vBadgePct ?? 0;
                   const variantOutOfStock = (variant.stock_quantity ?? 0) <= 0;
                   const cartItem = items.find((i) => i.id === variant.id);
                   const cartQty = cartItem?.quantity ?? 0;
@@ -242,14 +295,19 @@ function ProductCardWithVariants({ variants }) {
                                   {variantDiscount}% off
                                 </span>
                               )}
+                              {vFlatAmt != null && (
+                                <span className="inline-block bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded mt-1 ml-1">
+                                  ₹{vFlatAmt} off
+                                </span>
+                              )}
                             </div>
                             <div className="text-right">
                               <p className="font-bold text-gray-900">
-                                ₹{variantPrice.toFixed(2)}
+                                ₹{vDisplayPrice.toFixed(2)}
                               </p>
-                              {variantMrp > variantPrice && (
+                              {vStrikePrice != null && vStrikePrice > vDisplayPrice && (
                                 <p className="text-xs text-gray-400 line-through">
-                                  ₹{variantMrp.toFixed(2)}
+                                  ₹{vStrikePrice.toFixed(2)}
                                 </p>
                               )}
                             </div>

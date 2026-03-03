@@ -265,11 +265,54 @@ class EmailService {
   }
 
   // Send new order email to store admin
-  async sendAdminOrderNotification(order, user) {
-    const adminEmail = config.email.adminEmail || config.adminEmail;
-    if (!adminEmail) return { success: false, reason: 'No admin email' };
+  // adminEmails: string | string[] — pass all admin emails; falls back to ADMIN_EMAIL env
+  async sendAdminOrderNotification(order, user, adminEmails = null) {
+    // Resolve recipient list
+    let recipients = [];
+    if (Array.isArray(adminEmails) && adminEmails.length) {
+      recipients = adminEmails;
+    } else if (typeof adminEmails === 'string' && adminEmails) {
+      recipients = [adminEmails];
+    } else {
+      const fallback = config.email.adminEmail || config.adminEmail;
+      if (fallback) recipients = [fallback];
+    }
+    if (!recipients.length) return { success: false, reason: 'No admin email' };
 
     const invoice = await Invoice.getFullInvoice(order.id);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+    // Helper: resolve product image to an absolute URL usable in emails
+    const resolveImgUrl = (url) => {
+      if (!url) return null;
+      if (/^https?:\/\//.test(url)) return url;
+      return `${frontendUrl}/api/img?url=${encodeURIComponent(url)}`;
+    };
+
+    // Packing list — large visual cards showing what to pack
+    const packingListHtml = invoice && invoice.items
+      ? invoice.items.map((item) => {
+          const imgUrl = resolveImgUrl(item.image_url);
+          const imgBlock = imgUrl
+            ? `<img src="${imgUrl}" alt="${item.product_name}" width="72" height="72"
+                    style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;display:block;">`
+            : `<div style="width:72px;height:72px;border-radius:8px;border:1px solid #e2e8f0;background:#f1f5f9;
+                           display:flex;align-items:center;justify-content:center;font-size:28px;">&#128722;</div>`;
+          return `
+            <div style="display:flex;align-items:center;gap:16px;padding:12px 16px;border-bottom:1px solid #f1f5f9;background:#ffffff;">
+              ${imgBlock}
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:600;font-size:14px;color:#1e293b;line-height:1.3;margin-bottom:4px;">${item.product_name}</div>
+                <div style="font-size:12px;color:#64748b;">${item.unit_type}</div>
+              </div>
+              <div style="text-align:right;flex-shrink:0;">
+                <div style="font-size:22px;font-weight:800;color:#0d1b3e;line-height:1;">${item.quantity}</div>
+                <div style="font-size:11px;color:#94a3b8;margin-top:2px;">to pack</div>
+              </div>
+            </div>`;
+        }).join('')
+      : `<div style="padding:16px;text-align:center;color:#94a3b8;">Item details unavailable</div>`;
+
     const itemsHtml = invoice && invoice.items
       ? invoice.items.map((item, idx) => `
           <tr>
@@ -324,6 +367,15 @@ class EmailService {
       <div class="info-row"><span class="info-key">Customer Type</span><span class="info-val"><span class="badge blue">${custType}</span></span></div>
     </div>
     <div class="em-divider"></div>
+    <div class="section-heading">&#128230; Packing List</div>
+    <div style="border:2px solid #0d1b3e;border-radius:10px;overflow:hidden;">
+      <div style="background:#0d1b3e;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="color:#c8b88a;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;">Product</span>
+        <span style="color:#c8b88a;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;">Qty to Pack</span>
+      </div>
+      ${packingListHtml}
+    </div>
+    <div class="em-divider"></div>
     <div class="section-heading">Itemised Bill</div>
     <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;font-size:13px;">
       <thead><tr>
@@ -353,7 +405,11 @@ class EmailService {
   </div>
 </div></div></body></html>`;
 
-    return this.send(adminEmail, `[NEW ORDER] ${order.order_number} - Rs.${total.toFixed(2)} | ${config.store.name}`, html);
+    // Send to every admin — fire all in parallel, resolve even if some fail
+    const subject = `[NEW ORDER] ${order.order_number} - Rs.${total.toFixed(2)} | ${config.store.name}`;
+    const results = await Promise.allSettled(recipients.map(to => this.send(to, subject, html)));
+    const sent = results.filter(r => r.status === 'fulfilled').length;
+    return { success: sent > 0, sent, total: recipients.length };
   }
 
   // Send order cancellation email to store admin

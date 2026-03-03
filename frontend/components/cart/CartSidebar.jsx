@@ -7,6 +7,8 @@ import {
   MinusIcon as Minus,
   ShoppingBagIcon as ShoppingBag,
   ArrowRightOnRectangleIcon as LogIn,
+  TagIcon,
+  ShoppingCartIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import Image from "next/image";
@@ -146,8 +148,9 @@ export default function CartSidebar() {
           <div className="border-t border-gray-100 px-5 py-4 space-y-3 bg-gray-50">
             {}
             {items.some((i) => i.mrp > i.price) && (
-              <div className="bg-green-50 border border-green-100 rounded-lg px-3 py-2 text-sm text-green-700 font-medium text-center">
-                🎉 You save ₹
+              <div className="bg-green-50 border border-green-100 rounded-lg px-3 py-2 text-sm text-green-700 font-medium text-center flex items-center justify-center gap-1.5">
+                <TagIcon className="w-4 h-4 shrink-0" />
+                You save ₹
                 {items
                   .reduce((s, i) => s + (i.mrp - i.price) * i.quantity, 0)
                   .toFixed(0)}{" "}
@@ -202,8 +205,8 @@ function CartItem({ item, onRemove, onUpdateQty }) {
             className="w-full h-full object-contain"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-2xl">
-            🛒
+          <div className="w-full h-full flex items-center justify-center">
+            <ShoppingCartIcon className="w-7 h-7 text-gray-300" />
           </div>
         )}
       </div>

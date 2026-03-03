@@ -65,14 +65,6 @@ const config = {
     route:     process.env.FAST2SMS_ROUTE      || 'dlt',
     messageId: process.env.FAST2SMS_MESSAGE_ID || '',
   },
-  whatsapp: {
-    provider:    process.env.WA_PROVIDER     || 'twilio', 
-    accountSid:  process.env.TWILIO_ACCOUNT_SID  || '',
-    authToken:   process.env.TWILIO_AUTH_TOKEN    || '',
-    fromNumber:  process.env.WA_FROM_NUMBER       || '',  
-    apiKey:      process.env.WA_360_API_KEY        || '',
-    namespace:   process.env.WA_360_NAMESPACE      || '',
-  },
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID || '',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',

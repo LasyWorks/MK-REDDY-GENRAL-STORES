@@ -4,25 +4,24 @@ import {
   MagnifyingGlassIcon as Search,
   ShoppingCartIcon as ShoppingCart,
   ArrowRightIcon as ArrowRight,
+  SparklesIcon,
+  TagIcon,
 } from "@heroicons/react/24/outline";
 export default function NotFound() {
   const suggestions = [
-    { label: "Fresh Vegetables", href: "/categories/vegetables", emoji: "🥦" },
-    { label: "Dairy & Eggs", href: "/categories/dairy", emoji: "🥛" },
-    { label: "Snacks & Drinks", href: "/categories/snacks", emoji: "🧃" },
-    { label: "Cooking Essentials", href: "/categories/cooking", emoji: "🫙" },
+    { label: "Fresh Vegetables", href: "/categories/vegetables", Icon: SparklesIcon },
+    { label: "Dairy & Eggs", href: "/categories/dairy", Icon: Home },
+    { label: "Snacks & Drinks", href: "/categories/snacks", Icon: ShoppingCart },
+    { label: "Cooking Essentials", href: "/categories/cooking", Icon: TagIcon },
   ];
   return (
     <main className="min-h-[80vh] bg-gradient-to-b from-blue-50/40 to-white flex flex-col items-center justify-center px-4 py-20 text-center">
       {}
       <div className="relative mb-8 select-none">
-        <span
-          className="text-8xl sm:text-9xl block animate-bounce"
-          role="img"
+        <ShoppingCart
+          className="w-32 sm:w-40 h-32 sm:h-40 text-blue-400 animate-bounce"
           aria-label="Empty shopping cart"
-        >
-          🛒
-        </span>
+        />
       </div>
       {}
       <p className="text-sm font-bold tracking-[0.3em] text-blue-400 uppercase mb-2">
@@ -60,13 +59,13 @@ export default function NotFound() {
           Popular categories
         </p>
         <div className="grid grid-cols-2 gap-3">
-          {suggestions.map(({ label, href, emoji }) => (
+          {suggestions.map(({ label, href, Icon }) => (
             <Link
               key={label}
               href={href}
               className="flex items-center gap-3 bg-white border border-gray-100 hover:border-blue-300 hover:shadow-md rounded-xl px-4 py-3 text-sm font-medium text-gray-700 hover:text-blue-600 transition-all group"
             >
-              <span className="text-xl">{emoji}</span>
+              <Icon className="w-5 h-5 text-blue-400 group-hover:text-blue-500 transition-colors shrink-0" />
               <span className="flex-1 text-left">{label}</span>
               <ArrowRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-blue-400 transition-colors" />
             </Link>

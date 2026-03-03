@@ -58,8 +58,10 @@ class Invoice {
     );
     if (!invoice) return null;
     const items = await query(
-      `SELECT oi.*, COALESCE(pt_req.name, oi.product_name_en) AS product_name
+      `SELECT oi.*, p.image_url,
+              COALESCE(pt_req.name, oi.product_name_en) AS product_name
        FROM order_items oi
+       LEFT JOIN products p ON oi.product_id = p.id
        LEFT JOIN product_translations pt_req ON oi.product_id = pt_req.product_id AND pt_req.lang_code = $2
        WHERE oi.order_id = $1`,
       [orderId, lang]
@@ -77,6 +79,7 @@ class Invoice {
         gst_amount: parseFloat(item.gst_amount),
         subtotal: parseFloat(item.subtotal),
         total: parseFloat(item.total),
+        image_url: item.image_url || null,
       })),
     };
   }
@@ -167,4 +170,4 @@ class Invoice {
     };
   }
 }
-module.exports = Invoice;
+module.exports = Invoice;

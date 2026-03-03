@@ -20,4 +20,23 @@ export const getAllCategories = unstable_cache(
   },
   ['all-categories'],
   { tags: ['categories'] },
-);
+);
+
+/**
+ * Always fetches fresh category data (no cache).
+ * Use this in force-dynamic pages so product_count reflects
+ * product moves / deactivations immediately after a refresh.
+ */
+export async function getFreshCategories() {
+  try {
+    const res = await fetch(
+      `${API_URL}/categories?limit=200&is_active=true`,
+      { cache: 'no-store' },
+    );
+    if (!res.ok) return [];
+    const json = await res.json();
+    return json.data || [];
+  } catch {
+    return [];
+  }
+}

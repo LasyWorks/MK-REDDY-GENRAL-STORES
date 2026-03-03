@@ -60,6 +60,8 @@ class ProductService {
     // Invalidate product cache so new product appears in API responses
     invalidateCache('products', '/api/v1/products');
     invalidateCache('responses', '/api/v1/products');
+    // Flush category cache so product_count increments immediately
+    invalidateCache('categories');
     
     // Trigger frontend cache refresh so new product appears immediately on website
     await revalidatePages({
@@ -102,15 +104,19 @@ class ProductService {
       newValue: productData,
     });
     const categoryId = productData.category_id || oldData.category_id;
+    const oldCategoryId = oldData.category_id;
     
     // Invalidate caches for updated product and its category
     invalidateCache('products', `/api/v1/products/${id}`);
     invalidateCache('products', '/api/v1/products');
     invalidateCache('responses', '/api/v1/products');
+    // Always flush category cache so product_count is up-to-date
+    // (covers same-category edits and moves to a different category)
+    invalidateCache('categories');
     
     await revalidatePages({
-      tags: ['products', `product-${id}`, `category-${categoryId}`],
-      paths: [`/categories/${categoryId}`],
+      tags: ['products', `product-${id}`, `category-${categoryId}`, 'categories'],
+      paths: [`/categories/${categoryId}`, ...(oldCategoryId !== categoryId ? [`/categories/${oldCategoryId}`] : [])],
     });
     return this.getById(id);
   }
@@ -126,6 +132,8 @@ class ProductService {
     invalidateCache('products', `/api/v1/products/${id}`);
     invalidateCache('products', '/api/v1/products');
     invalidateCache('responses', '/api/v1/products');
+    // Flush category cache so the deactivated product doesn't count toward product_count
+    invalidateCache('categories');
     
     await AdminLog.create({
       adminId,
@@ -136,7 +144,7 @@ class ProductService {
       newValue: { is_active: false },
     });
     await revalidatePages({
-      tags: ['products', `product-${id}`, `category-${product.category_id}`],
+      tags: ['products', `product-${id}`, `category-${product.category_id}`, 'categories'],
       paths: [`/categories/${product.category_id}`],
     });
     return { message: 'Product deactivated successfully' };

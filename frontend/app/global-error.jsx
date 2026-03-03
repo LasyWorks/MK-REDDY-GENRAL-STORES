@@ -1,6 +1,9 @@
 "use client";
 import { useEffect } from "react";
-import { ArrowPathIcon as RefreshCw } from "@heroicons/react/24/outline";
+import {
+  ArrowPathIcon as RefreshCw,
+  BuildingStorefrontIcon,
+} from "@heroicons/react/24/outline";
 export default function GlobalError({ error, reset }) {
   useEffect(() => {
     console.error("[GlobalError]", error);
@@ -60,9 +63,9 @@ export default function GlobalError({ error, reset }) {
           </div>
           {}
           <div
-            style={{ fontSize: "6rem", lineHeight: 1, marginBottom: "1.5rem" }}
+            style={{ fontSize: "6rem", lineHeight: 1, marginBottom: "1.5rem", display: "flex", justifyContent: "center" }}
           >
-            🏪
+            <BuildingStorefrontIcon style={{ width: "6rem", height: "6rem", color: "#16a34a" }} />
           </div>
           {}
           <div

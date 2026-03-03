@@ -9,14 +9,18 @@ import {
   ChevronRightIcon as ChevronRight,
   EyeIcon as Eye,
   EyeSlashIcon as EyeOff,
+  FolderIcon,
+  DocumentIcon,
 } from "@heroicons/react/24/outline";
 import api from "@/lib/api";
 import CategoryModal from "./CategoryModal";
+import { useDialog } from "@/context/DialogContext";
 
 /**
  * CategoriesTab - Manages categories and subcategories
  */
 export default function CategoriesTab() {
+  const { confirm, toast } = useDialog();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -58,14 +62,14 @@ export default function CategoriesTab() {
         ? `Delete "${category.name}" and all its ${subcategories.length} subcategories?`
         : `Delete "${category.name}"?`;
 
-    if (!confirm(confirmMsg)) return;
+    if (!(await confirm(confirmMsg, { danger: true, confirmLabel: "Delete" }))) return;
 
     setDeleting(category.id);
     try {
       await api.delete(`/categories/${category.id}`);
       load();
     } catch (e) {
-      alert(e.message || "Delete failed");
+      toast(e.message || "Delete failed", "error");
     } finally {
       setDeleting(null);
     }
@@ -80,7 +84,7 @@ export default function CategoriesTab() {
         ),
       );
     } catch (e) {
-      alert(e.message || "Failed to toggle active status");
+      toast(e.message || "Failed to toggle active status", "error");
     }
   };
 
@@ -191,7 +195,7 @@ export default function CategoriesTab() {
                         referrerPolicy="no-referrer"
                       />
                     ) : (
-                      <span className="text-gray-400 text-xl">📁</span>
+                      <FolderIcon className="w-6 h-6 text-gray-400" />
                     )}
                   </div>
 
@@ -281,7 +285,7 @@ export default function CategoriesTab() {
                                 referrerPolicy="no-referrer"
                               />
                             ) : (
-                              <span className="text-gray-300 text-sm">📄</span>
+                              <DocumentIcon className="w-4 h-4 text-gray-300" />
                             )}
                           </div>
 

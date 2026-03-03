@@ -61,7 +61,23 @@ const run = async () => {
     END $$;
   `);
   console.log('✓ trigger');
+
+  // Add threshold & deal-limit columns (idempotent — safe to re-run)
+  await client.query(`ALTER TABLE promotions DROP CONSTRAINT IF EXISTS promotions_discount_type_check;`);
+  await client.query(`
+    ALTER TABLE promotions ADD CONSTRAINT promotions_discount_type_check
+      CHECK (discount_type IN ('percentage','flat','threshold'));
+  `);
+  await client.query(`ALTER TABLE promotions ADD COLUMN IF NOT EXISTS min_order_amount DECIMAL(12,2);`);
+  await client.query(`ALTER TABLE promotions ADD COLUMN IF NOT EXISTS reward_type VARCHAR(20);`);
+  await client.query(`ALTER TABLE promotions ADD COLUMN IF NOT EXISTS free_product_id UUID REFERENCES products(id) ON DELETE SET NULL;`);
+  await client.query(`ALTER TABLE promotion_products ADD COLUMN IF NOT EXISTS deal_limit INT;`);
+  await client.query(`ALTER TABLE promotion_products ADD COLUMN IF NOT EXISTS deals_claimed INT DEFAULT 0;`);
+  await client.query(`ALTER TABLE promotion_products ADD COLUMN IF NOT EXISTS item_limit INT;`);
+  await client.query(`ALTER TABLE promotion_products ADD COLUMN IF NOT EXISTS items_claimed INT DEFAULT 0;`);
+  console.log('✓ threshold & deal-limit columns');
+
   await client.end();
   console.log('Promotions migration complete ✓');
 };
-run().catch(err => { console.error('Migration failed:', err.message); process.exit(1); });
+run().catch(err => { console.error('Migration failed:', err.message); process.exit(1); });

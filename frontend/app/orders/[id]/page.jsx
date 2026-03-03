@@ -1,7 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
+import { useDialog } from "@/context/DialogContext";
 import {
   ChevronLeftIcon as ChevronLeft,
   CubeIcon as Package,
@@ -14,8 +16,10 @@ import {
   MapPinIcon as MapPin,
   ArrowPathIcon as RefreshCw,
   ExclamationTriangleIcon as AlertTriangle,
+  ShoppingCartIcon,
 } from "@heroicons/react/24/outline";
 import orderService from "@/services/orderService";
+import proxyImg from "@/lib/imgProxy";
 const STATUS_STEPS = [
   { key: "pending", label: "Order Placed", icon: Clock },
   { key: "confirmed", label: "Confirmed", icon: CheckCircle2 },
@@ -47,6 +51,7 @@ const STATUS_META = {
 export default function OrderDetailPage() {
   const { id } = useParams();
   const router = useRouter();
+  const { confirm, toast } = useDialog();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -67,13 +72,13 @@ export default function OrderDetailPage() {
     load();
   }, [id]);
   const handleCancel = async () => {
-    if (!confirm("Are you sure you want to cancel this order?")) return;
+    if (!(await confirm("Are you sure you want to cancel this order?", { danger: true, confirmLabel: "Cancel Order", title: "Cancel Order" }))) return;
     setCancelling(true);
     try {
       await orderService.cancel(id, "Customer requested cancellation");
       load();
     } catch (e) {
-      alert(e.message || "Failed to cancel order");
+      toast(e.message || "Failed to cancel order", "error");
     } finally {
       setCancelling(false);
     }
@@ -212,36 +217,79 @@ export default function OrderDetailPage() {
         {}
         {order.items && order.items.length > 0 && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h2 className="text-base font-bold text-gray-900 mb-4">
-              Items ({order.items.length})
-            </h2>
+            {(() => {
+              const freeCount = order.items.filter((i) => parseFloat(i.unit_price) === 0).length;
+              const paidCount = order.items.length - freeCount;
+              const title = freeCount > 0
+                ? `Items (${paidCount} + ${freeCount} free)`
+                : `Items (${order.items.length})`;
+              return <h2 className="text-base font-bold text-gray-900 mb-4">{title}</h2>;
+            })()}
             <div className="divide-y divide-gray-50">
-              {order.items.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-4 py-3 first:pt-0 last:pb-0"
-                >
-                  <div className="w-14 h-14 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center text-2xl shrink-0">
-                    🛒
+              {order.items.map((item) => {
+                const isFree = parseFloat(item.unit_price) === 0;
+                return (
+                  <div
+                    key={item.id}
+                    className={`flex items-center gap-4 py-3 first:pt-0 last:pb-0 ${isFree ? "-mx-6 px-6 bg-green-50" : ""}`}
+                  >
+                    <div className="w-14 h-14 rounded-lg bg-gray-50 border border-gray-100 overflow-hidden shrink-0 relative">
+                      {item.image_url ? (
+                        <Image
+                          src={proxyImg(item.image_url)}
+                          alt={item.product_name_en || item.product_name || "Product"}
+                          fill
+                          className="object-cover"
+                          sizes="56px"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          {isFree ? (
+                            <span className="text-2xl">🎁</span>
+                          ) : (
+                            <ShoppingCartIcon className="w-7 h-7 text-gray-300" />
+                          )}
+                        </div>
+                      )}
+                      {isFree && (
+                        <div className="absolute -top-1.5 -right-1.5 bg-green-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                          FREE
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-medium text-gray-800 line-clamp-2">
+                          {item.product_name_en || item.product_name}
+                        </p>
+                        {isFree && (
+                          <span className="text-xs font-semibold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full">
+                            🎁 FREE
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {item.unit_type} · Qty {item.quantity}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      {isFree ? (
+                        <p className="text-sm font-bold text-green-600">₹0.00</p>
+                      ) : (
+                        <>
+                          <p className="text-sm font-bold text-gray-900">
+                            ₹{parseFloat(item.total).toFixed(2)}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            ₹{parseFloat(item.unit_price).toFixed(2)} each
+                          </p>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 line-clamp-2">
-                      {item.product_name_en}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {item.unit_type} · Qty {item.quantity}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-sm font-bold text-gray-900">
-                      ₹{parseFloat(item.total).toFixed(2)}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      ₹{parseFloat(item.unit_price).toFixed(2)} each
-                    </p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -259,6 +307,21 @@ export default function OrderDetailPage() {
               label="GST"
               value={`₹${parseFloat(order.total_gst || 0).toFixed(2)}`}
             />
+            {parseFloat(order.promotion_discount || 0) > 0 && (
+              <Row
+                label={order.promotion_title ? `Discount (${order.promotion_title})` : "Promo Discount"}
+                value={`− ₹${parseFloat(order.promotion_discount).toFixed(2)}`}
+                green
+              />
+            )}
+            {parseFloat(order.promotion_discount || 0) === 0 &&
+              order.promotion_title &&
+              order.items?.some((i) => parseFloat(i.unit_price) === 0) && (
+              <div className="flex justify-between text-green-600">
+                <span>🎁 Free Item ({order.promotion_title})</span>
+                <span className="font-semibold">₹0.00</span>
+              </div>
+            )}
             <div className="border-t border-gray-100 pt-2.5">
               <Row
                 label="Total"
@@ -297,10 +360,14 @@ export default function OrderDetailPage() {
     </main>
   );
 }
-function Row({ label, value, bold }) {
+function Row({ label, value, bold, green }) {
   return (
     <div
-      className={`flex justify-between ${bold ? "font-bold text-gray-900 text-base" : "text-gray-600"}`}
+      className={`flex justify-between ${
+        bold ? "font-bold text-gray-900 text-base" :
+        green ? "text-green-600" :
+        "text-gray-600"
+      }`}
     >
       <span>{label}</span>
       <span>{value}</span>

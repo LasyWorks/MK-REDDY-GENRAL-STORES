@@ -11,6 +11,11 @@ import {
   BuildingStorefrontIcon as Store,
   EnvelopeIcon as Mail,
   KeyIcon as Key,
+  ExclamationTriangleIcon,
+  CheckIcon,
+  LinkIcon,
+  ShoppingCartIcon,
+  CubeIcon,
 } from "@heroicons/react/24/outline";
 import { GoogleLogin } from '@react-oauth/google';
 import api from "@/lib/api";
@@ -772,7 +777,7 @@ function LoginForm() {
                         : "bg-gray-50 text-gray-700 hover:bg-gray-100"
                     }`}
                   >
-                    🛒 Retail
+                    <ShoppingCartIcon className="w-4 h-4 mr-1.5 inline" /> Retail
                   </button>
                   <button
                     type="button"
@@ -783,7 +788,7 @@ function LoginForm() {
                         : "bg-gray-50 text-gray-700 hover:bg-gray-100"
                     }`}
                   >
-                    📦 Wholesale
+                    <CubeIcon className="w-4 h-4 mr-1.5 inline" /> Wholesale
                   </button>
                 </div>
               </div>
@@ -843,7 +848,7 @@ function LoginForm() {
             <div className="space-y-5">
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
                 <div className="flex items-start gap-3">
-                  <span className="text-2xl flex-shrink-0">⚠️</span>
+                  <ExclamationTriangleIcon className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
                   <div>
                     <h3 className="font-semibold text-amber-900 mb-1">Phone Number Already Registered</h3>
                     <p className="text-sm text-amber-800 leading-relaxed">
@@ -863,10 +868,10 @@ function LoginForm() {
 
               <div className="bg-gray-50 rounded-xl p-4 text-xs text-gray-600 space-y-1">
                 <p className="font-semibold text-gray-700 mb-2">What gets preserved after merge:</p>
-                <p>✓ All your orders and purchase history</p>
-                <p>✓ Your profile photo and preferences</p>
-                <p>✓ All login methods (Google, Email OTP)</p>
-                <p>✓ Both email addresses will work for login</p>
+                <p><CheckIcon className="w-3.5 h-3.5 inline mr-1 text-green-600" /> All your orders and purchase history</p>
+                <p><CheckIcon className="w-3.5 h-3.5 inline mr-1 text-green-600" /> Your profile photo and preferences</p>
+                <p><CheckIcon className="w-3.5 h-3.5 inline mr-1 text-green-600" /> All login methods (Google, Email OTP)</p>
+                <p><CheckIcon className="w-3.5 h-3.5 inline mr-1 text-green-600" /> Both email addresses will work for login</p>
               </div>
 
               <button
@@ -883,7 +888,9 @@ function LoginForm() {
                     Sending codes...
                   </span>
                 ) : (
-                  "🔗 Merge Accounts"
+                  <span className="flex items-center justify-center gap-2">
+                    <LinkIcon className="w-4 h-4" /> Merge Accounts
+                  </span>
                 )}
               </button>
 
@@ -910,7 +917,7 @@ function LoginForm() {
                     ? "bg-blue-50 border-blue-300 text-blue-700"
                     : "bg-gray-50 border-gray-200 text-gray-500"
                 }`}>
-                  {mergePrimaryDone ? "✓" : "1"} Your Email
+                  {mergePrimaryDone ? <CheckIcon className="w-3 h-3 inline" /> : "1"} Your Email
                 </div>
                 <div className="text-gray-300 text-lg">&rarr;</div>
                 <div className={`flex-1 text-center py-2 rounded-lg text-xs font-semibold border ${

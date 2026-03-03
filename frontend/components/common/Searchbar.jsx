@@ -4,6 +4,7 @@ import {
   MagnifyingGlassIcon as Search,
   XMarkIcon as X,
   ArrowPathIcon as Loader2,
+  ShoppingCartIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -169,8 +170,8 @@ function SearchResultItem({ product, query, onSelect }) {
             className="w-full h-full object-contain"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-lg">
-            🛒
+          <div className="w-full h-full flex items-center justify-center">
+            <ShoppingCartIcon className="w-5 h-5 text-gray-300" />
           </div>
         )}
       </div>

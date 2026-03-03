@@ -5,6 +5,8 @@ import {
   ChevronRightIcon as ChevronRight,
   PlusIcon as Plus,
   MinusIcon as Minus,
+  SparklesIcon,
+  GiftIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import ImageWithFallback from "@/components/common/ImageWithFallback";
@@ -145,23 +147,68 @@ function LiveCountdown({ endsAt }) {
 function FestiveProductCard({ product, themeColor }) {
   const mrp = parseFloat(product.mrp || 0);
   const price = parseFloat(product.price || 0);
-  const hasDiscount = mrp > price;
-  const discountPercent = hasDiscount
-    ? Math.round(((mrp - price) / mrp) * 100)
-    : 0;
   const stock = product.stock_quantity ?? 0;
   const isOutOfStock = stock <= 0;
   const isLowStock = stock > 0 && stock <= 8;
 
-  // Deterministic sold-% per product (stable across renders, 40–94 range)
-  const soldPct = useMemo(
-    () => ((product.id * 37 + 19) % 55) + 40,
-    [product.id],
-  );
-
   const { items, addItem, updateQty } = useCart();
   const { productPromoMap } = usePromotions();
   const promo = productPromoMap[product.id] || null;
+
+  // ── Limited-deal progress ─────────────────────────────────────────────────
+  // deal_limit  = max orders that can get the discount (null = unlimited)
+  // item_limit  = max total units that can be sold at promo price (null = unlimited)
+  const dealLimit    = promo?.deal_limit    != null ? parseInt(promo.deal_limit, 10)    : null;
+  const dealsClaimed = promo?.deals_claimed != null ? parseInt(promo.deals_claimed, 10) : 0;
+  const itemLimit    = promo?.item_limit    != null ? parseInt(promo.item_limit, 10)    : null;
+  const itemsClaimed = promo?.items_claimed != null ? parseInt(promo.items_claimed, 10) : 0;
+
+  const dealOrderExhausted = dealLimit !== null && dealsClaimed >= dealLimit;
+  const dealItemExhausted  = itemLimit !== null && itemsClaimed >= itemLimit;
+  const dealExhausted      = dealOrderExhausted || dealItemExhausted;
+
+  const dealsRemaining = dealLimit !== null ? Math.max(0, dealLimit - dealsClaimed) : null;
+  const itemsRemaining = itemLimit !== null ? Math.max(0, itemLimit - itemsClaimed) : null;
+  const dealPct        = dealLimit  ? Math.round((dealsRemaining / dealLimit)  * 100) : null;
+  const itemPct        = itemLimit  ? Math.round((itemsRemaining  / itemLimit)  * 100) : null;
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // ── Promo-aware price calculation ──────────────────────────────────────────
+  const promoType  = !dealExhausted && promo ? promo.discount_type  : null;
+  const promoValue = !dealExhausted && promo ? parseFloat(promo.discount_value || 0) : 0;
+
+  let displayPrice = price;   // price actually shown to customer
+  let strikePrice  = null;    // price shown crossed-out (null = hide)
+  let badgePercent = null;    // %OFF badge value (null = hide)
+  let flatBadgeAmt = null;    // flat ₹X off badge value (null = hide)
+
+  if (!dealExhausted && promo && promoValue > 0) {
+    if (promoType === 'percentage') {
+      // Compute per-product promoted price
+      const promoPrice = parseFloat((price * (1 - promoValue / 100)).toFixed(2));
+      displayPrice = promoPrice;
+      strikePrice  = price; // cross-out pre-promo selling price
+      // Show effective % off from MRP when possible, else the promo % itself
+      badgePercent = mrp > promoPrice
+        ? Math.round(((mrp - promoPrice) / mrp) * 100)
+        : Math.round(promoValue);
+    } else if (promoType === 'flat') {
+        // Flat = ₹X off this product regardless of quantity
+        displayPrice = parseFloat(Math.max(0, price - promoValue).toFixed(2));
+        strikePrice  = price;
+        flatBadgeAmt = promoValue;
+        if (mrp > displayPrice) {
+          badgePercent = Math.round(((mrp - displayPrice) / mrp) * 100);
+        }
+    }
+  } else if (mrp > price) {
+    // No active promo — regular MRP vs selling price
+    badgePercent = Math.round(((mrp - price) / mrp) * 100);
+    strikePrice  = mrp;
+  }
+
+  const hasDiscount = badgePercent != null || flatBadgeAmt != null || (strikePrice != null && strikePrice > displayPrice);
+  const discountPercent = badgePercent ?? 0; // kept for any remaining references
   const cartItem = items.find((i) => i.id === product.id);
   const qty = cartItem?.quantity ?? 0;
   const [adding, setAdding] = useState(false);
@@ -204,17 +251,22 @@ function FestiveProductCard({ product, themeColor }) {
       {/* Image area */}
       <div className="relative w-full bg-linear-to-br from-orange-50 to-amber-50 aspect-square overflow-hidden">
         {/* Discount badge — top-left */}
-        {hasDiscount && !isOutOfStock && (
+        {!isOutOfStock && (badgePercent != null || flatBadgeAmt != null) && (
           <div
             className="absolute top-0 left-0 z-10 text-white text-center px-2 py-1.5 rounded-br-xl min-w-11"
             style={{ backgroundColor: accent }}
           >
-            <div className="text-sm font-black leading-none">
-              {discountPercent}%
-            </div>
-            <div className="text-[9px] font-bold tracking-wide leading-none mt-0.5">
-              OFF
-            </div>
+            {flatBadgeAmt != null ? (
+              <>
+                <div className="text-[9px] font-black leading-none">₹{flatBadgeAmt}</div>
+                <div className="text-[9px] font-bold tracking-wide leading-none mt-0.5">OFF</div>
+              </>
+            ) : (
+              <>
+                <div className="text-sm font-black leading-none">{badgePercent}%</div>
+                <div className="text-[9px] font-bold tracking-wide leading-none mt-0.5">OFF</div>
+              </>
+            )}
           </div>
         )}
         {isOutOfStock && (
@@ -227,8 +279,8 @@ function FestiveProductCard({ product, themeColor }) {
 
         {/* Festival Special tag — top-right */}
         {!isOutOfStock && (
-          <div className="absolute top-2 right-2 z-10 bg-amber-400 text-amber-900 text-[9px] font-extrabold px-2 py-0.5 rounded-full shadow-sm whitespace-nowrap">
-            ✨ Festival Special
+          <div className="absolute top-2 right-2 z-10 bg-amber-400 text-amber-900 text-[9px] font-extrabold px-2 py-0.5 rounded-full shadow-sm whitespace-nowrap flex items-center gap-1">
+            <SparklesIcon className="w-2.5 h-2.5 shrink-0" /> Festival Special
           </div>
         )}
 
@@ -275,29 +327,72 @@ function FestiveProductCard({ product, themeColor }) {
           </div>
         )}
 
-        {/* Deals claimed progress bar */}
-        {!isOutOfStock && (
-          <div className="mt-0.5">
-            <div className="flex justify-between items-center mb-0.5">
-              <span className="text-[9px] text-gray-400 font-semibold">
-                Deals Claimed
-              </span>
-              <span
-                className="text-[9px] font-extrabold"
-                style={{ color: accent }}
-              >
-                {soldPct}%
-              </span>
-            </div>
-            <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{
-                  width: `${soldPct}%`,
-                  background: `linear-gradient(to right, ${accent}, #FBBF24)`,
-                }}
-              />
-            </div>
+        {/* Deal progress bars — only shown when at least one limit is configured */}
+        {!isOutOfStock && (dealLimit !== null || itemLimit !== null) && (
+          <div className="mt-0.5 space-y-1">
+            {dealExhausted ? (
+              <p className="text-[9px] font-extrabold text-red-500 text-center py-0.5">
+                🚫 Deal Ended · Regular price applies
+              </p>
+            ) : (
+              <>
+                {/* Per-order deal bar */}
+                {dealLimit !== null && (
+                  <div>
+                    <div className="flex justify-between items-center mb-0.5">
+                      <span className="text-[9px] text-gray-400 font-semibold">Deals Left</span>
+                      <span className="text-[9px] font-extrabold" style={{ color: accent }}>
+                        {dealsRemaining}/{dealLimit}
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-700"
+                        style={{
+                          width: `${dealPct}%`,
+                          background: dealPct <= 20
+                            ? `linear-gradient(to right, #ef4444, #f97316)`
+                            : `linear-gradient(to right, ${accent}, #FBBF24)`,
+                        }}
+                      />
+                    </div>
+                    {dealPct <= 20 && (
+                      <p className="text-[8px] font-bold text-red-500 mt-0.5">
+                        ⚡ Only {dealsRemaining} deal{dealsRemaining !== 1 ? "s" : ""} left!
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Per-unit item bar */}
+                {itemLimit !== null && (
+                  <div>
+                    <div className="flex justify-between items-center mb-0.5">
+                      <span className="text-[9px] text-gray-400 font-semibold">Units at Offer Price</span>
+                      <span className="text-[9px] font-extrabold" style={{ color: accent }}>
+                        {itemsRemaining}/{itemLimit}
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-700"
+                        style={{
+                          width: `${itemPct}%`,
+                          background: itemPct <= 20
+                            ? `linear-gradient(to right, #ef4444, #f97316)`
+                            : `linear-gradient(to right, #8B5CF6, #EC4899)`,
+                        }}
+                      />
+                    </div>
+                    {itemPct <= 20 && (
+                      <p className="text-[8px] font-bold text-red-500 mt-0.5">
+                        🔥 Only {itemsRemaining} unit{itemsRemaining !== 1 ? "s" : ""} left at this price!
+                      </p>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
 
@@ -307,11 +402,11 @@ function FestiveProductCard({ product, themeColor }) {
         <div className="flex items-center justify-between pt-2 border-t border-gray-100 mt-1">
           <div className="flex flex-col">
             <span className="text-base font-extrabold text-gray-900 leading-tight">
-              ₹{Math.round(price)}
+              ₹{Math.round(displayPrice)}
             </span>
-            {hasDiscount && (
+            {strikePrice != null && strikePrice > displayPrice && (
               <span className="text-[11px] text-gray-400 line-through leading-none">
-                ₹{Math.round(mrp)}
+                ₹{Math.round(strikePrice)}
               </span>
             )}
           </div>
@@ -509,8 +604,8 @@ export default function PromotionalProducts() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-5">
           {/* Left: title + countdown */}
           <div className="flex flex-col gap-2">
-            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight drop-shadow leading-tight">
-              🎉 {title}
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight drop-shadow leading-tight flex items-center gap-2">
+              <GiftIcon className="w-7 h-7 shrink-0" /> {title}
             </h2>
             {endsAt && <LiveCountdown endsAt={endsAt} />}
           </div>

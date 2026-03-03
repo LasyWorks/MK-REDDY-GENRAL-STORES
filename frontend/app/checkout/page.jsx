@@ -13,6 +13,7 @@ import {
   ArrowPathIcon as Loader2,
   ExclamationCircleIcon as AlertCircle,
   ArrowRightOnRectangleIcon as LogIn,
+  ShoppingCartIcon,
 } from "@heroicons/react/24/outline";
 import { useCart } from "@/context/CartContext";
 import { usePromotions } from "@/context/PromotionContext";
@@ -64,14 +65,19 @@ export default function CheckoutPage() {
           discount_type: p.discount_type,
           discount_value: parseFloat(p.discount_value),
           qualifyingTotal: 0,
+          productCount: 0,
         };
       }
       promoTotals[key].qualifyingTotal += item.price * item.quantity;
+      promoTotals[key].productCount += 1;
     }
     for (const info of Object.values(promoTotals)) {
       let d = 0;
+      // Threshold promos are handled separately below — skip them here
+      if (info.discount_type === "threshold") continue;
       if (info.discount_type === "flat") {
-        d = Math.min(info.discount_value, info.qualifyingTotal);
+        // ₹X off per qualifying product (not per unit, not per order)
+        d = Math.min(info.discount_value * info.productCount, info.qualifyingTotal);
       } else {
         // Percentage discount - capped at item total to prevent negative prices
         d = parseFloat(
@@ -86,6 +92,68 @@ export default function CheckoutPage() {
       }
     }
   })();
+
+  // Threshold promo progress bar: nearest locked threshold, or unlocked reward
+  let thresholdBar = null;
+  let unlockedThreshold = null;
+  if (activePromos?.length) {
+    const rawTotal = totalPrice;
+    for (const promo of activePromos) {
+      if (promo.discount_type !== "threshold") continue;
+      const minAmt = parseFloat(promo.min_order_amount || 0);
+      if (minAmt <= 0) continue; // not properly configured — skip
+      if (rawTotal >= minAmt) {
+        // Threshold MET — calculate the discount and credit it to promoDiscount preview
+        let d = 0;
+        if (promo.reward_type === "cash_off") {
+          // Flat ₹ cash off the cart
+          d = Math.min(parseFloat(promo.discount_value || 0), rawTotal);
+        } else if (promo.reward_type === "percentage") {
+          // Percentage off cart subtotal
+          d = parseFloat(
+            ((rawTotal * parseFloat(promo.discount_value || 0)) / 100).toFixed(2)
+          );
+          d = Math.min(d, rawTotal);
+        } else if (promo.reward_type === "free_item") {
+          d = 0; // no monetary discount
+        } else {
+          // Legacy fallback — treat as flat ₹
+          d = Math.min(parseFloat(promo.discount_value || 0), rawTotal);
+        }
+        if (d > promoDiscount) {
+          promoDiscount = parseFloat(d.toFixed(2));
+          promoLabel = promo.title;
+        }
+        if (!unlockedThreshold) {
+          const freeItemName = promo.free_product_name
+            ? `${promo.free_product_name}${promo.free_product_variant ? ` (${promo.free_product_variant})` : ""}`
+            : null;
+          const reward =
+            promo.reward_type === "free_item"
+              ? freeItemName ? `🎁 Free: ${freeItemName}` : "🎁 Free item unlocked!"
+              : `₹${d.toFixed(2)} off applied!`;
+          unlockedThreshold = {
+            title: promo.title,
+            reward,
+            freeItemName,
+            freeItemImage: promo.free_product_image || null,
+            isFreeItem: promo.reward_type === "free_item",
+          };
+        }
+      } else if (!thresholdBar) {
+        const amountNeeded = minAmt - rawTotal;
+        const pct = Math.min(Math.round((rawTotal / minAmt) * 100), 99);
+        const reward =
+          promo.reward_type === "free_item"
+            ? "a free item"
+            : promo.reward_type === "flat"
+            ? `₹${parseFloat(promo.discount_value || 0)} off`
+            : `${parseFloat(promo.discount_value || 0)}% off`;
+        thresholdBar = { title: promo.title, minAmt, amountNeeded, pct, reward };
+      }
+    }
+  }
+
   const finalTotal = Math.max(totalPrice - promoDiscount, 0);
   const totalAllSavings = totalSavings + promoDiscount;
   const handlePlaceOrder = async () => {
@@ -199,9 +267,28 @@ export default function CheckoutPage() {
               <div className="flex items-center gap-2 px-5 py-3.5 border-b border-gray-100">
                 <ShoppingBag className="w-4 h-4 text-gray-500" />
                 <span className="text-sm font-semibold text-gray-800">
-                  Your Items ({totalCount})
+                  Your Items ({totalCount}{unlockedThreshold?.isFreeItem && unlockedThreshold.freeItemName ? " + 1 free" : ""})
                 </span>
               </div>
+              {unlockedThreshold?.isFreeItem && unlockedThreshold.freeItemName && (
+                <div className="flex gap-3 px-4 py-3.5 bg-green-50 border-b border-green-100">
+                  <div className="w-14 h-14 rounded-lg bg-white border border-green-200 flex-shrink-0 overflow-hidden">
+                    {unlockedThreshold.freeItemImage ? (
+                      <img src={proxyImg(unlockedThreshold.freeItemImage)} alt="Free item" className="w-full h-full object-contain p-1" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xl">🎁</div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-green-800 line-clamp-2 leading-snug">{unlockedThreshold.freeItemName}</p>
+                    <p className="text-xs text-green-600 mt-0.5">{unlockedThreshold.title}</p>
+                    <div className="flex items-center justify-between mt-1.5">
+                      <span className="text-xs text-green-600 font-semibold">FREE</span>
+                      <span className="text-sm font-bold text-green-700">₹0.00</span>
+                    </div>
+                  </div>
+                </div>
+              )}
               {items.map((item) => (
                 <div key={item.id} className="flex gap-3 px-4 py-3.5">
                   {}
@@ -213,8 +300,8 @@ export default function CheckoutPage() {
                         className="w-full h-full object-contain p-1"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xl">
-                        🛒
+                      <div className="w-full h-full flex items-center justify-center">
+                        <ShoppingCartIcon className="w-6 h-6 text-gray-300" />
                       </div>
                     )}
                   </div>
@@ -266,14 +353,39 @@ export default function CheckoutPage() {
               <h2 className="text-base font-bold text-gray-900">
                 Order Summary
               </h2>
+              {/* Threshold promo: unlocked reward banner */}
+              {unlockedThreshold && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-xs space-y-1">
+                  <p className="text-green-700 font-semibold flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    {unlockedThreshold.reward}
+                  </p>
+                  <p className="text-green-500 text-[10px]">{unlockedThreshold.title}</p>
+                </div>
+              )}
+              {/* Threshold promo progress bar */}
+              {thresholdBar && (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-xs space-y-1.5">
+                  <p className="text-orange-700 font-semibold">
+                    Add ₹{thresholdBar.amountNeeded.toFixed(2)} more to get {thresholdBar.reward}!
+                  </p>
+                  <div className="w-full bg-orange-100 rounded-full h-2">
+                    <div
+                      className="bg-orange-500 h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${thresholdBar.pct}%` }}
+                    />
+                  </div>
+                  <p className="text-orange-500 text-[10px]">{thresholdBar.pct}% of the way — {thresholdBar.title}</p>
+                </div>
+              )}
               {}
               <div className="space-y-2 text-sm text-gray-600">
                 <div className="flex justify-between">
                   <span>
-                    Subtotal ({totalCount} item{totalCount > 1 ? "s" : ""})
+                    MRP Total ({totalCount} item{totalCount > 1 ? "s" : ""})
                   </span>
                   <span className="font-medium text-gray-900">
-                    ₹{totalPrice.toFixed(2)}
+                    ₹{totalMRP.toFixed(2)}
                   </span>
                 </div>
                 {hasSavings && (
@@ -314,8 +426,9 @@ export default function CheckoutPage() {
               </div>
               {}
               {totalAllSavings > 0.01 && (
-                <div className="bg-green-50 border border-green-100 rounded-lg px-3 py-2 text-xs text-green-700 font-medium text-center">
-                  🎉 You&apos;re saving ₹{totalAllSavings.toFixed(0)} on this
+                <div className="bg-green-50 border border-green-100 rounded-lg px-3 py-2 text-xs text-green-700 font-medium text-center flex items-center justify-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 shrink-0" />
+                  You&apos;re saving ₹{totalAllSavings.toFixed(0)} on this
                   order!
                 </div>
               )}

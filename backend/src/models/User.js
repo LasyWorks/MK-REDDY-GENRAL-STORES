@@ -1,5 +1,18 @@
 const { query, queryOne, insert, modify } = require('../config/database');
 class User {
+  // Returns all email addresses belonging to active admin users
+  static async findAdminEmails() {
+    const rows = await query(
+      `SELECT email FROM users
+       WHERE user_type = 'admin'
+         AND email IS NOT NULL
+         AND email <> ''
+         AND is_active = TRUE
+         AND is_blocked = FALSE
+       ORDER BY created_at ASC`
+    );
+    return rows.map(r => r.email);
+  }
   static async findById(id) {
     return queryOne(
       `SELECT u.*, r.name AS role_name
@@ -59,6 +72,12 @@ class User {
     return modify(`UPDATE users SET ${fields.join(', ')} WHERE id = $${idx}`, values);
   }
 
+  static async updateUserType(id, userType, roleId) {
+    return modify(
+      'UPDATE users SET user_type = $1, role_id = $2 WHERE id = $3',
+      [userType, roleId, id]
+    );
+  }
   static async updateProfilePicture(id, profilePicture) {
     return modify('UPDATE users SET profile_picture = $1 WHERE id = $2', [profilePicture, id]);
   }

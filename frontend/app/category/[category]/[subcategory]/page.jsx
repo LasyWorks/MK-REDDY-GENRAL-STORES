@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getAllCategories } from "@/app/data/categories";
+import { getFreshCategories } from "@/app/data/categories";
 import CategoryLayout from "@/components/category/CategoryLayout";
 import Link from "next/link";
 import { ChevronRightIcon as ChevronRight } from "@heroicons/react/24/outline";
@@ -77,15 +77,15 @@ export default async function SubcategoryPage({ params, searchParams }) {
   const { category: categorySlug, subcategory: subcategorySlug } = await params;
   const searchParamsResolved = await searchParams;
 
-  const allCategories = await getAllCategories();
+  const allCategories = await getFreshCategories();
 
-  // Find main category
+  // Find main category — also requires at least 1 active product
   const mainCategory = allCategories.find(
     (c) => generateSlug(c.name) === categorySlug && !c.parent_id,
   );
-  if (!mainCategory) notFound();
+  if (!mainCategory || parseInt(mainCategory.product_count || 0) === 0) notFound();
 
-  // Find subcategory — search all siblings (including 0-product ones) so direct URLs still work
+  // Find subcategory — only among those with at least 1 product
   const allSubcategories = allCategories.filter(
     (c) => c.parent_id === mainCategory.id,
   );
@@ -93,7 +93,7 @@ export default async function SubcategoryPage({ params, searchParams }) {
     (c) => generateSlug(c.name) === subcategorySlug,
   );
 
-  if (!activeSubcategory) notFound();
+  if (!activeSubcategory || parseInt(activeSubcategory.product_count || 0) === 0) notFound();
 
   // Only show subcategories with products in the sidebar
   const subcategories = allSubcategories.filter(

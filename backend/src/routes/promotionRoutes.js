@@ -13,4 +13,5 @@ router.post('/', promotionController.createPromotion);
 router.put('/:id', promotionController.updatePromotion);
 router.delete('/:id', promotionController.deletePromotion);
 router.put('/:id/toggle-active', promotionController.toggleActive);
-module.exports = router;
+router.post('/:id/reset-deals',  promotionController.resetDeals);
+module.exports = router;

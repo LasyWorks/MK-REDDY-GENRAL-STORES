@@ -1,6 +1,8 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import Pagination from "@/components/common/Pagination";
 import {
   CubeIcon as Package,
   ChevronRightIcon as ChevronRight,
@@ -13,6 +15,7 @@ import {
   ArrowPathIcon as RefreshCw,
 } from "@heroicons/react/24/outline";
 import orderService from "@/services/orderService";
+import proxyImg from "@/lib/imgProxy";
 const STATUS_META = {
   pending: {
     label: "Pending",
@@ -52,25 +55,35 @@ function StatusBadge({ status }) {
     </span>
   );
 }
+const ORDERS_LIMIT = 10;
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const load = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await orderService.getAll({ limit: 20 });
-      setOrders(res.data || []);
-    } catch (e) {
-      setError(e.message || "Failed to load orders");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const load = useCallback(
+    async (pageNum) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await orderService.getAll({ page: pageNum, limit: ORDERS_LIMIT });
+        setOrders(res.data || []);
+        const total = res.pagination?.total || (res.data || []).length;
+        setTotalPages(Math.max(1, Math.ceil(total / ORDERS_LIMIT)));
+      } catch (e) {
+        setError(e.message || "Failed to load orders");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
   useEffect(() => {
-    load();
-  }, []);
+    load(page);
+  }, [page, load]);
   return (
     <main className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-3xl mx-auto px-4 sm:px-6">
@@ -83,7 +96,7 @@ export default function OrdersPage() {
             </p>
           </div>
           <button
-            onClick={load}
+            onClick={() => load(page)}
             disabled={loading}
             className="p-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors disabled:opacity-50"
             aria-label="Refresh orders"
@@ -184,9 +197,42 @@ export default function OrdersPage() {
                     <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-blue-500 transition-colors" />
                   </div>
                 </div>
+                {/* Product thumbnail strip */}
+                {order.item_images && order.item_images.length > 0 && (
+                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-50">
+                    {order.item_images.map((img, i) => (
+                      <div
+                        key={i}
+                        className="w-10 h-10 rounded-lg border border-gray-100 bg-gray-50 overflow-hidden relative shrink-0"
+                      >
+                        <Image
+                          src={proxyImg(img)}
+                          alt="Product"
+                          fill
+                          className="object-cover"
+                          sizes="40px"
+                          unoptimized
+                        />
+                      </div>
+                    ))}
+                    {order.item_count > order.item_images.length && (
+                      <span className="text-xs text-gray-400 ml-1">
+                        +{order.item_count - order.item_images.length} more
+                      </span>
+                    )}
+                  </div>
+                )}
               </Link>
             ))}
           </div>
+        )}
+
+        {!loading && (
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
         )}
       </div>
     </main>

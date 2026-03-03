@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getAllCategories } from "@/app/data/categories";
+import { getFreshCategories } from "@/app/data/categories";
 import CategoryLayout from "@/components/category/CategoryLayout";
 import Link from "next/link";
 import { ChevronRightIcon as ChevronRight } from "@heroicons/react/24/outline";
@@ -79,14 +79,14 @@ export default async function CategoryPage({ params, searchParams }) {
   const { category: categorySlug } = await params;
   const searchParamsResolved = await searchParams;
 
-  const allCategories = await getAllCategories();
+  const allCategories = await getFreshCategories();
 
-  // Find main category by slug
+  // Find main category by slug — also requires at least 1 active product
   const category = allCategories.find(
     (c) => generateSlug(c.name) === categorySlug && !c.parent_id,
   );
 
-  if (!category) notFound();
+  if (!category || parseInt(category.product_count || 0) === 0) notFound();
 
   // Only show subcategories that have at least 1 product in the sidebar
   const subcategories = allCategories.filter(

@@ -3,8 +3,20 @@ import { useState, useEffect, useCallback } from "react";
 import {
   ChevronLeftIcon as ChevronLeft,
   ChevronRightIcon as ChevronRight,
+  BoltIcon,
+  FireIcon,
+  SparklesIcon,
+  StarIcon,
+  TagIcon,
+  ShieldCheckIcon,
+  ShoppingBagIcon,
+  HomeIcon,
+  GiftIcon,
+  BellIcon,
+  CubeIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
+import { usePromotions } from "@/context/PromotionContext";
 
 /* ── Slide data ─────────────────────────────────────── */
 const NOW = Date.now();
@@ -13,7 +25,7 @@ const slides = [
     id: 1,
     type: "standard",
     bg: "#f9f6ef",
-    badge: "⚡ SUPER SAVER",
+    badge: { Icon: BoltIcon, text: "SUPER SAVER" },
     badgeStyle: "bg-gray-900 text-white",
     headingLine1: "Organic Essentials:",
     headingLine2: "Flat 25% Off",
@@ -24,35 +36,14 @@ const slides = [
     accentColor: "#1a4731",
     timerMode: "dhm",
     timerEnd: NOW + 12 * 3600_000 + 30 * 60_000 + 45_000,
-    illustration: "🌾🫙🫒🌿🥜🌾",
+    illustration: [SparklesIcon, ShieldCheckIcon, TagIcon, CubeIcon, StarIcon, ShoppingBagIcon],
     illustrationBg: "#e8f5e9",
-  },
-  {
-    id: 2,
-    type: "festival",
-    bg: "#fff4e6",
-    badge: "🪔 FESTIVAL SPECIAL",
-    badgeStyle: "bg-orange-100 text-orange-700 border border-orange-200",
-    heading: [
-      { text: "Diwali ", color: "text-gray-900" },
-      { text: "Mega", color: "text-orange-500" },
-      { text: "\nSale", color: "text-orange-500" },
-      { text: "\nUp to 50% Off", color: "text-gray-900" },
-    ],
-    desc: "Celebrate the festival of lights with our exclusive collection. Get the best deals on sweets, snacks, and festive essentials.",
-    primaryBtn: { label: "Shop Now →", href: "/products" },
-    secondaryBtn: { label: "View Offers", href: "/products" },
-    accentColor: "#c05621",
-    timerMode: "hms",
-    timerEnd: NOW + 12 * 3600_000 + 30 * 60_000 + 45_000,
-    illustration: "🪔🍬🎇🥳🎆🪅",
-    illustrationBg: "#fff3cd",
   },
   {
     id: 3,
     type: "standard",
     bg: "#f0fdf4",
-    badge: "🥦 FARM FRESH",
+    badge: { Icon: SparklesIcon, text: "FARM FRESH" },
     badgeStyle: "bg-green-800 text-white",
     headingLine1: "Fresh Vegetables",
     headingLine2: "Buy 2 Get 1 Free",
@@ -63,14 +54,14 @@ const slides = [
     accentColor: "#14532d",
     timerMode: "dhm",
     timerEnd: NOW + 24 * 3600_000 + 8 * 3600_000,
-    illustration: "🥦🥕🌽🧅🥬🍅",
+    illustration: [SparklesIcon, ShoppingBagIcon, TagIcon, ShieldCheckIcon, CubeIcon, StarIcon],
     illustrationBg: "#dcfce7",
   },
   {
     id: 4,
     type: "standard",
     bg: "#eff6ff",
-    badge: "🥛 DAILY ESSENTIALS",
+    badge: { Icon: StarIcon, text: "DAILY ESSENTIALS" },
     badgeStyle: "bg-blue-900 text-white",
     headingLine1: "Pure & Fresh Dairy",
     headingLine2: "Flat 30% Off",
@@ -81,10 +72,37 @@ const slides = [
     accentColor: "#1e3a8a",
     timerMode: "dhm",
     timerEnd: NOW + 20 * 3600_000,
-    illustration: "🥛🧀🥚🧈🍶🥜",
+    illustration: [HomeIcon, ShoppingBagIcon, ShieldCheckIcon, TagIcon, CubeIcon, StarIcon],
     illustrationBg: "#dbeafe",
   },
 ];
+
+/* ── Build a festival slide from live promo data ─────── */
+function buildFestivalSlide(promo) {
+  const accentColor = promo.theme_color || "#c05621";
+  const discountText =
+    promo.discount_type === "percentage"
+      ? `Up to ${parseFloat(promo.discount_value || 0)}% Off`
+      : `Flat ₹${parseFloat(promo.discount_value || 0)} Off`;
+  return {
+    id: `promo-${promo.id}`,
+    type: "festival",
+    bg: "#fff4e6",
+    badge: { Icon: FireIcon, text: promo.badge_text || "FESTIVAL SPECIAL" },
+    badgeStyle: "bg-orange-100 text-orange-700 border border-orange-200",
+    title: promo.title || "Festival Sale",
+    discountText,
+    desc:
+      promo.description ||
+      "Get the best deals on festive essentials this season.",
+    primaryBtn: { label: "Shop Now →", href: "/products" },
+    secondaryBtn: { label: "View Offers", href: "/products" },
+    accentColor,
+    timerEnd: new Date(promo.ends_at).getTime(),
+    illustration: [FireIcon, GiftIcon, BellIcon, StarIcon, SparklesIcon, BoltIcon],
+    illustrationBg: "#fff3cd",
+  };
+}
 
 /* ── Countdown hook ──────────────────────────────────── */
 function useCountdown(endTime) {
@@ -171,20 +189,20 @@ function TimerHMS({ endTime }) {
 
 /* ── Illustration panel ──────────────────────────────── */
 function Illustration({ slide }) {
-  const emojis = Array.from(slide.illustration).filter((c) => c.trim());
+  const icons = slide.illustration;
   return (
     <div
       className="hidden md:flex items-center justify-center rounded-3xl"
       style={{ background: slide.illustrationBg, minHeight: 300 }}
     >
       <div className="grid grid-cols-3 gap-4 p-8">
-        {emojis.map((ch, i) => (
-          <span
+        {icons.map((Icon, i) => (
+          <div
             key={i}
-            className="flex items-center justify-center text-5xl w-20 h-20 bg-white/70 rounded-2xl shadow-sm hover:scale-110 transition-transform duration-200 select-none"
+            className="flex items-center justify-center w-20 h-20 bg-white/70 rounded-2xl shadow-sm hover:scale-110 transition-transform duration-200"
           >
-            {ch}
-          </span>
+            <Icon className="w-9 h-9 text-gray-600 opacity-80" />
+          </div>
         ))}
       </div>
     </div>
@@ -201,7 +219,8 @@ function StandardSlide({ slide }) {
             <span
               className={`inline-flex items-center gap-1.5 text-[11px] font-bold tracking-widest px-3 py-1.5 rounded-full w-fit ${slide.badgeStyle}`}
             >
-              {slide.badge}
+              <slide.badge.Icon className="w-3.5 h-3.5 shrink-0" />
+              {slide.badge.text}
             </span>
             <div>
               <h1
@@ -255,18 +274,18 @@ function FestivalSlide({ slide }) {
             <span
               className={`inline-flex items-center gap-1.5 text-[11px] font-bold tracking-widest px-3 py-1.5 rounded-full w-fit ${slide.badgeStyle}`}
             >
-              {slide.badge}
+              <slide.badge.Icon className="w-3.5 h-3.5 shrink-0" />
+              {slide.badge.text}
             </span>
             <div className="leading-tight">
-              <p className="text-4xl md:text-5xl font-extrabold">
-                <span className="text-gray-900">Diwali </span>
-                <span className="text-orange-500">Mega</span>
-              </p>
-              <p className="text-4xl md:text-5xl font-extrabold text-orange-500">
-                Sale
-              </p>
               <p className="text-4xl md:text-5xl font-extrabold text-gray-900">
-                Up to 50% Off
+                {slide.title}
+              </p>
+              <p
+                className="text-4xl md:text-5xl font-extrabold"
+                style={{ color: slide.accentColor }}
+              >
+                {slide.discountText}
               </p>
             </div>
             <p className="text-gray-600 text-[14px] max-w-sm leading-relaxed">
@@ -301,15 +320,26 @@ function FestivalSlide({ slide }) {
 export default function HeroSection() {
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
+  const { activePromos } = usePromotions();
+
+  // Prepend a dynamic festival slide for the highest-priority active promo
+  const festivalSlide =
+    activePromos.length > 0 ? buildFestivalSlide(activePromos[0]) : null;
+  const visibleSlides = festivalSlide ? [festivalSlide, ...slides] : slides;
 
   const prev = useCallback(
-    () => setCurrent((c) => (c === 0 ? slides.length - 1 : c - 1)),
-    [],
+    () => setCurrent((c) => (c === 0 ? visibleSlides.length - 1 : c - 1)),
+    [visibleSlides.length],
   );
   const next = useCallback(
-    () => setCurrent((c) => (c === slides.length - 1 ? 0 : c + 1)),
-    [],
+    () => setCurrent((c) => (c === visibleSlides.length - 1 ? 0 : c + 1)),
+    [visibleSlides.length],
   );
+
+  // If visible set shrinks (promotion deactivated) and current is out of bounds, reset
+  useEffect(() => {
+    if (current >= visibleSlides.length) setCurrent(0);
+  }, [visibleSlides.length, current]);
 
   useEffect(() => {
     if (paused) return;
@@ -317,7 +347,7 @@ export default function HeroSection() {
     return () => clearInterval(t);
   }, [paused, next]);
 
-  const slide = slides[current];
+  const slide = visibleSlides[current] ?? visibleSlides[0];
 
   return (
     <section className="px-4 sm:px-6 lg:px-8 py-6">
@@ -352,7 +382,7 @@ export default function HeroSection() {
 
         {/* Dots */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-          {slides.map((_, i) => (
+          {visibleSlides.map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrent(i)}

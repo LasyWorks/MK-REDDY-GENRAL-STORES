@@ -1,5 +1,8 @@
 "use client";
-import { ArchiveBoxXMarkIcon as PackageSearch } from "@heroicons/react/24/outline";
+import {
+  ArchiveBoxXMarkIcon as PackageSearch,
+  MagnifyingGlassIcon,
+} from "@heroicons/react/24/outline";
 import { useRouter, usePathname } from "next/navigation";
 
 export default function EmptyState({
@@ -24,8 +27,8 @@ export default function EmptyState({
             strokeWidth={1.2}
           />
         </div>
-        <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center text-lg">
-          🔍
+        <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+          <MagnifyingGlassIcon className="w-4 h-4 text-amber-500" />
         </div>
       </div>
 

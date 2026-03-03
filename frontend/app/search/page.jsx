@@ -6,8 +6,12 @@ import ProductCard from "@/components/category/ProductCard";
 import ProductCardWithVariants from "@/components/category/ProductCardWithVariants";
 import { groupProductsByVariant } from "@/lib/productGrouping";
 import { useLanguage } from "@/context/LanguageContext";
+import Pagination from "@/components/common/Pagination";
+
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
+const PAGE_SIZE = 20;
+
 function SearchPageInner() {
   const searchParams = useSearchParams();
   const q = searchParams.get("q") || "";
@@ -15,18 +19,26 @@ function SearchPageInner() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
   const search = useCallback(
-    async (query) => {
+    async (query, pageNum) => {
       if (!query.trim()) return;
       setLoading(true);
       try {
         const res = await fetch(
-          `${API_URL}/products?search=${encodeURIComponent(query)}&limit=40&is_active=true&lang=${lang}`,
+          `${API_URL}/products?search=${encodeURIComponent(query)}&limit=${PAGE_SIZE}&page=${pageNum}&is_active=true&lang=${lang}`,
           { cache: "no-store" },
         );
         const json = await res.json();
         setProducts(json.data || []);
-        setTotal(json.pagination?.total || (json.data || []).length);
+        setTotal(
+          json.pagination?.total ||
+            json.pagination?.totalItems ||
+            (json.data || []).length,
+        );
       } catch {
         setProducts([]);
       } finally {
@@ -35,9 +47,15 @@ function SearchPageInner() {
     },
     [lang],
   );
+
+  // Reset to page 1 when query changes
   useEffect(() => {
-    search(q);
-  }, [q, search]);
+    setPage(1);
+  }, [q]);
+
+  useEffect(() => {
+    search(q, page);
+  }, [q, page, search]);
   const productGroups = useMemo(() => {
     return groupProductsByVariant(products);
   }, [products]);
@@ -56,8 +74,12 @@ function SearchPageInner() {
         </h1>
         {!loading && q && (
           <p className="text-sm text-gray-500 mt-1">
-            {productGroups.length} product
-            {productGroups.length !== 1 ? "s" : ""} found
+            {total} product{total !== 1 ? "s" : ""} found
+            {totalPages > 1 && (
+              <span className="ml-2 text-gray-400">
+                (page {page} of {totalPages})
+              </span>
+            )}
           </p>
         )}
       </div>
@@ -71,21 +93,28 @@ function SearchPageInner() {
           ))}
         </div>
       ) : productGroups.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {productGroups.map((group, idx) =>
-            group.variants.length > 1 ? (
-              <ProductCardWithVariants
-                key={`${group.name}-${idx}`}
-                variants={group.variants}
-              />
-            ) : (
-              <ProductCard
-                key={group.variants[0].id}
-                product={group.variants[0]}
-              />
-            ),
-          )}
-        </div>
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {productGroups.map((group, idx) =>
+              group.variants.length > 1 ? (
+                <ProductCardWithVariants
+                  key={`${group.name}-${idx}`}
+                  variants={group.variants}
+                />
+              ) : (
+                <ProductCard
+                  key={group.variants[0].id}
+                  product={group.variants[0]}
+                />
+              ),
+            )}
+          </div>
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
+        </>
       ) : q ? (
         <div className="flex flex-col items-center py-20 text-center">
           <Search className="w-16 h-16 text-gray-200 mb-4" />

@@ -88,5 +88,18 @@ class PromotionService {
     });
     return { ...promo, is_active: newStatus };
   }
+
+  static async resetDeals(id, productId = null, adminId) {
+    await this.getById(id); // throws 404 if not found
+    await Promotion.resetDeals(id, productId);
+    await AdminLog.create({
+      adminId,
+      action: 'RESET_DEAL_CLAIMS',
+      entityType: 'promotion',
+      entityId: id,
+      newValue: { product_id: productId || 'ALL' },
+    });
+    return { reset: true };
+  }
 }
 module.exports = PromotionService;

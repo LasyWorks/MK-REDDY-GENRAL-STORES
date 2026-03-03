@@ -1,8 +1,7 @@
 const { Order, Cart, User, Invoice, AdminLog, Promotion } = require('../models');
-const EmailService = require('./emailService');
-const NotificationService = require('./notificationService');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
+const emailService = require('./emailService');
 class OrderService {
   static async createOrder(userId, notes = null, lang = 'en') {
     const user = await User.findById(userId);
@@ -25,13 +24,20 @@ class OrderService {
     let promoDiscount = 0;
     let promoId = null;
     let promoTitle = null;
+    let promoFreeProductId = null;
+    // Track which products qualify for a deal (for claiming after order is placed)
+    const dealClaimsNeeded = []; // [{promotionId, productId}]
     try {
       const promoMap = await Promotion.getActiveProductMap();
       // Group items by promotion to calculate total discount per promotion
-      const promoTotals = {};  
+      const promoTotals = {};
       for (const item of updatedCart.items) {
         const p = promoMap[item.product_id];
-        if (!p) continue;
+        // Skip: no promo or deal-order cap exhausted
+        if (!p || p.deal_exhausted) continue;
+        // For percentage promos, also guard per-item unit cap.
+        // Flat promos are order-level (not per-unit), so skip item_limit check for them.
+        if (p.discount_type !== 'flat' && p.item_limit !== null && (p.items_claimed + item.quantity) > p.item_limit) continue;
         const key = p.promotion_id;
         if (!promoTotals[key]) {
           promoTotals[key] = {
@@ -39,15 +45,19 @@ class OrderService {
             discount_type: p.discount_type,
             discount_value: parseFloat(p.discount_value),
             qualifyingTotal: 0,
+            products: [],
           };
         }
         promoTotals[key].qualifyingTotal += item.item_total;
+        promoTotals[key].products.push({ promotionId: key, productId: item.product_id, qty: item.quantity });
       }
       // Calculate discount for each promotion and choose the best one for customer
       for (const [pid, info] of Object.entries(promoTotals)) {
         let d = 0;
         if (info.discount_type === 'flat') {
-          d = Math.min(info.discount_value, info.qualifyingTotal);
+          // ₹X off per qualifying PRODUCT in cart (regardless of qty of that product).
+          // e.g. 2 products × ₹25 = ₹50 off; 1 product qty 10 = still ₹25 off.
+          d = Math.min(info.discount_value * info.products.length, info.qualifyingTotal);
         } else {
           d = parseFloat(((info.qualifyingTotal * info.discount_value) / 100).toFixed(2));
           d = Math.min(d, info.qualifyingTotal);
@@ -56,6 +66,57 @@ class OrderService {
           promoDiscount = parseFloat(d.toFixed(2));
           promoId = pid;
           promoTitle = info.title;
+          dealClaimsNeeded.length = 0;
+          if (info.discount_type === 'flat') {
+            // Flat = one order-level deal slot regardless of product count.
+            // items_claimed tracks total units across all qualifying products.
+            const totalQty = info.products.reduce((s, p) => s + p.qty, 0);
+            dealClaimsNeeded.push({
+              promotionId: pid,
+              productId: info.products[0].productId,
+              qty: totalQty,
+              isFlat: true,
+            });
+          } else {
+            // Percentage = per-product deal; claim once per qualifying product.
+            dealClaimsNeeded.push(...info.products);
+          }
+        }
+      }
+      // Also evaluate threshold promotions (entire-cart discount based on cart total)
+      const thresholdPromos = await Promotion.getActiveThresholdPromos();
+      if (thresholdPromos.length > 0) {
+        const cartSubtotal = updatedCart.items.reduce((s, i) => s + parseFloat(i.item_total), 0);
+        for (const tp of thresholdPromos) {
+          const minAmt = parseFloat(tp.min_order_amount || 0);
+          if (minAmt <= 0) continue; // not properly configured — skip
+          if (cartSubtotal < minAmt) continue; // threshold not reached
+          if (tp.reward_type === 'free_item') {
+            // Free item — no monetary discount; only claim if no monetary promo already applied
+            if (promoDiscount === 0 && !promoFreeProductId) {
+              promoId = tp.id;
+              promoTitle = tp.title;
+              promoFreeProductId = tp.free_product_id || null;
+              dealClaimsNeeded.length = 0;
+            }
+          } else {
+            let d = 0;
+            if (tp.reward_type === 'cash_off') {
+              d = Math.min(parseFloat(tp.discount_value), cartSubtotal);
+            } else if (tp.reward_type === 'percentage') {
+              d = parseFloat(((cartSubtotal * parseFloat(tp.discount_value)) / 100).toFixed(2));
+              d = Math.min(d, cartSubtotal);
+            } else {
+              d = Math.min(parseFloat(tp.discount_value || 0), cartSubtotal);
+            }
+            if (d > promoDiscount) {
+              promoDiscount = parseFloat(d.toFixed(2));
+              promoId = tp.id;
+              promoTitle = tp.title;
+              promoFreeProductId = null; // monetary discount overrides free item
+              dealClaimsNeeded.length = 0;
+            }
+          }
         }
       }
     } catch (err) {
@@ -64,29 +125,32 @@ class OrderService {
     }
     const { orderId, orderNumber } = await Order.createFromCart(userId, updatedCart, notes, {
       promotionId: promoId, promotionDiscount: promoDiscount, promotionTitle: promoTitle,
+      freeProductId: promoFreeProductId,
     });
     const order = await Order.findById(orderId, lang);
     await Invoice.create(order, user);
+
+    // Atomically claim limited deals for each qualifying product.
+    // Fire-and-forget: failures must not block the order response.
+    if (dealClaimsNeeded.length > 0) {
+      Promise.all(
+        dealClaimsNeeded.map(({ promotionId, productId, qty }) =>
+          Promotion.claimDeal(promotionId, productId, qty || 1).catch((err) =>
+            logger.warn(`Deal claim failed (promo=${promotionId}, product=${productId}):`, err)
+          )
+        )
+      ).catch(() => {/* already caught per-item above */});
+    }
+
+    // Fire-and-forget emails — never block the order response
+    User.findAdminEmails()
+      .then(adminEmails => Promise.allSettled([
+        emailService.sendAdminOrderNotification(order, user, adminEmails),
+        user.email ? emailService.sendOrderConfirmation(order, user) : Promise.resolve(),
+      ]))
+      .catch(() => {});
+
     logger.info(`Order created: ${orderNumber} by user ${userId}`);
-    try {
-      // Send email confirmation but don't fail order if email service is down
-      if (user.email) {
-        await EmailService.sendOrderConfirmation(order, user);
-      }
-    } catch (err) {
-      logger.error('Email confirmation failed:', err);
-    }
-    try {
-      // Notify admin about every new order regardless of customer email
-      await EmailService.sendAdminOrderNotification(order, user);
-    } catch (err) {
-      logger.error('Admin order notification email failed:', err);
-    }
-    try {
-      await NotificationService.sendWhatsAppConfirmation(user, order);
-    } catch (err) {
-      logger.error('WhatsApp confirmation failed:', err);
-    }
     return order;
   }
   static async getById(orderId, lang = 'en') {
@@ -136,6 +200,15 @@ class OrderService {
     } else {
       await Order.updateStatus(orderId, status, notes);
     }
+    // Email customer the moment their order is ready for pickup — no matter what
+    if (status === 'ready_for_pickup') {
+      const customer = await User.findById(order.user_id);
+      if (customer) {
+        const readyOrder = await Order.findById(orderId);
+        emailService.sendOrderReadyNotification(readyOrder, customer)
+          .catch((err) => logger.error('Ready-for-pickup email failed:', err));
+      }
+    }
     if (adminId) {
       await AdminLog.create({
         adminId,
@@ -147,15 +220,6 @@ class OrderService {
       });
     }
     const updatedOrder = await Order.findById(orderId);
-    try {
-      const user = await User.findById(order.user_id);
-      await NotificationService.sendOrderStatusSms(user, updatedOrder);
-      if (status === 'confirmed' && user.email) {
-        await EmailService.sendOrderConfirmation(updatedOrder, user);
-      }
-    } catch (error) {
-      logger.error('Failed to send order notification:', error);
-    }
     return updatedOrder;
   }
   static async cancelOrder(orderId, reason, userId = null, adminId = null) {
@@ -181,17 +245,6 @@ class OrderService {
       });
     }
     const cancelledOrder = await Order.findById(orderId);
-    try {
-      const user = await User.findById(order.user_id);
-      // Notify admin about every cancellation
-      await EmailService.sendAdminOrderCancellationNotification(cancelledOrder, user, reason);
-      // Notify customer only if they have an email
-      if (user.email) {
-        await EmailService.sendCustomerOrderCancellationNotification(cancelledOrder, user, reason);
-      }
-    } catch (err) {
-      logger.error('Cancellation email failed:', err);
-    }
     return cancelledOrder;
   }
   static async getStatistics(startDate = null, endDate = null) {

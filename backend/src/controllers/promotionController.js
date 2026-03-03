@@ -60,8 +60,15 @@ const deletePromotion = asyncHandler(async (req, res) => {
 });
 const toggleActive = asyncHandler(async (req, res) => {
   const promo = await PromotionService.toggleActive(req.params.id, req.user.id);
-  ApiResponse.success(res, promo, "Promotion status updated");
+  ApiResponse.success(res, promo, 'Promotion status updated');
 });
+
+const resetDeals = asyncHandler(async (req, res) => {
+  const { product_id } = req.body; // optional — reset all products if omitted
+  await PromotionService.resetDeals(req.params.id, product_id || null, req.user.id);
+  ApiResponse.success(res, null, 'Deal claims reset successfully');
+});
+
 module.exports = {
   getActivePromotions,
   getUpcomingPromotions,
@@ -72,4 +79,5 @@ module.exports = {
   updatePromotion,
   deletePromotion,
   toggleActive,
+  resetDeals,
 };
