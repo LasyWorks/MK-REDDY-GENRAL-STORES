@@ -9,16 +9,15 @@ const pool = new Pool({
   user:     config.database.user,
   password: config.database.password,
   database: config.database.name,
-  // Optimized connection pool settings
-  max:      30, // Increased from 20 for better concurrency
-  min:      5,  // Keep minimum connections warm
+  // Shared hosting: keep pool small to stay within resource limits
+  max:      parseInt(process.env.DB_CONNECTION_LIMIT, 10) || 5,
+  min:      1,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000, // Faster timeout for better error handling
+  connectionTimeoutMillis: 5000,
   ssl: config.database.ssl,
   keepAlive: true,
   keepAliveInitialDelayMillis: 10000,
-  // Additional optimizations
-  statement_timeout: 30000, // 30s query timeout
+  statement_timeout: 30000,
   query_timeout: 30000,
   application_name: 'mk-reddy-stores-api'
 });

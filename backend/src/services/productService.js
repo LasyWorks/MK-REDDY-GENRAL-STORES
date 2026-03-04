@@ -1,7 +1,6 @@
-const { Product, Category, AdminLog } = require('../models');
+const { Product, AdminLog } = require('../models');
 const config = require('../config');
 const ApiError = require('../utils/ApiError');
-const { generateSku } = require('../utils/helpers');
 const { revalidatePages } = require('../utils/revalidate');
 const { invalidateCache } = require('../middlewares/cache');
 const ExcelJS = require('exceljs');
@@ -179,121 +178,103 @@ class ProductService {
     };
   }
   static async bulkUpload(filePath, adminId) {
-    const currentCount = await Product.count();
-    const remainingSlots = config.limits.maxProducts - currentCount;
-    
-    // Read Excel file using exceljs
+    // Read Excel file
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(filePath);
-    const worksheet = workbook.worksheets[0]; // Get first worksheet
-    
-    if (!worksheet) {
-      throw ApiError.badRequest('Excel file has no worksheets');
-    }
-    
-    // Convert worksheet to JSON-like array of objects
-    const data = [];
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) throw ApiError.badRequest('Excel file has no worksheets');
+
     const headers = [];
-    
-    // Get headers from first row
-    worksheet.getRow(1).eachCell((cell, colNumber) => {
-      headers[colNumber] = cell.value;
-    });
-    
-    // Process data rows (starting from row 2)
+    const data = [];
+    worksheet.getRow(1).eachCell((cell, col) => { headers[col] = cell.value; });
     worksheet.eachRow((row, rowNumber) => {
-      if (rowNumber === 1) return; // Skip header row
-      
+      if (rowNumber === 1) return;
       const rowData = {};
-      row.eachCell((cell, colNumber) => {
-        const header = headers[colNumber];
-        if (header) {
-          rowData[header] = cell.value;
-        }
+      row.eachCell((cell, col) => {
+        const h = headers[col];
+        if (h) rowData[h] = cell.value;
       });
-      
-      // Only add row if it has some data
-      if (Object.keys(rowData).length > 0) {
-        data.push(rowData);
-      }
+      if (Object.keys(rowData).length > 0) data.push(rowData);
     });
-    
-    if (data.length === 0) {
-      throw ApiError.badRequest('Excel file is empty');
-    }
-    if (data.length > remainingSlots) {
-      throw ApiError.badRequest(
-        `Cannot upload ${data.length} products. Only ${remainingSlots} slots available.`
-      );
-    }
-    const validProducts = [];
+
+    if (data.length === 0) throw ApiError.badRequest('Excel file is empty');
+
+    const updateQueue = [];
     const errors = [];
+
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
-      const rowIndex = i + 2; 
+      const rowIndex = i + 2;
       try {
-        if (!row.name_en || !row.category_id || !row.unit_type || !row.price) {
-          throw new Error('Missing required fields (name_en, category_id, unit_type, price)');
+        // Match product: by name_en + unit_pack_size (case-insensitive)
+        const nameRaw = row.name_en ? String(row.name_en).trim() : null;
+        const packRaw = row.unit_pack_size ? String(row.unit_pack_size).trim() : null;
+        if (!nameRaw) throw new Error('name_en is required');
+
+        const existing = await Product.findByNameAndPack(nameRaw, packRaw);
+        if (!existing) {
+          throw new Error(`Product "${nameRaw}"${packRaw ? ` (${packRaw})` : ''} not found — use Add Product to create new products`);
         }
-        const category = await Category.findById(row.category_id);
-        if (!category) {
-          throw new Error(`Category with ID ${row.category_id} not found`);
+
+        const updates = {};
+        if (row.stock_quantity !== undefined && row.stock_quantity !== '') {
+          const qty = parseInt(row.stock_quantity);
+          if (!isNaN(qty) && qty >= 0) updates.stock_quantity = qty;
         }
-        const validUnitTypes = ['kg', 'piece', 'case', 'litre', 'gram', 'pack'];
-        if (!validUnitTypes.includes(row.unit_type)) {
-          throw new Error(`Invalid unit type: ${row.unit_type}`);
+        if (row.price !== undefined && row.price !== '') {
+          const price = parseFloat(row.price);
+          if (!isNaN(price) && price > 0) updates.price = price;
         }
-        if (isNaN(row.price) || row.price <= 0) {
-          throw new Error('Price must be a positive number');
+        if (row.mrp !== undefined && row.mrp !== '') {
+          const mrp = parseFloat(row.mrp);
+          if (!isNaN(mrp) && mrp > 0) updates.mrp = mrp;
         }
-        const sku = row.sku || generateSku(row, rowIndex);
-        const existingSku = await Product.findBySku(sku);
-        if (existingSku) {
-          throw new Error(`SKU ${sku} already exists`);
+        if (row.wholesale_price !== undefined && row.wholesale_price !== '') {
+          const wp = parseFloat(row.wholesale_price);
+          if (!isNaN(wp) && wp > 0) updates.wholesale_price = wp;
         }
-        validProducts.push({
-          _rowIndex: rowIndex,
-          category_id: row.category_id,
-          sku,
-          name_en: row.name_en.trim(),
-          name_te: row.name_te ? row.name_te.trim() : null,
-          unit_type: row.unit_type,
-          price: parseFloat(row.price),
-          gst_percentage: row.gst_percentage ? parseFloat(row.gst_percentage) : 18,
-          stock_quantity: row.stock_quantity ? parseInt(row.stock_quantity) : 0,
-        });
+
+        if (Object.keys(updates).length === 0) {
+          errors.push({ row: rowIndex, name: nameRaw, error: 'No updatable fields found in this row' });
+        } else {
+          updateQueue.push({ _rowIndex: rowIndex, id: existing.id, name: nameRaw, updates });
+        }
       } catch (error) {
-        errors.push({
-          row: rowIndex,
-          sku: row.sku,
-          name: row.name_en,
-          error: error.message,
-        });
+        errors.push({ row: rowIndex, name: row.name_en, error: error.message });
       }
     }
-    if (validProducts.length === 0) {
+
+    if (updateQueue.length === 0) {
       fs.unlinkSync(filePath);
-      throw ApiError.badRequest('All rows failed validation', errors);
+      throw ApiError.badRequest('No products could be matched for update', errors);
     }
-    const result = await Product.bulkInsert(validProducts);
+
+    let updatedCount = 0;
+    const updateErrors = [];
+    for (const upd of updateQueue) {
+      try {
+        await Product.update(upd.id, upd.updates);
+        updatedCount++;
+      } catch (err) {
+        updateErrors.push({ row: upd._rowIndex, name: upd.name, error: err.message });
+      }
+    }
+
     fs.unlinkSync(filePath);
     await AdminLog.create({
       adminId,
-      action: 'BULK_UPLOAD_PRODUCTS',
+      action: 'BULK_STOCK_UPDATE',
       entityType: 'product',
-      newValue: {
-        total: data.length,
-        successful: result.success,
-        failed: result.failed + errors.length,
-      },
+      newValue: { total: data.length, updated: updatedCount, failed: errors.length + updateErrors.length },
     });
     return {
-      message: 'Bulk upload completed',
+      message: 'Stock update completed',
       total: data.length,
-      successful: result.success,
-      failed: result.failed + errors.length,
+      inserted: 0,
+      updated: updatedCount,
+      failed: errors.length + updateErrors.length,
       validationErrors: errors,
-      insertErrors: result.errors,
+      updateErrors,
     };
   }
   static async getCount() {

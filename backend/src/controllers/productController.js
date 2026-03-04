@@ -153,82 +153,95 @@ const toggleActive = asyncHandler(async (req, res) => {
   ApiResponse.success(res, product, "Product status updated");
 });
 const downloadTemplate = asyncHandler(async (req, res) => {
-  // Create a new workbook and worksheet
   const workbook = new ExcelJS.Workbook();
-  const worksheet = workbook.addWorksheet("Products");
+  const ws = workbook.addWorksheet("Stock Update");
 
-  // Define columns with headers and example data
-  worksheet.columns = [
-    { header: "sku", key: "sku", width: 15 },
-    { header: "name_en", key: "name_en", width: 30 },
-    { header: "name_te", key: "name_te", width: 30 },
-    { header: "category_id", key: "category_id", width: 40 },
-    { header: "unit_type", key: "unit_type", width: 12 },
-    { header: "price", key: "price", width: 10 },
-    { header: "wholesale_price", key: "wholesale_price", width: 15 },
-    { header: "gst_percentage", key: "gst_percentage", width: 15 },
-    { header: "stock_quantity", key: "stock_quantity", width: 15 },
-    { header: "description_en", key: "description_en", width: 40 },
-    { header: "description_te", key: "description_te", width: 40 },
+  ws.columns = [
+    { header: "name_en",        key: "name_en",        width: 35 },
+    { header: "unit_pack_size", key: "unit_pack_size", width: 14 },
+    { header: "stock_quantity", key: "stock_quantity", width: 14 },
+    { header: "price",          key: "price",          width: 10 },
+    { header: "mrp",            key: "mrp",            width: 10 },
+    { header: "wholesale_price",key: "wholesale_price", width: 16 },
   ];
 
-  // Add example row with sample data
-  worksheet.addRow({
-    sku: "SAMPLE-001",
+  // Style header – green background, white bold
+  const hRow = ws.getRow(1);
+  hRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
+  hRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF388E3C" } };
+  hRow.height = 20;
+
+  // Example row
+  ws.addRow({
     name_en: "Sample Product",
-    name_te: "నమూనా ఉత్పత్తి",
-    category_id: "Enter category UUID",
-    unit_type: "kg",
-    price: 100.0,
-    wholesale_price: 90.0,
-    gst_percentage: 18,
+    unit_pack_size: "1 kg",
     stock_quantity: 50,
-    description_en: "Sample description",
-    description_te: "నమూనా వివరణ",
+    price: 100.0,
+    mrp: 120.0,
+    wholesale_price: 90.0,
   });
 
-  // Add notes row
-  worksheet.addRow({
-    sku: "Note: Valid unit_types are: kg, piece, case, litre, gram, pack",
-    name_en: "Required field",
-    name_te: "Optional",
-    category_id: "Required - must be valid UUID",
-    unit_type: "Required",
-    price: "Required - positive number",
-    wholesale_price: "Optional",
-    gst_percentage: "Optional - defaults to 18",
-    stock_quantity: "Optional - defaults to 0",
-    description_en: "Optional",
-    description_te: "Optional",
+  ws.views = [{ state: "frozen", ySplit: 1 }];
+
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  res.setHeader("Content-Disposition", 'attachment; filename="stock-update-template.xlsx"');
+  await workbook.xlsx.write(res);
+  res.end();
+});
+
+const downloadAllProducts = asyncHandler(async (req, res) => {
+  const result = await ProductService.getAll({
+    limit: 10000,
+    page: 1,
+    isActive: null,
+    lang: "en",
+    sortBy: "name",
+    sortOrder: "ASC",
   });
 
-  // Style the header row
-  worksheet.getRow(1).font = { bold: true };
-  worksheet.getRow(1).fill = {
-    type: "pattern",
-    pattern: "solid",
-    fgColor: { argb: "FFD3D3D3" },
-  };
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "MK Reddy General Stores";
+  const ws = workbook.addWorksheet("Products");
 
-  // Style the notes row
-  worksheet.getRow(3).font = { italic: true, size: 9 };
-  worksheet.getRow(3).fill = {
-    type: "pattern",
-    pattern: "solid",
-    fgColor: { argb: "FFFFEFD5" },
-  };
+  ws.columns = [
+    { header: "name_en",        key: "name_en",        width: 35 },
+    { header: "unit_pack_size", key: "unit_pack_size", width: 14 },
+    { header: "stock_quantity", key: "stock_quantity", width: 14 },
+    { header: "price",          key: "price",          width: 10 },
+    { header: "mrp",            key: "mrp",            width: 10 },
+    { header: "wholesale_price",key: "wholesale_price", width: 16 },
+  ];
 
-  // Set response headers
+  // Style header row – green background, white bold text
+  const headerRow = ws.getRow(1);
+  headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
+  headerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF388E3C" } };
+  headerRow.alignment = { vertical: "middle", horizontal: "center" };
+  headerRow.height = 20;
+
+  for (const p of result.products) {
+    ws.addRow({
+      name_en:        p.name_en || p.name || "",
+      unit_pack_size: p.unit_pack_size || "",
+      stock_quantity: p.stock_quantity,
+      price:          p.price,
+      mrp:            p.mrp != null ? p.mrp : "",
+      wholesale_price:p.wholesale_price != null ? p.wholesale_price : "",
+    });
+  }
+
+  // Freeze first row for easy scrolling
+  ws.views = [{ state: "frozen", ySplit: 1 }];
+
+  const filename = `products-${new Date().toISOString().slice(0, 10)}.xlsx`;
   res.setHeader(
     "Content-Type",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   );
   res.setHeader(
     "Content-Disposition",
-    'attachment; filename="product-template.xlsx"',
+    `attachment; filename="${filename}"`,
   );
-
-  // Write workbook to response
   await workbook.xlsx.write(res);
   res.end();
 });
@@ -261,6 +274,7 @@ module.exports = {
   toggleActive,
   bulkUpload,
   downloadTemplate,
+  downloadAllProducts,
   getProductCount,
   getFrequentlyBoughtTogether,
 };

@@ -42,6 +42,9 @@ import {
   StarIcon,
   LightBulbIcon,
   Cog6ToothIcon as Cog,
+  ArrowDownTrayIcon,
+  ArrowUpTrayIcon,
+  DocumentTextIcon,
 } from "@heroicons/react/24/outline";
 const Loader2 = ArrowPathIcon;
 const RefreshCcw = ArrowPathIcon;
@@ -569,19 +572,20 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved 
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">
-                SKU (Stock Keeping Unit)
+                SKU{" "}
+                <span className="font-normal text-gray-400">(optional — auto-generated if blank)</span>
               </label>
               <input
                 value={form.sku}
                 onChange={(e) => set("sku", e.target.value)}
-                placeholder="Auto-generated if empty"
+                placeholder="e.g. RICE-BASMATI-1KG (leave blank to auto-generate)"
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
               />
-              <p className="text-xs text-gray-400 mt-1">
-                {isEdit
-                  ? "Change carefully - must be unique"
-                  : "Leave empty to auto-generate"}
-              </p>
+              {isEdit && (
+                <p className="text-xs text-amber-600 mt-1">
+                  Change carefully — SKU must stay unique
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">
@@ -910,7 +914,9 @@ function VariantSubRow({ p, onEdit, onDelete, deleting }) {
       </td>
       <td className="px-4 py-2">
         {(p.stock_quantity ?? 0) > 0 ? (
-          <span className="bg-green-50 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">{p.stock_quantity} In Stock</span>
+          <span className="bg-green-50 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+            {p.stock_quantity}{p.unit_pack_size ? ` × ${p.unit_pack_size}` : " units"} in stock
+          </span>
         ) : (
           <span className="bg-red-50 text-red-600 text-xs font-semibold px-2 py-0.5 rounded-full">Out of Stock</span>
         )}
@@ -1105,7 +1111,7 @@ function ProductRow({
       <td className="px-4 py-3">
         {(p.stock_quantity ?? 0) > 0 ? (
           <span className="bg-green-50 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-            {p.stock_quantity} In Stock
+            {p.stock_quantity}{p.unit_pack_size ? ` × ${p.unit_pack_size}` : " units"} in stock
           </span>
         ) : (
           <span className="bg-red-50 text-red-600 text-xs font-semibold px-2 py-0.5 rounded-full">
@@ -1227,6 +1233,91 @@ function ProductsTab() {
   const [togglingActive, setTogglingActive] = useState(null);
   const [openCategories, setOpenCategories] = useState(new Set());
   const searchTimer = useRef(null);
+  const uploadRef = useRef(null);
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const [uploadResult, setUploadResult] = useState(null); // {inserted, updated, failed, errors}
+  const [downloadingExport, setDownloadingExport] = useState(false);
+
+  const API_BASE =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
+
+  async function authFetch(endpoint, options = {}) {
+    const token = secureStorage.getItem("token");
+    const headers = { ...(options.headers || {}) };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const lang =
+      typeof window !== "undefined" ? localStorage.getItem("language") || "en" : "en";
+    headers["Accept-Language"] = lang;
+    return fetch(`${API_BASE}${endpoint}`, { ...options, headers });
+  }
+
+  async function handleDownloadExport() {
+    setDownloadingExport(true);
+    try {
+      const res = await authFetch("/products/admin/export");
+      if (!res.ok) throw new Error(`Export failed (${res.status})`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const today = new Date().toISOString().slice(0, 10);
+      a.download = `products-${today}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      toast(e.message || "Download failed", "error");
+    } finally {
+      setDownloadingExport(false);
+    }
+  }
+
+  async function handleDownloadTemplate() {
+    try {
+      const res = await authFetch("/products/template/download");
+      if (!res.ok) throw new Error(`Template download failed (${res.status})`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "product-template.xlsx";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      toast(e.message || "Download failed", "error");
+    }
+  }
+
+  async function handleUploadFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset input so the same file can be re-selected
+    e.target.value = "";
+    setUploadLoading(true);
+    setUploadResult(null);
+    try {
+      const token = secureStorage.getItem("token");
+      const lang =
+        typeof window !== "undefined" ? localStorage.getItem("language") || "en" : "en";
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(`${API_BASE}/products/bulk-upload`, {
+        method: "POST",
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+          "Accept-Language": lang,
+        },
+        body: formData,
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.message || `Upload failed (${res.status})`);
+      setUploadResult(json.data || json);
+      load();
+    } catch (e) {
+      toast(e.message || "Upload failed", "error");
+    } finally {
+      setUploadLoading(false);
+    }
+  }
   const load = useCallback(
     async (q = search) => {
       setLoading(true);
@@ -1359,7 +1450,7 @@ function ProductsTab() {
   }
   return (
     <div className="space-y-5">
-      {}
+      {/* ── Toolbar ── */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -1370,13 +1461,92 @@ function ProductsTab() {
             className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
           />
         </div>
-        <button
-          onClick={() => setModal("add")}
-          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold text-sm px-4 py-2 rounded-xl transition-colors"
-        >
-          <Plus className="w-4 h-4" /> Add Product
-        </button>
+        <div className="flex flex-wrap gap-2 items-center">
+          {/* Download all products */}
+          <button
+            onClick={handleDownloadExport}
+            disabled={downloadingExport}
+            title="Download all products as Excel"
+            className="flex items-center gap-1.5 border border-green-600 text-green-700 hover:bg-green-50 font-medium text-sm px-3 py-2 rounded-xl transition-colors disabled:opacity-60"
+          >
+            {downloadingExport ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <ArrowDownTrayIcon className="w-4 h-4" />
+            )}
+            Export
+          </button>
+          {/* Download blank template */}
+          <button
+            onClick={handleDownloadTemplate}
+            title="Download blank upload template"
+            className="flex items-center gap-1.5 border border-gray-300 text-gray-600 hover:bg-gray-50 font-medium text-sm px-3 py-2 rounded-xl transition-colors"
+          >
+            <DocumentTextIcon className="w-4 h-4" />
+            Template
+          </button>
+          {/* Upload / bulk update */}
+          <button
+            onClick={() => uploadRef.current?.click()}
+            disabled={uploadLoading}
+            title="Update stock &amp; prices via Excel"
+            className="flex items-center gap-1.5 border border-blue-600 text-blue-700 hover:bg-blue-50 font-medium text-sm px-3 py-2 rounded-xl transition-colors disabled:opacity-60"
+          >
+            {uploadLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <ArrowUpTrayIcon className="w-4 h-4" />
+            )}
+            Upload
+          </button>
+          <input
+            ref={uploadRef}
+            type="file"
+            accept=".xlsx,.xls"
+            className="hidden"
+            onChange={handleUploadFile}
+          />
+          {/* Add single product */}
+          <button
+            onClick={() => setModal("add")}
+            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold text-sm px-4 py-2 rounded-xl transition-colors"
+          >
+            <Plus className="w-4 h-4" /> Add Product
+          </button>
+        </div>
       </div>
+
+      {/* ── Upload result summary ── */}
+      {uploadResult && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-semibold text-blue-800">Stock Update Complete</span>
+            <button
+              onClick={() => setUploadResult(null)}
+              className="text-blue-400 hover:text-blue-700"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-4 text-xs">
+            <span className="text-blue-700 font-medium">↑ Updated: {uploadResult.updated ?? 0}</span>
+            <span className="text-red-600 font-medium">✗ Failed: {uploadResult.failed ?? 0}</span>
+            <span className="text-gray-600">Total rows: {uploadResult.total ?? 0}</span>
+          </div>
+          {(uploadResult.validationErrors?.length > 0 || uploadResult.updateErrors?.length > 0) && (
+            <details className="mt-2">
+              <summary className="cursor-pointer text-xs text-red-600 underline">View errors</summary>
+              <ul className="mt-1 space-y-1 max-h-40 overflow-y-auto">
+                {[...(uploadResult.validationErrors || []), ...(uploadResult.updateErrors || [])].map((err, i) => (
+                  <li key={i} className="text-xs text-red-700">
+                    Row {err.row}{err.name ? ` — ${err.name}` : ""}: {err.error}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </div>
+      )}
       {error && <p className="text-sm text-red-500">{error}</p>}
       {}
       {!loading && grouped.length > 0 && (

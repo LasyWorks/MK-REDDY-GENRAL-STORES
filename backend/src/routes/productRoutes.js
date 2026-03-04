@@ -33,6 +33,12 @@ router.get(
   authorize("admin"),
   productController.downloadTemplate,
 );
+router.get(
+  "/admin/export",
+  authenticate,
+  authorize("admin"),
+  productController.downloadAllProducts,
+);
 
 // ── Public / optional-auth routes with caching ────────────────────────────
 router.get("/", optionalAuth, cacheMiddleware('products', 180), productController.getAllProducts);

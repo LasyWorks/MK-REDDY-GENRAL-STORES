@@ -1,10 +1,18 @@
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const ApiError = require('../utils/ApiError');
+
+const UPLOAD_DIR = path.join(__dirname, '../../uploads');
+// Ensure the uploads directory exists (survives fresh clones / missing folders)
+if (!fs.existsSync(UPLOAD_DIR)) {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '../../uploads'));
+    cb(null, UPLOAD_DIR);
   },
   filename: (req, file, cb) => {
     const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
@@ -78,4 +86,4 @@ module.exports = {
   uploadExcel: handleUpload(uploadExcel),
   uploadImage: handleUpload(uploadImage),
   uploadImages: handleUpload(uploadImages),
-};
+};

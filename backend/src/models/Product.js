@@ -65,6 +65,31 @@ class Product {
   static async findBySku(sku) {
     return queryOne("SELECT * FROM products WHERE sku = $1", [sku]);
   }
+  /**
+   * Find a product by its English name and optional pack size.
+   * Used by the bulk stock-update upload to match rows without needing UUIDs.
+   */
+  static async findByNameAndPack(nameEn, unitPackSize = null) {
+    if (unitPackSize) {
+      const row = await queryOne(
+        `SELECT p.* FROM products p
+         JOIN product_translations t ON t.product_id = p.id AND t.lang_code = 'en'
+         WHERE LOWER(t.name) = LOWER($1) AND LOWER(COALESCE(p.unit_pack_size,'')) = LOWER($2)
+         LIMIT 1`,
+        [nameEn, unitPackSize],
+      );
+      if (row) return row;
+    }
+    // Fallback: match by name only (first hit)
+    return queryOne(
+      `SELECT p.* FROM products p
+       JOIN product_translations t ON t.product_id = p.id AND t.lang_code = 'en'
+       WHERE LOWER(t.name) = LOWER($1)
+       ORDER BY p.created_at ASC
+       LIMIT 1`,
+      [nameEn],
+    );
+  }
   static async findAll(options = {}) {
     const {
       page = 1,
