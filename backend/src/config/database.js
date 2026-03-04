@@ -35,10 +35,10 @@ const dbMonitor = new DatabaseMonitor(pool, {
   minAvailableConnections: 2,
 });
 
-// Start monitoring in production
-if (process.env.NODE_ENV === 'production') {
-  dbMonitor.start();
-}
+// Start monitoring in production — disabled: causes silent crash on restricted hosting
+// if (process.env.NODE_ENV === 'production') {
+//   dbMonitor.start();
+// }
 const testConnection = async () => {
   let client;
   try {
