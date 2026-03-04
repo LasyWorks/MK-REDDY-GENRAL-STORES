@@ -97,7 +97,6 @@ if (config.env === 'production') {
     'SMTP_USER',
     'SMTP_PASSWORD',
     'STORE_GST_NUMBER',
-    'FAST2SMS_API_KEY',
     'CORS_ORIGIN',
   ];
   requiredEnvVars.forEach((envVar) => {
