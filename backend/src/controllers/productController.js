@@ -20,6 +20,8 @@ const getProducts = asyncHandler(async (req, res) => {
     brand,
     has_discount,
     id,
+    parent_product_id,
+    exclude_variants,
   } = req.query;
 
   // Show product names in customer's language for better user experience
@@ -48,6 +50,9 @@ const getProducts = asyncHandler(async (req, res) => {
     sortOrder: sort_order,
     brand: brand || null,
     lang,
+    // Variant support
+    parentProductId: parent_product_id || null,
+    excludeVariants: exclude_variants === "true",
   });
   ApiResponse.paginated(res, result.products, {
     page,

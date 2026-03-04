@@ -3,7 +3,7 @@ const { asyncHandler } = require("../middlewares");
 const ApiResponse = require("../utils/ApiResponse");
 const { getPaginationParams } = require("../utils/helpers");
 const getCategories = asyncHandler(async (req, res) => {
-  const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
+  const { page, limit } = getPaginationParams(req.query.page, req.query.limit, 500);
   const { is_active, search, parent_id, parent_only } = req.query;
   const lang = req.language || "en";
   const result = await CategoryService.getAll({
@@ -49,7 +49,7 @@ const toggleActive = asyncHandler(async (req, res) => {
 });
 const getCategoryProducts = asyncHandler(async (req, res) => {
   const { ProductService } = require("../services");
-  const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
+  const { page, limit } = getPaginationParams(req.query.page, req.query.limit, 500);
   const lang = req.language || "en";
   const userType = req.user?.user_type || "retail";
   const result = await ProductService.getByCategory(req.params.id, {
@@ -65,7 +65,7 @@ const getCategoryProducts = asyncHandler(async (req, res) => {
   });
 });
 const getAllCategoriesAdmin = asyncHandler(async (req, res) => {
-  const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
+  const { page, limit } = getPaginationParams(req.query.page, req.query.limit, 500);
   const lang = req.language || "en";
   const result = await CategoryService.getAll({
     page,

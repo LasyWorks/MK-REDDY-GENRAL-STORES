@@ -10,7 +10,7 @@ import { useCart } from "@/context/CartContext";
 import ImageWithFallback from "@/components/common/ImageWithFallback";
 
 export default function StickyCartBar({ product, sentinelRef }) {
-  const { items, addItem, updateQty, openCart } = useCart();
+  const { items, addItem, updateQty, openCart, isCartOpen } = useCart();
   const [visible, setVisible] = useState(false);
 
   const cartItem = items.find((i) => i.id === product.id);
@@ -29,7 +29,8 @@ export default function StickyCartBar({ product, sentinelRef }) {
     return () => obs.disconnect();
   }, [sentinelRef]);
 
-  if (!visible) return null;
+  // Hide when cart sidebar is open so checkout button is visible
+  if (!visible || isCartOpen) return null;
 
   const handleAdd = async () => {
     if (isOutOfStock) return;

@@ -41,6 +41,7 @@ import {
   ChartBarIcon as Activity,
   StarIcon,
   LightBulbIcon,
+  Cog6ToothIcon as Cog,
 } from "@heroicons/react/24/outline";
 const Loader2 = ArrowPathIcon;
 const RefreshCcw = ArrowPathIcon;
@@ -358,7 +359,7 @@ function OverviewTab({ onSwitchTab }) {
     </div>
   );
 }
-function ProductModal({ product, categories, onClose, onSaved }) {
+function ProductModal({ product, categories, allProducts = [], onClose, onSaved }) {
   const isEdit = !!product;
   const initImages = () => {
     if (Array.isArray(product?.image_urls) && product.image_urls.length)
@@ -386,6 +387,7 @@ function ProductModal({ product, categories, onClose, onSaved }) {
     description_en: product?.description || "",
     is_active: product?.is_active !== false,
     is_featured: product?.is_featured || false,
+    parent_product_id: product?.parent_product_id || "",
   });
 
   const [parentCategoryId, setParentCategoryId] = useState(
@@ -394,11 +396,11 @@ function ProductModal({ product, categories, onClose, onSaved }) {
   const [imageUrls, setImageUrls] = useState(initImages);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [parentSearch, setParentSearch] = useState("");
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
   const setImg = (i, val) =>
     setImageUrls((a) => a.map((u, idx) => (idx === i ? val : u)));
-  const addImg = () => setImageUrls((a) => [...a, ""]);
-  const removeImg = (i) =>
+  const addImg = () => setImageUrls((a) => [...a, ""]);  const removeImg = (i) =>
     setImageUrls((a) =>
       a.length === 1 ? [""] : a.filter((_, idx) => idx !== i),
     );
@@ -434,6 +436,7 @@ function ProductModal({ product, categories, onClose, onSaved }) {
         image_urls: imgs,
         image_url: imgs[0] || null,
         variant: form.unit,
+        parent_product_id: form.parent_product_id || null,
       };
       if (isEdit) await api.put(`/products/${product.id}`, payload);
       else await api.post("/products", payload);
@@ -730,6 +733,87 @@ function ProductModal({ product, categories, onClose, onSaved }) {
                 </p>
               )}
             </div>
+            {/* ── Variant Grouping ── */}
+            <div className="col-span-2">
+              <label className="block text-xs font-semibold text-gray-600 mb-1">
+                Parent Product (for weight/size variants)
+              </label>
+              {form.parent_product_id ? (
+                <div className="flex items-center gap-2 border border-indigo-200 bg-indigo-50 rounded-lg px-3 py-2">
+                  <Package className="w-4 h-4 text-indigo-500 shrink-0" />
+                  <span className="text-sm text-gray-800 flex-1 truncate">
+                    {allProducts.find(p => p.id === form.parent_product_id)?.name || form.parent_product_id}
+                  </span>
+                  <span className="text-[10px] text-indigo-600 font-semibold bg-indigo-100 px-1.5 py-0.5 rounded">
+                    {allProducts.find(p => p.id === form.parent_product_id)?.variant ||
+                     allProducts.find(p => p.id === form.parent_product_id)?.unit_pack_size || ''}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => { set("parent_product_id", ""); setParentSearch(""); }}
+                    className="text-gray-400 hover:text-red-500"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <input
+                    value={parentSearch}
+                    onChange={(e) => setParentSearch(e.target.value)}
+                    placeholder="Search by product name to link as variant…"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  {parentSearch.length >= 2 && (
+                    <div className="border border-gray-200 rounded-lg max-h-36 overflow-y-auto divide-y divide-gray-50">
+                      {allProducts
+                        .filter(p =>
+                          p.id !== product?.id &&
+                          !p.parent_product_id &&
+                          (p.name || '').toLowerCase().includes(parentSearch.toLowerCase())
+                        )
+                        .slice(0, 8)
+                        .map(p => (
+                          <button
+                            type="button"
+                            key={p.id}
+                            onClick={() => {
+                              set("parent_product_id", p.id);
+                              // Auto-fill brand & category from parent to keep consistency
+                              if (p.brand && !form.brand) set("brand", p.brand);
+                              if (p.category_id && !form.category_id) {
+                                set("category_id", p.category_id);
+                                const cat = categories.find(c => c.id === p.category_id);
+                                if (cat?.parent_id) setParentCategoryId(cat.parent_id);
+                              }
+                              setParentSearch("");
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-indigo-50 flex items-center gap-2"
+                          >
+                            <div className="w-7 h-7 rounded bg-gray-50 overflow-hidden shrink-0">
+                              <ImageWithFallback src={p.image_url} alt="" className="w-full h-full object-contain" size="sm" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-gray-800 truncate">{p.name}</p>
+                              <p className="text-[10px] text-gray-400">{p.variant || p.unit_pack_size || ''} · ₹{p.price}</p>
+                            </div>
+                          </button>
+                        ))}
+                      {allProducts.filter(p =>
+                        p.id !== product?.id &&
+                        !p.parent_product_id &&
+                        (p.name || '').toLowerCase().includes(parentSearch.toLowerCase())
+                      ).length === 0 && (
+                        <p className="text-xs text-gray-400 px-3 py-2">No matching products</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+              <p className="text-[10px] text-gray-400 mt-1">
+                Link this product as a size variant of another product (e.g. Toor Dal 500gm → parent: Toor Dal 250gm)
+              </p>
+            </div>
             <div className="col-span-2">
               <label className="block text-xs font-semibold text-gray-600 mb-1">
                 Description
@@ -794,8 +878,155 @@ function ProductModal({ product, categories, onClose, onSaved }) {
     </div>
   );
 }
+/* ── Variant sub-row (indented, lighter) ── */
+function VariantSubRow({ p, onEdit, onDelete, deleting }) {
+  const mrp = parseFloat(p.mrp || 0);
+  const price = parseFloat(p.price || 0);
+  const disc = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
+  const img = Array.isArray(p.image_urls) ? p.image_urls[0] : p.image_url;
+  return (
+    <tr className="bg-indigo-50/30 hover:bg-indigo-50/60 transition-colors border-l-2 border-indigo-200">
+      <td className="pl-14 pr-4 py-2">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-md bg-gray-50 flex-shrink-0 overflow-hidden">
+            <ImageWithFallback src={img} alt={p.name} size="sm" className="w-full h-full object-contain" />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-gray-700">
+              {p.variant || p.unit_pack_size || p.unit || "Variant"}
+            </p>
+          </div>
+        </div>
+      </td>
+      <td className="px-4 py-2 text-xs text-gray-400">—</td>
+      <td className="px-4 py-2">
+        <span className="font-semibold text-gray-900 text-sm">₹{price}</span>
+        {mrp > price && <span className="ml-1 text-xs text-gray-400 line-through">₹{mrp}</span>}
+      </td>
+      <td className="px-4 py-2">
+        {disc > 0 ? (
+          <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">{disc}%</span>
+        ) : <span className="text-gray-400 text-xs">—</span>}
+      </td>
+      <td className="px-4 py-2">
+        {(p.stock_quantity ?? 0) > 0 ? (
+          <span className="bg-green-50 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">{p.stock_quantity} In Stock</span>
+        ) : (
+          <span className="bg-red-50 text-red-600 text-xs font-semibold px-2 py-0.5 rounded-full">Out of Stock</span>
+        )}
+      </td>
+      <td className="px-4 py-2" />
+      <td className="px-4 py-2">
+        <div className="flex items-center gap-2">
+          <button onClick={() => onEdit(p)} className="p-1 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 transition-colors">
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
+          <button onClick={() => onDelete(p.id)} disabled={deleting === p.id} className="p-1 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+            {deleting === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+/* ── Quick Add Variant Modal ── */
+function VariantModal({ parent, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    unit: "",
+    price: "",
+    mrp: "",
+    stock_quantity: 100,
+    image_url: "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
+
+  async function save(e) {
+    e.preventDefault();
+    if (!form.unit.trim()) { setError("Size / variant label is required"); return; }
+    if (!form.price || !form.mrp) { setError("Price and MRP are required"); return; }
+    setSaving(true);
+    setError("");
+    try {
+      const payload = {
+        name_en: parent.name,
+        brand: parent.brand || "",
+        sku: "",
+        mrp: form.mrp,
+        price: form.price,
+        stock_quantity: form.stock_quantity,
+        variant: form.unit,
+        unit: form.unit,
+        category_id: parent.category_id,
+        description_en: parent.description || "",
+        is_active: true,
+        is_featured: false,
+        parent_product_id: parent.id,
+        image_urls: form.image_url ? [form.image_url] : (Array.isArray(parent.image_urls) ? parent.image_urls : parent.image_url ? [parent.image_url] : []),
+        image_url: form.image_url || (Array.isArray(parent.image_urls) ? parent.image_urls[0] : parent.image_url) || null,
+      };
+      await api.post("/products", payload);
+      onSaved();
+    } catch (e) {
+      setError(e.message || "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+          <div>
+            <h2 className="font-bold text-sm text-gray-900">Add Variant</h2>
+            <p className="text-xs text-gray-400 mt-0.5">for {parent.name}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+        </div>
+        <form onSubmit={save} className="p-5 space-y-3">
+          {error && <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-1.5">{error}</p>}
+          <div>
+            <label className="text-xs font-semibold text-gray-600 mb-1 block">Size / Pack Label *</label>
+            <input value={form.unit} onChange={e => set("unit", e.target.value)} placeholder="e.g. 250g, 1 kg, Pack of 4" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-gray-600 mb-1 block">MRP (₹) *</label>
+              <input type="number" step="0.01" value={form.mrp} onChange={e => set("mrp", e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-600 mb-1 block">Sell Price (₹) *</label>
+              <input type="number" step="0.01" value={form.price} onChange={e => set("price", e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-gray-600 mb-1 block">Stock Quantity</label>
+            <input type="number" value={form.stock_quantity} onChange={e => set("stock_quantity", e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-gray-600 mb-1 block">Image URL (optional)</label>
+            <input value={form.image_url} onChange={e => set("image_url", e.target.value)} placeholder="Leave empty to use parent image" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+          </div>
+          <div className="flex justify-end gap-3 pt-1">
+            <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 hover:bg-gray-50">Cancel</button>
+            <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold flex items-center gap-2 disabled:opacity-60">
+              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+              Add Variant
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* ── Parent Product Row (with expandable variants) ── */
 function ProductRow({
   p,
+  variants,
   onEdit,
   onDelete,
   deleting,
@@ -803,12 +1034,16 @@ function ProductRow({
   togglingFeatured,
   onToggleActive,
   togglingActive,
+  onAddVariant,
 }) {
+  const [expanded, setExpanded] = useState(false);
   const mrp = parseFloat(p.mrp || 0);
   const price = parseFloat(p.price || 0);
   const disc = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
   const img = Array.isArray(p.image_urls) ? p.image_urls[0] : p.image_url;
+  const hasVariants = variants && variants.length > 0;
   return (
+    <>
     <tr
       className={`hover:bg-gray-50 transition-colors ${p.is_active === false ? "bg-gray-50 opacity-75" : ""}`}
     >
@@ -833,11 +1068,17 @@ function ProductRow({
                 </span>
               )}
             </div>
-            {(p.brand || p.variant || p.unit) && (
-              <p className="text-xs text-gray-400">
-                {[p.brand, p.variant || p.unit].filter(Boolean).join(" · ")}
-              </p>
-            )}
+            <p className="text-xs text-gray-400">
+              {[p.brand, p.variant || p.unit_pack_size || p.unit].filter(Boolean).join(" · ")}
+              {hasVariants && (
+                <button
+                  onClick={() => setExpanded(!expanded)}
+                  className="ml-1.5 text-blue-600 font-medium hover:text-blue-800"
+                >
+                  {variants.length + 1} sizes {expanded ? "▾" : "▸"}
+                </button>
+              )}
+            </p>
           </div>
         </div>
       </td>
@@ -921,6 +1162,13 @@ function ProductRow({
             )}
           </button>
           <button
+            onClick={() => onAddVariant(p)}
+            title="Add size variant"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+          <button
             onClick={() => onDelete(p.id)}
             disabled={deleting === p.id}
             className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
@@ -934,6 +1182,11 @@ function ProductRow({
         </div>
       </td>
     </tr>
+    {/* Variant sub-rows */}
+    {hasVariants && expanded && variants.map(v => (
+      <VariantSubRow key={v.id} p={v} onEdit={onEdit} onDelete={onDelete} deleting={deleting} />
+    ))}
+    </>
   );
 }
 const TABLE_HEAD = (
@@ -1068,14 +1321,31 @@ function ProductsTab() {
     });
   }
   const grouped = useMemo(() => {
+    // Build a set of all child product IDs (those with parent_product_id)
+    const childIds = new Set();
+    const variantMap = {}; // parentId -> [child products]
+    for (const p of products) {
+      if (p.parent_product_id) {
+        childIds.add(p.id);
+        if (!variantMap[p.parent_product_id]) variantMap[p.parent_product_id] = [];
+        variantMap[p.parent_product_id].push(p);
+      }
+    }
+    // Sort variants by price within each group
+    for (const key of Object.keys(variantMap)) {
+      variantMap[key].sort((a, b) => parseFloat(a.price || 0) - parseFloat(b.price || 0));
+    }
+
     const map = {};
     for (const p of products) {
-      // Use parent_category_name (for subcategories) or category_name (for top-level).
-      // Products with no resolved category are skipped — they don't belong to any backend category.
+      // Skip child variants — they appear nested under their parent
+      if (childIds.has(p.id)) continue;
       const key = p.parent_category_name || p.category_name;
       if (!key) continue;
       if (!map[key]) map[key] = [];
-      map[key].push(p);
+      // Attach variants array to parent product for the row
+      const pWithVariants = { ...p, _variants: variantMap[p.id] || [] };
+      map[key].push(pWithVariants);
     }
     return Object.entries(map)
       .sort(([a], [b]) => a.localeCompare(b))
@@ -1174,6 +1444,7 @@ function ProductsTab() {
                           <ProductRow
                             key={p.id}
                             p={p}
+                            variants={p._variants}
                             onEdit={setModal}
                             onDelete={handleDelete}
                             deleting={deleting}
@@ -1181,6 +1452,7 @@ function ProductsTab() {
                             togglingFeatured={togglingFeatured}
                             onToggleActive={handleToggleActive}
                             togglingActive={togglingActive}
+                            onAddVariant={(parent) => setModal({ _variantParent: parent })}
                           />
                         ))}
                       </tbody>
@@ -1193,12 +1465,21 @@ function ProductsTab() {
       </div>
       {}
       {modal && (
-        <ProductModal
-          product={modal === "add" ? null : modal}
-          categories={categories}
-          onClose={() => setModal(null)}
-          onSaved={onSaved}
-        />
+        modal?._variantParent ? (
+          <VariantModal
+            parent={modal._variantParent}
+            onClose={() => setModal(null)}
+            onSaved={onSaved}
+          />
+        ) : (
+          <ProductModal
+            product={modal === "add" ? null : modal}
+            categories={categories}
+            allProducts={products}
+            onClose={() => setModal(null)}
+            onSaved={onSaved}
+          />
+        )
       )}
     </div>
   );
@@ -4077,6 +4358,115 @@ function PromotionsTab() {
     </div>
   );
 }
+/* ─── Store Settings Tab ─── */
+function StoreSettingsTab() {
+  const { toast } = useDialog();
+  const [settings, setSettings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({});
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await api.get("/settings");
+        const list = res.data || [];
+        setSettings(list);
+        const f = {};
+        list.forEach((s) => (f[s.key] = s.value));
+        setForm(f);
+      } catch (e) {
+        toast(e.message || "Failed to load settings", "error");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await api.put("/settings", { settings: form });
+      const list = res.data || [];
+      setSettings(list);
+      toast("Settings saved successfully", "success");
+    } catch (e) {
+      toast(e.message || "Failed to save settings", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-green-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-100">
+          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <Cog className="w-5 h-5 text-gray-500" />
+            Store Settings
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Configure delivery charges, handling fees, and minimum order amount.
+            These values are shown to customers in the cart.
+          </p>
+        </div>
+        <div className="px-6 py-5 space-y-6">
+          {settings.map((s) => (
+            <div key={s.key}>
+              <label className="block text-sm font-semibold text-gray-800 mb-1">
+                {s.label || s.key}
+              </label>
+              {s.description && (
+                <p className="text-xs text-gray-400 mb-2">{s.description}</p>
+              )}
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">₹</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form[s.key] ?? ""}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, [s.key]: e.target.value }))
+                  }
+                  className="w-full pl-7 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent transition"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-semibold rounded-lg text-sm transition-colors shadow-sm"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Saving…
+              </>
+            ) : (
+              <>
+                <Check className="w-4 h-4" />
+                Save Settings
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const TABS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "products", label: "Products", icon: Package },
@@ -4085,6 +4475,7 @@ const TABS = [
   { id: "billing", label: "Billing", icon: CircleDollarSign },
   { id: "promotions", label: "Promotions", icon: Megaphone },
   { id: "users", label: "Users", icon: Users },
+  { id: "settings", label: "Settings", icon: Cog },
 ];
 export default function AdminDashboard() {
   const { ready, admin } = useAdminGuard();
@@ -4220,6 +4611,7 @@ export default function AdminDashboard() {
         {tab === "orders" && <OrdersTab />}
         {tab === "promotions" && <PromotionsTab />}
         {tab === "users" && <UsersTab />}
+        {tab === "settings" && <StoreSettingsTab />}
       </main>
     </div>
   );

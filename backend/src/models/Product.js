@@ -34,7 +34,33 @@ class Product {
        WHERE p.id = $2`,
       [lang, id],
     );
-    return row || null;
+    if (!row) return null;
+    // Attach sibling variants so the detail page can render weight-selector buttons
+    row.variants = await this.findVariants(row.id, row.parent_product_id, lang);
+    return row;
+  }
+
+  /**
+   * Return all products that belong to the same variant group.
+   * The group includes the parent itself plus every child that points to it.
+   * @param {string} productId        - the current product uuid
+   * @param {string|null} parentId    - parent_product_id value from the product row
+   * @param {string} lang
+   */
+  static async findVariants(productId, parentId, lang = "en") {
+    // Determine the root of the variant tree
+    const rootId = parentId || productId;
+    const rows = await query(
+      `SELECT p.*, ${PROD_TRANS_COLS}
+       FROM products p
+       JOIN categories c ON p.category_id = c.id
+       ${buildTransJoins("$1")}
+       WHERE (p.id = $2 OR p.parent_product_id = $2)
+         AND p.is_active = TRUE
+       ORDER BY p.price ASC`,
+      [lang, rootId],
+    );
+    return rows;
   }
   static async findBySku(sku) {
     return queryOne("SELECT * FROM products WHERE sku = $1", [sku]);
@@ -58,6 +84,9 @@ class Product {
       sortBy = "name",
       sortOrder = "ASC",
       lang = "en",
+      // Variant filters
+      parentProductId = null,   // fetch all variants of a specific parent
+      excludeVariants = false,  // when true: hide child-variant rows in listings
     } = options;
     const offset = (page - 1) * limit;
     const conds = [];
@@ -115,6 +144,17 @@ class Product {
       conds.push(`p.stock_quantity <= $${idx++}`);
       params.push(stockThreshold);
     }
+    // Variant-group filter: fetch all size variants of one parent product
+    if (parentProductId) {
+      conds.push(`(p.parent_product_id = $${idx} OR p.id = $${idx})`);
+      params.push(parentProductId);
+      idx++;
+    }
+    // Hide child variants from category / search listings so only the
+    // parent (or standalone) product appears as a single card.
+    if (excludeVariants) {
+      conds.push("p.parent_product_id IS NULL");
+    }
     const where = conds.length ? "WHERE " + conds.join(" AND ") : "";
     const allowedSort = {
       name: "pt_en.name",
@@ -138,7 +178,9 @@ class Product {
     const offsetIdx = idx++;
     const listParams = [...params, limit, offset];
     const rows = await query(
-      `SELECT p.*, ${PROD_TRANS_COLS}
+      `SELECT p.*,
+              (SELECT COUNT(*) FROM products v WHERE v.parent_product_id = p.id) AS variant_count,
+              ${PROD_TRANS_COLS}
        FROM products p
        JOIN categories c ON p.category_id = c.id
        ${buildTransJoins("$1")}
@@ -175,13 +217,15 @@ class Product {
       image_url,
       is_active,
       is_featured,
+      parent_product_id,
     } = data;
     const prodId = await insert(
       `INSERT INTO products
          (category_id, sku, brand, variant, unit_type, unit_pack_size, hsn_code,
           mrp, purchase_price, price, wholesale_price, gst_percentage, discount, margin,
-          stock_quantity, min_order_quantity, max_order_quantity, image_url, is_active, is_featured)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
+          stock_quantity, min_order_quantity, max_order_quantity, image_url, is_active, is_featured,
+          parent_product_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
        RETURNING id`,
       [
         category_id,
@@ -204,6 +248,7 @@ class Product {
         image_url || null,
         is_active !== false,
         is_featured || false,
+        parent_product_id || null,
       ],
     );
     await modify(
@@ -248,6 +293,7 @@ class Product {
       "image_urls",
       "is_active",
       "is_featured",
+      "parent_product_id",
     ];
     const fields = [];
     const vals = [];

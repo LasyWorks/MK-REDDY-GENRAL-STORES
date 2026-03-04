@@ -302,6 +302,7 @@ class UserService {
       is_blocked: user.is_blocked,
       blocked_reason: user.blocked_reason,
       last_login_at: user.last_login_at,
+      deleted_at: user.deleted_at || null,
       created_at: user.created_at,
     };
   }

@@ -1,11 +1,26 @@
 export function groupProductsByVariant(products) {
   if (!Array.isArray(products) || products.length === 0) return [];
-  // Group products by brand+name to show variants together (e.g., "Vim 500g" and "Vim 1kg")
+
+  // Strategy: prefer explicit parent_product_id grouping, fallback to brand+name
   const groups = {};
+
   products.forEach(product => {
-    const name = (product.name || '').toLowerCase().trim();
-    const brand = (product.brand || '').toLowerCase().trim();
-    const key = `${brand}_${name}`;
+    let key;
+    if (product.parent_product_id) {
+      // Child variant — group under its parent
+      key = `pid_${product.parent_product_id}`;
+    } else if (
+      products.some(p => p.parent_product_id === product.id)
+    ) {
+      // This product IS a parent — group under itself
+      key = `pid_${product.id}`;
+    } else {
+      // No parent_product_id links — fallback to brand+name grouping
+      const name = (product.name || '').toLowerCase().trim();
+      const brand = (product.brand || '').toLowerCase().trim();
+      key = `${brand}_${name}`;
+    }
+
     if (!groups[key]) {
       groups[key] = {
         name: product.name,
@@ -18,6 +33,7 @@ export function groupProductsByVariant(products) {
     }
     groups[key].variants.push(product);
   });
+
   return Object.values(groups).map(group => {
     // Sort variants by size (small to large) for better user experience
     group.variants.sort((a, b) => {

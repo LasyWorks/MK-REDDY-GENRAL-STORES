@@ -9,13 +9,21 @@ import {
   ArrowRightOnRectangleIcon as LogIn,
   TagIcon,
   ShoppingCartIcon,
+  ChevronRightIcon,
+  ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
+import {
+  DocumentTextIcon,
+  TruckIcon,
+  CurrencyRupeeIcon,
+} from "@heroicons/react/24/solid";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import secureStorage from "@/lib/secureStorage";
 import proxyImg from "@/lib/imgProxy";
+import api from "@/lib/api";
+
 export default function CartSidebar() {
   const {
     items,
@@ -29,6 +37,11 @@ export default function CartSidebar() {
   } = useCart();
   const overlayRef = useRef(null);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [storeSettings, setStoreSettings] = useState({
+    min_order_amount: 100,
+    delivery_charge: 0,
+    handling_charge: 2,
+  });
   const pathname = usePathname();
   const loginHref = `/login?redirect=${encodeURIComponent(pathname || "/")}`;
   useEffect(() => {
@@ -37,6 +50,13 @@ export default function CartSidebar() {
   useEffect(() => {
     if (isCartOpen) {
       document.body.style.overflow = "hidden";
+      // Fetch latest store settings when cart opens
+      api
+        .get("/settings/public")
+        .then((res) => {
+          if (res.data) setStoreSettings(res.data);
+        })
+        .catch(() => {});
     } else {
       document.body.style.overflow = "";
     }
@@ -44,51 +64,51 @@ export default function CartSidebar() {
       document.body.style.overflow = "";
     };
   }, [isCartOpen]);
+
+  const totalMRP = items.reduce((s, i) => s + i.mrp * i.quantity, 0);
+  const totalSavings = totalMRP - totalPrice;
+  const hasSavings = totalSavings > 0.01;
+  const deliveryCharge = storeSettings.delivery_charge;
+  const handlingCharge = storeSettings.handling_charge;
+  const minOrderAmount = storeSettings.min_order_amount;
+  const grandTotal = totalPrice + deliveryCharge + handlingCharge;
+  const belowMin = items.length > 0 && minOrderAmount > 0 && totalPrice < minOrderAmount;
+  const amountNeeded = minOrderAmount - totalPrice;
+
   if (!isCartOpen) return null;
   return (
     <>
-      {}
       <div
         ref={overlayRef}
         className="fixed inset-0 bg-black/40 z-40 backdrop-blur-[1px]"
         onClick={closeCart}
       />
-      {}
-      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white z-50 flex flex-col shadow-2xl animate-slide-in-right">
-        {}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-gray-50 z-50 flex flex-col shadow-2xl animate-slide-in-right">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3.5 bg-white border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <ShoppingBag className="w-5 h-5 text-green-600" />
-            <h2 className="text-lg font-bold text-gray-900">
-              My Cart{" "}
-              {totalCount > 0 && (
-                <span className="text-sm font-normal text-gray-500">
-                  ({totalCount} item{totalCount > 1 ? "s" : ""})
-                </span>
-              )}
-            </h2>
-          </div>
-          <div className="flex items-center gap-2">
-            {items.length > 0 && (
-              <button
-                onClick={clearCart}
-                className="text-xs text-red-500 hover:text-red-600 font-medium px-2 py-1 rounded-lg hover:bg-red-50 transition-colors"
-                aria-label="Clear all items"
-              >
-                Clear all
-              </button>
-            )}
             <button
               onClick={closeCart}
-              className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+              className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
               aria-label="Close cart"
             >
-              <X className="w-5 h-5 text-gray-600" />
+              <ArrowLeftIcon className="w-5 h-5 text-gray-700" />
             </button>
+            <h2 className="text-lg font-bold text-gray-900">My Cart</h2>
           </div>
+          {items.length > 0 && (
+            <button
+              onClick={clearCart}
+              className="text-xs text-red-500 hover:text-red-600 font-medium px-2.5 py-1 rounded-lg hover:bg-red-50 transition-colors"
+              aria-label="Clear all items"
+            >
+              Clear all
+            </button>
+          )}
         </div>
-        {}
-        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto">
           {items.length === 0 ? (
             !loggedIn ? (
               <div className="flex flex-col items-center justify-center h-full text-center py-16 px-4">
@@ -133,47 +153,153 @@ export default function CartSidebar() {
               </div>
             )
           ) : (
-            items.map((item) => (
-              <CartItem
-                key={item.id}
-                item={item}
-                onRemove={removeItem}
-                onUpdateQty={updateQty}
-              />
-            ))
+            <>
+              {/* Shipment info */}
+              <div className="bg-white mx-3 mt-3 rounded-xl border border-gray-100 px-4 py-3 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0">
+                  <TruckIcon className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">
+                    Shipment of {totalCount} item{totalCount > 1 ? "s" : ""}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Order will be confirmed by the store
+                  </p>
+                </div>
+              </div>
+
+              {/* Min order warning */}
+              {belowMin && (
+                <div className="mx-3 mt-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 text-xs text-amber-700 font-medium flex items-center gap-2">
+                  <CurrencyRupeeIcon className="w-4 h-4 flex-shrink-0 text-amber-500" />
+                  Add ₹{amountNeeded.toFixed(0)} more to place order (min ₹{minOrderAmount})
+                </div>
+              )}
+
+              {/* Cart items */}
+              <div className="bg-white mx-3 mt-3 rounded-xl border border-gray-100 divide-y divide-gray-50">
+                {items.map((item) => (
+                  <CartItem
+                    key={item.id}
+                    item={item}
+                    onRemove={removeItem}
+                    onUpdateQty={updateQty}
+                  />
+                ))}
+              </div>
+
+              {/* Bill details */}
+              <div className="bg-white mx-3 mt-3 mb-3 rounded-xl border border-gray-100 px-4 py-4">
+                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 mb-3">
+                  <DocumentTextIcon className="w-4 h-4 text-gray-500" />
+                  Bill details
+                </h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between text-gray-600">
+                    <span>Items total</span>
+                    <span className="font-medium text-gray-900 flex items-center gap-1">
+                      {hasSavings && (
+                        <span className="text-xs text-gray-400 line-through">
+                          ₹{totalMRP.toFixed(2)}
+                        </span>
+                      )}
+                      ₹{totalPrice.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span className="flex items-center gap-1">
+                      <TruckIcon className="w-3.5 h-3.5" />
+                      Delivery charge
+                    </span>
+                    {deliveryCharge === 0 ? (
+                      <span className="text-green-600 font-semibold">FREE</span>
+                    ) : (
+                      <span className="font-medium text-gray-900">
+                        ₹{deliveryCharge}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span className="flex items-center gap-1">
+                      <ShoppingBag className="w-3.5 h-3.5" />
+                      Handling charge
+                    </span>
+                    {handlingCharge === 0 ? (
+                      <span className="text-green-600 font-semibold">FREE</span>
+                    ) : (
+                      <span className="font-medium text-gray-900">
+                        ₹{handlingCharge}
+                      </span>
+                    )}
+                  </div>
+                  <div className="border-t border-dashed border-gray-200 pt-2 mt-2 flex justify-between font-bold text-gray-900">
+                    <span>Grand total</span>
+                    <span>₹{grandTotal.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Savings badge */}
+              {hasSavings && (
+                <div className="mx-3 mb-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 text-xs text-blue-700 font-medium text-center flex items-center justify-center gap-1.5">
+                  <TagIcon className="w-4 h-4 shrink-0" />
+                  You save ₹{totalSavings.toFixed(0)} on this order!
+                </div>
+              )}
+
+              {/* Cancellation policy */}
+              <div className="mx-3 mb-3 bg-white rounded-xl border border-gray-100 px-4 py-3">
+                <p className="text-xs font-semibold text-gray-700 mb-1">
+                  Order Policy
+                </p>
+                <p className="text-[11px] text-gray-400 leading-relaxed">
+                  Orders once confirmed cannot be cancelled. In case of any
+                  issues, contact the store for assistance.
+                </p>
+              </div>
+            </>
           )}
         </div>
-        {}
+
+        {/* Sticky bottom bar */}
         {items.length > 0 && (
-          <div className="border-t border-gray-100 px-5 py-4 space-y-3 bg-gray-50">
-            {}
-            {items.some((i) => i.mrp > i.price) && (
-              <div className="bg-green-50 border border-green-100 rounded-lg px-3 py-2 text-sm text-green-700 font-medium text-center flex items-center justify-center gap-1.5">
-                <TagIcon className="w-4 h-4 shrink-0" />
-                You save ₹
-                {items
-                  .reduce((s, i) => s + (i.mrp - i.price) * i.quantity, 0)
-                  .toFixed(0)}{" "}
-                on this order!
+          <div className="bg-green-600 shadow-[0_-4px_12px_rgba(0,0,0,0.1)]">
+            {belowMin ? (
+              <div className="px-5 py-4 flex items-center justify-between">
+                <div>
+                  <p className="text-white font-bold text-base">
+                    ₹{grandTotal.toFixed(0)}
+                  </p>
+                  <p className="text-green-100 text-[11px]">TOTAL</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-green-100 text-xs font-medium">
+                    Add ₹{amountNeeded.toFixed(0)} more
+                  </p>
+                  <p className="text-green-200 text-[10px]">
+                    Min order ₹{minOrderAmount}
+                  </p>
+                </div>
               </div>
+            ) : (
+              <Link
+                href={loggedIn ? "/checkout" : loginHref}
+                onClick={closeCart}
+                className="flex items-center justify-between px-5 py-4 w-full"
+              >
+                <div>
+                  <p className="text-white font-bold text-base">
+                    ₹{grandTotal.toFixed(0)}
+                  </p>
+                  <p className="text-green-100 text-[11px]">TOTAL</p>
+                </div>
+                <div className="flex items-center gap-1 text-white font-bold text-sm">
+                  {loggedIn ? "Proceed to Checkout" : "Login to Proceed"}
+                  <ChevronRightIcon className="w-4 h-4" />
+                </div>
+              </Link>
             )}
-            {}
-            <div className="flex items-center justify-between text-gray-600 text-sm">
-              <span>
-                Subtotal ({totalCount} item{totalCount > 1 ? "s" : ""})
-              </span>
-              <span className="font-semibold text-gray-900">
-                ₹{totalPrice.toFixed(2)}
-              </span>
-            </div>
-            {}
-            <Link
-              href="/checkout"
-              onClick={closeCart}
-              className="flex items-center justify-center w-full py-3.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition-colors text-base shadow-md"
-            >
-              Proceed to Checkout →
-            </Link>
           </div>
         )}
       </div>
@@ -193,24 +319,25 @@ export default function CartSidebar() {
     </>
   );
 }
+
 function CartItem({ item, onRemove, onUpdateQty }) {
   return (
-    <div className="flex gap-3 bg-white rounded-xl border border-gray-100 p-3 shadow-sm">
-      {}
-      <div className="w-16 h-16 rounded-lg bg-gray-50 flex-shrink-0 overflow-hidden">
+    <div className="flex items-center gap-3 px-4 py-3">
+      {/* Image */}
+      <div className="w-14 h-14 rounded-lg bg-gray-50 border border-gray-100 flex-shrink-0 overflow-hidden">
         {item.image_url ? (
           <img
             src={proxyImg(item.image_url)}
             alt={item.name}
-            className="w-full h-full object-contain"
+            className="w-full h-full object-contain p-0.5"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <ShoppingCartIcon className="w-7 h-7 text-gray-300" />
+            <ShoppingCartIcon className="w-6 h-6 text-gray-300" />
           </div>
         )}
       </div>
-      {}
+      {/* Info */}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-gray-900 line-clamp-2 leading-snug">
           {item.name}
@@ -218,42 +345,44 @@ function CartItem({ item, onRemove, onUpdateQty }) {
         {item.unit_pack_size && (
           <p className="text-xs text-gray-400 mt-0.5">{item.unit_pack_size}</p>
         )}
-        <div className="flex items-center justify-between mt-2">
-          {}
-          <div className="flex items-center gap-1.5 border border-green-500 rounded-lg overflow-hidden">
-            <button
-              onClick={() => onUpdateQty(item.id, item.quantity - 1)}
-              className="px-2 py-1 hover:bg-green-50 text-green-700 transition-colors"
-              aria-label="Decrease quantity"
-            >
-              <Minus className="w-3.5 h-3.5" />
-            </button>
-            <span className="text-sm font-bold text-gray-900 min-w-[20px] text-center">
-              {item.quantity}
+        <p className="text-sm font-bold text-gray-900 mt-1">
+          ₹{item.price.toFixed(0)}
+          {item.mrp > item.price && (
+            <span className="text-xs text-gray-400 line-through ml-1 font-normal">
+              ₹{item.mrp.toFixed(0)}
             </span>
-            <button
-              onClick={() => onUpdateQty(item.id, item.quantity + 1)}
-              disabled={item.quantity >= (item.stock_quantity ?? 99)}
-              className="px-2 py-1 hover:bg-green-50 text-green-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              aria-label="Increase quantity"
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
-          </div>
-          {}
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-gray-900">
-              ₹{(item.price * item.quantity).toFixed(2)}
-            </span>
-            <button
-              onClick={() => onRemove(item.id)}
-              className="p-1 rounded-md hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
-              aria-label="Remove item"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
+          )}
+        </p>
+      </div>
+      {/* Quantity + delete */}
+      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+        <div className="flex items-center bg-green-600 rounded-lg overflow-hidden">
+          <button
+            onClick={() => onUpdateQty(item.id, item.quantity - 1)}
+            className="px-2.5 py-1.5 text-white hover:bg-green-700 transition-colors"
+            aria-label="Decrease quantity"
+          >
+            <Minus className="w-3.5 h-3.5" />
+          </button>
+          <span className="text-sm font-bold text-white min-w-[24px] text-center">
+            {item.quantity}
+          </span>
+          <button
+            onClick={() => onUpdateQty(item.id, item.quantity + 1)}
+            disabled={item.quantity >= (item.stock_quantity ?? 99)}
+            className="px-2.5 py-1.5 text-white hover:bg-green-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            aria-label="Increase quantity"
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
         </div>
+        <button
+          onClick={() => onRemove(item.id)}
+          className="p-0.5 rounded text-gray-300 hover:text-red-500 transition-colors"
+          aria-label="Remove item"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
       </div>
     </div>
   );

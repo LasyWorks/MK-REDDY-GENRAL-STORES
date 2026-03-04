@@ -21,6 +21,7 @@ import orderService from "@/services/orderService";
 import cartService from "@/services/cartService";
 import authService from "@/services/authService";
 import proxyImg from "@/lib/imgProxy";
+import api from "@/lib/api";
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, totalPrice, totalCount, clearCartLocal } = useCart();
@@ -31,6 +32,11 @@ export default function CheckoutPage() {
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [storeSettings, setStoreSettings] = useState({
+    min_order_amount: 0,
+    delivery_charge: 0,
+    handling_charge: 0,
+  });
   useEffect(() => {
     // Redirect to login if not authenticated - checkout requires account
     if (!authService.isAuthenticated()) {
@@ -39,6 +45,10 @@ export default function CheckoutPage() {
     }
     setUser(authService.getCurrentUser());
     setAuthChecked(true);
+    // Fetch store settings for charges
+    api.get("/settings/public").then((res) => {
+      if (res.data) setStoreSettings(res.data);
+    }).catch(() => {});
   }, [router]);
   useEffect(() => {
     // Redirect to home if cart is empty (nothing to checkout)
@@ -154,7 +164,7 @@ export default function CheckoutPage() {
     }
   }
 
-  const finalTotal = Math.max(totalPrice - promoDiscount, 0);
+  const finalTotal = Math.max(totalPrice - promoDiscount + storeSettings.delivery_charge + storeSettings.handling_charge, 0);
   const totalAllSavings = totalSavings + promoDiscount;
   const handlePlaceOrder = async () => {
     setError(null);
@@ -412,8 +422,18 @@ export default function CheckoutPage() {
                 )}
                 <div className="flex justify-between text-gray-500">
                   <span>Delivery</span>
-                  <span className="text-green-600 font-medium">Free</span>
+                  {storeSettings.delivery_charge === 0 ? (
+                    <span className="text-green-600 font-medium">Free</span>
+                  ) : (
+                    <span className="font-medium text-gray-900">₹{storeSettings.delivery_charge.toFixed(2)}</span>
+                  )}
                 </div>
+                {storeSettings.handling_charge > 0 && (
+                  <div className="flex justify-between text-gray-500">
+                    <span>Handling charge</span>
+                    <span className="font-medium text-gray-900">₹{storeSettings.handling_charge.toFixed(2)}</span>
+                  </div>
+                )}
               </div>
               {}
               <div className="border-t border-gray-100" />

@@ -109,6 +109,13 @@ function ProductCard({ product }) {
           {product.unit_pack_size || product.unit_type || "1 unit"}
         </p>
 
+        {/* Variant sizes badge — shown on parent product when children exist */}
+        {parseInt(product.variant_count || 0) > 0 && (
+          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600">
+            {parseInt(product.variant_count) + 1} sizes available
+          </span>
+        )}
+
         {/* Countdown timer if promo */}
         {promo?.ends_at && !isOutOfStock && (
           <CountdownTimer

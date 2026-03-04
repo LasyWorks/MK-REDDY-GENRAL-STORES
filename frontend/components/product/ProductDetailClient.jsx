@@ -199,7 +199,12 @@ export default function ProductDetailClient({
         const prod = json.data;
         if (!prod) return;
         setLocalProduct(prod);
-        if (prod.brand) {
+
+        // Prefer explicit variant group (parent_product_id-based) returned by API
+        if (prod.variants && prod.variants.length > 1) {
+          setLocalVariants(prod.variants);
+        } else if (prod.brand) {
+          // Fallback: group by brand+category for legacy products
           const vRes = await fetch(
             `${API_URL}/products?brand=${encodeURIComponent(prod.brand)}&category_id=${prod.category_id}&limit=50&is_active=true&lang=${lang}`,
             { cache: "no-store" },
