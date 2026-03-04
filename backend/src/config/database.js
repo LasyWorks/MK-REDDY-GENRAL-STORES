@@ -40,16 +40,18 @@ if (process.env.NODE_ENV === 'production') {
   dbMonitor.start();
 }
 const testConnection = async () => {
-  const client = await pool.connect();
+  let client;
   try {
+    client = await pool.connect();
     await client.query('SELECT 1');
     logger.info('Database connection established successfully');
     return true;
   } catch (error) {
-    logger.error('Database connection failed:', error.message);
-    throw error;
+    logger.error('Database connection failed: ' + error.message);
+    console.error('DB CONNECTION ERROR:', error.message, error.code || '');
+    return false;
   } finally {
-    client.release();
+    if (client) client.release();
   }
 };
 const withTransaction = async (callback) => {

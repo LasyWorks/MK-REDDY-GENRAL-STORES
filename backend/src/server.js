@@ -2,7 +2,9 @@ const app = require('./app');
 const config = require('./config');
 const { pool, testConnection } = require('./config/database');
 const logger = require('./utils/logger');
-const PORT = config.port;
+// cPanel Passenger sets PORT env var — always respect it
+const PORT = process.env.PORT || config.port || 5001;
+
 async function startServer() {
   try {
     logger.info('Testing database connection...');
@@ -53,4 +55,4 @@ async function startServer() {
     process.exit(1);
   }
 }
-startServer();
+startServer();
