@@ -1,5 +1,6 @@
 const crypto = require('crypto');
-const { v7: uuidv7 } = require('uuid');
+const { v4: uuidv4 } = require('uuid');
+const uuidv7 = uuidv4; // uuid v8 alias — v4 is equivalent for ID generation
 const generateOTP = (length = 6) => {
   const digits = '0123456789';
   let otp = '';
