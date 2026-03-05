@@ -25,6 +25,7 @@ export default function ProductImages({
   const [activeIndex, setActiveIndex] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [cursorPosition, setCursorPosition] = useState({ x: 50, y: 50 });
+  const [touchStartX, setTouchStartX] = useState(null);
   const imgRef = useRef(null);
 
   const safeImages = images.length > 0 ? images : [null];
@@ -96,18 +97,18 @@ export default function ProductImages({
           </div>
         )}
 
-        {/* Nav arrows (multi-image) */}
+        {/* Nav arrows — always visible on mobile, hover-only on desktop */}
         {safeImages.length > 1 && (
           <>
             <button
               onClick={goPrev}
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 hover:bg-white rounded-full shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 hover:bg-white rounded-full shadow flex items-center justify-center md:opacity-0 md:group-hover:opacity-100 transition-opacity"
             >
               <ChevronLeft className="w-4 h-4 text-gray-700" />
             </button>
             <button
               onClick={goNext}
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 hover:bg-white rounded-full shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 hover:bg-white rounded-full shadow flex items-center justify-center md:opacity-0 md:group-hover:opacity-100 transition-opacity"
             >
               <ChevronRight className="w-4 h-4 text-gray-700" />
             </button>
@@ -121,9 +122,16 @@ export default function ProductImages({
           </div>
         )}
 
-        {/* Main Image (no in-place zoom) */}
+        {/* Main Image — touch-swipeable on mobile */}
         <div
-          className={`w-full h-80 sm:h-96 lg:h-112 p-4 ${isOutOfStock ? "opacity-50 grayscale" : ""}`}
+          className={`w-full h-[280px] md:h-80 lg:h-[28rem] p-4 ${isOutOfStock ? "opacity-50 grayscale" : ""}`}
+          onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
+          onTouchEnd={(e) => {
+            if (touchStartX == null) return;
+            const dx = e.changedTouches[0].clientX - touchStartX;
+            if (Math.abs(dx) > 40) dx < 0 ? goNext() : goPrev();
+            setTouchStartX(null);
+          }}
         >
           <ImageWithFallback
             src={mainSrc}
@@ -133,6 +141,23 @@ export default function ProductImages({
           />
         </div>
       </div>
+
+      {/* Pagination dots — mobile only */}
+      {safeImages.length > 1 && (
+        <div className="flex justify-center gap-1.5 pb-1 md:hidden">
+          {safeImages.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setActiveIndex(i)}
+              className={`rounded-full transition-all duration-200 ${
+                i === activeIndex
+                  ? "w-4 h-2 bg-[#16A34A]"
+                  : "w-2 h-2 bg-gray-300"
+              }`}
+            />
+          ))}
+        </div>
+      )}
 
       {/* -- Thumbnails -- */}
       {safeImages.length > 1 && (

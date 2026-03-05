@@ -59,6 +59,76 @@
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
+/* ── Mobile microinteractions ──────────────────────── */
+
+/* Cart badge bounce-once on item add */
+@keyframes bounce-once {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.4); }
+  60%  { transform: scale(0.9); }
+  80%  { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+.animate-bounce-once {
+  animation: bounce-once 0.35s ease-out;
+}
+
+/* Add-to-cart button pop */
+@keyframes cart-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.15); }
+  70%  { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+.animate-cart-pop {
+  animation: cart-pop 0.25s ease-out;
+}
+
+/* Category icon scale-tap feedback */
+@keyframes icon-tap {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(0.88); }
+  100% { transform: scale(1); }
+}
+.animate-icon-tap {
+  animation: icon-tap 0.15s ease-in-out;
+}
+
+/* Ripple effect for buttons */
+@keyframes ripple {
+  0%   { transform: scale(0); opacity: 0.5; }
+  100% { transform: scale(4); opacity: 0; }
+}
+.ripple-container {
+  position: relative;
+  overflow: hidden;
+}
+.ripple-container::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  transform: scale(0);
+  background: rgba(255,255,255,0.4);
+  animation: ripple 0.4s linear;
+  pointer-events: none;
+}
+
+/* Smooth fade-in for product cards on lazy load */
+@keyframes fade-in-up {
+  0%   { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.25s ease-out both;
+}
+
+/* Mobile bottom safe area padding */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .mobile-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
 /* Category nav dropdown fade + slide in */
 @keyframes dropdownFadeIn {
   from {

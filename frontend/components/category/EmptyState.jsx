@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import {
   ArchiveBoxXMarkIcon as PackageSearch,
   MagnifyingGlassIcon,
@@ -47,6 +48,13 @@ export default function EmptyState({
           Clear All Filters
         </button>
       )}
+
+      <Link
+        href="/categories"
+        className="mt-2 text-[#16A34A] text-sm font-semibold hover:underline"
+      >
+        Browse other categories →
+      </Link>
     </div>
   );
 }

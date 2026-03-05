@@ -1,13 +1,15 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
+import MobileHeader from "@/components/layout/MobileHeader";
+import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import CategoryNav from "@/components/layout/CategoryNav";
 import Footer from "@/components/layout/Footer";
 import CartSidebar from "@/components/cart/CartSidebar";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { CartProvider } from "@/context/CartContext";
 import { PromotionProvider } from "@/context/PromotionContext";
-import GoogleOAuthWrapper from '@/components/common/GoogleOAuthWrapper';
+import GoogleOAuthWrapper from "@/components/common/GoogleOAuthWrapper";
 import { DialogProvider } from "@/context/DialogContext";
 
 const geistSans = Geist({
@@ -26,7 +28,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-  
+
   return (
     <html lang="en">
       <body
@@ -37,11 +39,16 @@ export default function RootLayout({ children }) {
             <CartProvider>
               <PromotionProvider>
                 <DialogProvider>
+                  {/* Desktop navigation */}
                   <Navbar />
                   <CategoryNav />
+                  {/* Mobile navigation */}
+                  <MobileHeader />
                   <CartSidebar />
                   {children}
                   <Footer />
+                  {/* Mobile bottom nav (sticky) */}
+                  <MobileBottomNav />
                 </DialogProvider>
               </PromotionProvider>
             </CartProvider>

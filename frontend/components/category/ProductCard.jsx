@@ -26,6 +26,7 @@ function ProductCard({ product }) {
   const cartItem = items.find((i) => i.id === product.id);
   const qty = cartItem?.quantity ?? 0;
   const [adding, setAdding] = useState(false);
+  const [bounce, setBounce] = useState(false);
   const [isWholesale, setIsWholesale] = useState(false);
 
   useEffect(() => {
@@ -36,7 +37,7 @@ function ProductCard({ product }) {
         setIsWholesale(
           user.user_type === "wholesale" || user.role === "wholesale_customer",
         );
-      } catch (e) {
+      } catch {
         setIsWholesale(false);
       }
     }
@@ -49,34 +50,41 @@ function ProductCard({ product }) {
     e.preventDefault();
     if (isOutOfStock) return;
     setAdding(true);
+    setBounce(true);
     await addItem(product, 1);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("cartItemAdded"));
+    }
     setTimeout(() => setAdding(false), 300);
+    setTimeout(() => setBounce(false), 400);
   };
 
   return (
     <Link
       href={`/products/${product.id}`}
-      className="group relative flex flex-col bg-white border border-gray-200 rounded-xl overflow-hidden
-        hover:shadow-lg hover:-translate-y-0.5
-        transition-all duration-200 ease-out h-full"
+      className={`group relative flex flex-col bg-white rounded-[14px] md:rounded-2xl overflow-hidden
+        border border-gray-100 shadow-sm
+        active:scale-[0.97] hover:shadow-md
+        transition-all duration-150 ease-out h-full
+        ${isOutOfStock ? "opacity-60" : ""}`}
     >
-      {/* ── Image area ── */}
-      <div className="relative w-full bg-white aspect-square overflow-hidden">
-        {/* Discount badge — blue square top-left (Blinkit style) */}
+      {/* ── Image ── */}
+      <div className="relative w-full bg-gray-50" style={{ height: "115px" }}>
+        {/* Discount badge — pill, top-left */}
         {hasDiscount && !isOutOfStock && (
-          <div className="absolute top-0 left-0 z-10 bg-blue-600 text-white text-[10px] font-extrabold leading-tight px-1.5 py-1 text-center min-w-[36px]">
-            <div>{discountPercent}%</div>
-            <div>OFF</div>
-          </div>
+          <span className="absolute top-2 left-2 z-10 bg-[#FF4D4F] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md leading-tight">
+            {discountPercent}% OFF
+          </span>
         )}
+        {/* Out-of-stock frosted overlay */}
         {isOutOfStock && (
-          <div className="absolute top-0 left-0 z-10 bg-red-500 text-white text-[10px] font-extrabold leading-tight px-1.5 py-1 text-center">
-            <div>OUT</div>
-            <div>OF</div>
-            <div>STOCK</div>
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50">
+            <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wide bg-gray-100 px-2 py-1 rounded-md">
+              Out of Stock
+            </span>
           </div>
         )}
-        {/* Promo badge top-right */}
+        {/* Promo badge — top-right */}
         {promo && !isOutOfStock && (
           <span
             className="absolute top-2 right-2 z-10 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow"
@@ -85,38 +93,37 @@ function ProductCard({ product }) {
             {promo.badge_text || "OFFER"}
           </span>
         )}
-
-        {/* Product image */}
-        <div className="w-full h-full flex items-center justify-center p-4 transition-transform duration-300 group-hover:scale-105">
+        {/* Centered product image */}
+        <div className="w-full h-full flex items-center justify-center p-3">
           <ImageWithFallback
             src={product.image_url}
             alt={product.name}
-            className={`w-full h-full object-contain ${isOutOfStock ? "opacity-40 grayscale" : ""}`}
+            className={`max-w-full max-h-full object-contain transition-transform duration-300 group-hover:scale-105 ${isOutOfStock ? "grayscale" : ""}`}
             size="lg"
           />
         </div>
       </div>
 
       {/* ── Info ── */}
-      <div className="flex flex-col flex-1 px-3 pt-2 pb-3 gap-1.5">
-        {/* Name */}
-        <h3 className="text-sm font-semibold text-gray-800 leading-snug line-clamp-2 min-h-[2.6rem]">
+      <div className="flex flex-col flex-1 px-4 pt-3 pb-3 md:px-2.5 md:pt-2 md:pb-2.5">
+        {/* Product name — 2-line max, semibold 13px */}
+        <h3 className="text-[15px] md:text-[13px] font-semibold text-gray-800 leading-snug line-clamp-2 min-h-[2.8rem] md:min-h-[2.4rem]">
           {product.name}
         </h3>
 
-        {/* Unit / weight */}
-        <p className="text-[12px] text-gray-500">
+        {/* Size / weight — 11px muted */}
+        <p className="text-[12px] md:text-[11px] text-gray-400 mt-1.5 md:mt-0.5 mb-1 line-clamp-1">
           {product.unit_pack_size || product.unit_type || "1 unit"}
         </p>
 
-        {/* Variant sizes badge — shown on parent product when children exist */}
+        {/* Variant count */}
         {parseInt(product.variant_count || 0) > 0 && (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600">
-            {parseInt(product.variant_count) + 1} sizes available
+          <span className="text-[12px] md:text-[10px] font-semibold text-[#16A34A] mb-1">
+            +{parseInt(product.variant_count)} more sizes
           </span>
         )}
 
-        {/* Countdown timer if promo */}
+        {/* Promo countdown */}
         {promo?.ends_at && !isOutOfStock && (
           <CountdownTimer
             endsAt={promo.ends_at}
@@ -127,78 +134,83 @@ function ProductCard({ product }) {
 
         <div className="flex-1" />
 
-        {/* ── Price + ADD button ── */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-100 mt-1">
-          <div className="flex flex-col">
-            <span className="text-base font-bold text-gray-900 leading-tight">
+        {/* ── Price ── */}
+        <div className="mt-3 md:mt-1.5">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[18px] md:text-[14px] font-bold text-gray-900 leading-tight">
               ₹{Math.round(price)}
             </span>
             {hasDiscount && (
-              <span className="text-[11px] text-gray-400 line-through leading-none">
+              <span className="text-[11px] md:text-[10px] text-gray-400 line-through leading-none">
                 ₹{Math.round(mrp)}
               </span>
             )}
           </div>
+        </div>
 
+        {/* ── Add / Quantity control ── */}
+        <div className="mt-2 md:mt-1.5">
           {isOutOfStock ? (
-            <span className="text-xs text-red-400 font-medium">
-              Unavailable
-            </span>
+            <span className="text-[11px] text-gray-400 font-medium">N/A</span>
           ) : qty === 0 ? (
             <button
               onClick={handleAdd}
               disabled={adding}
-              className="text-green-600 border border-green-500 bg-white text-xs font-bold px-4 py-1.5 rounded-lg
-                hover:bg-green-50 active:scale-95 transition-all duration-150 disabled:opacity-60 min-w-[56px]"
+              className={`w-full h-[46px] md:h-[34px] rounded-[12px] md:rounded-full
+                border-2 border-[#16A34A]
+                text-[#16A34A] text-[14px] md:text-[12px] font-bold bg-white
+                hover:bg-green-50 active:scale-[0.97] active:bg-green-100
+                transition-all duration-150 disabled:opacity-60
+                flex items-center justify-center shadow-sm
+                ${bounce ? "animate-bounce-once" : ""}`}
             >
               {adding ? (
-                <span className="inline-block w-3 h-3 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                <span className="w-4 h-4 border-2 border-[#16A34A] border-t-transparent rounded-full animate-spin block" />
               ) : (
                 "ADD"
               )}
             </button>
           ) : (
-            <div className="flex flex-col gap-1">
-              <div
-                onClick={(e) => e.preventDefault()}
-                className="flex items-center border border-green-500 rounded-lg overflow-hidden"
+            <div
+              onClick={(e) => e.preventDefault()}
+              className="flex items-center bg-[#16A34A] rounded-[12px] md:rounded-full overflow-hidden h-[46px] md:h-[34px]"
+            >
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  updateQty(product.id, qty - 1);
+                }}
+                className="w-12 md:w-9 h-full flex items-center justify-center text-white hover:bg-green-700 active:bg-green-800 transition-colors font-bold"
+                aria-label="Decrease"
               >
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    updateQty(product.id, qty - 1);
-                  }}
-                  className="px-2 py-1.5 hover:bg-green-50 text-green-600 transition-colors font-bold"
-                  aria-label="Decrease"
-                >
-                  <Minus className="w-3 h-3" />
-                </button>
-                <span className="text-xs font-bold text-green-600 min-w-[22px] text-center py-1.5">
-                  {qty}
-                </span>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    updateQty(product.id, qty + 1);
-                  }}
-                  disabled={
-                    atMaxQuantity || qty >= (product.stock_quantity ?? 99)
-                  }
-                  className="px-2 py-1.5 hover:bg-green-50 text-green-600 transition-colors disabled:opacity-40 font-bold"
-                  aria-label="Increase"
-                  title={atMaxQuantity ? `Max ${maxQuantity} per order` : ""}
-                >
-                  <Plus className="w-3 h-3" />
-                </button>
-              </div>
-              {atMaxQuantity && (
-                <span className="text-[9px] text-orange-500 font-medium text-center">
-                  Max {maxQuantity} per order
-                </span>
-              )}
+                <Minus className="w-4 h-4 md:w-3 md:h-3" />
+              </button>
+              <span className="flex-1 text-center text-[15px] md:text-[13px] font-bold text-white select-none">
+                {qty}
+              </span>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  updateQty(product.id, qty + 1);
+                }}
+                disabled={
+                  atMaxQuantity || qty >= (product.stock_quantity ?? 99)
+                }
+                className="w-12 md:w-9 h-full flex items-center justify-center text-white hover:bg-green-700 active:bg-green-800 transition-colors disabled:opacity-40 font-bold"
+                aria-label="Increase"
+                title={atMaxQuantity ? `Max ${maxQuantity} per order` : ""}
+              >
+                <Plus className="w-4 h-4 md:w-3 md:h-3" />
+              </button>
             </div>
           )}
         </div>
+
+        {atMaxQuantity && (
+          <p className="text-[9px] text-orange-500 font-medium text-right mt-0.5">
+            Max {maxQuantity}/order
+          </p>
+        )}
       </div>
     </Link>
   );

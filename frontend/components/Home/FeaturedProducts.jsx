@@ -46,39 +46,47 @@ export default function FeaturedProducts() {
   };
   if (!loading && productGroups.length === 0) return null;
   return (
-    <section className="py-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-4 md:py-10">
+      <div className="max-w-7xl mx-auto px-3 md:px-4 sm:px-6 lg:px-8">
         {}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between mb-3 md:mb-6">
+          <div className="flex items-center gap-2 md:gap-3">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
+              <h2 className="text-base md:text-2xl md:text-3xl font-bold text-gray-900 leading-tight">
                 Featured Products
               </h2>
-              <p className="text-sm text-gray-500 mt-0.5">
+              <p className="text-[11px] md:text-sm text-gray-500 mt-0 md:mt-0.5">
                 Handpicked bestsellers just for you
               </p>
             </div>
           </div>
           {}
-          {!loading && productGroups.length > 0 && (
-            <div className="hidden sm:flex gap-2">
-              <button
-                onClick={() => scroll("left")}
-                className="p-2 rounded-full border border-gray-200 hover:bg-gray-100 transition-colors"
-                aria-label="Scroll left"
-              >
-                <ChevronLeft className="w-5 h-5 text-gray-600" />
-              </button>
-              <button
-                onClick={() => scroll("right")}
-                className="p-2 rounded-full border border-gray-200 hover:bg-gray-100 transition-colors"
-                aria-label="Scroll right"
-              >
-                <ChevronRight className="w-5 h-5 text-gray-600" />
-              </button>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <a
+              href="/products"
+              className="text-[#16A34A] text-xs md:text-sm font-semibold hover:underline"
+            >
+              View All →
+            </a>
+            {!loading && productGroups.length > 0 && (
+              <div className="hidden sm:flex gap-2">
+                <button
+                  onClick={() => scroll("left")}
+                  className="p-2 rounded-full border border-gray-200 hover:bg-gray-100 transition-colors"
+                  aria-label="Scroll left"
+                >
+                  <ChevronLeft className="w-5 h-5 text-gray-600" />
+                </button>
+                <button
+                  onClick={() => scroll("right")}
+                  className="p-2 rounded-full border border-gray-200 hover:bg-gray-100 transition-colors"
+                  aria-label="Scroll right"
+                >
+                  <ChevronRight className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
         {}
         {loading && (
@@ -96,12 +104,12 @@ export default function FeaturedProducts() {
         {!loading && productGroups.length > 0 && (
           <div
             ref={scrollRef}
-            className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory"
+            className="flex gap-3 md:gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory"
           >
             {productGroups.map((group, idx) => (
               <div
                 key={`${group.name}-${idx}`}
-                className="flex-shrink-0 w-44 sm:w-52 snap-start"
+                className="flex-shrink-0 w-36 sm:w-44 md:w-52 snap-start"
               >
                 {group.variants.length > 1 ? (
                   <ProductCardWithVariants variants={group.variants} />

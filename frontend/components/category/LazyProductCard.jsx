@@ -26,7 +26,7 @@ function LazyProductCard({ product, index = 0 }) {
       {
         rootMargin: "200px", // Start loading 200px before visible
         threshold: 0.01,
-      }
+      },
     );
 
     observer.observe(currentRef);
@@ -43,13 +43,15 @@ function LazyProductCard({ product, index = 0 }) {
       {isVisible ? (
         <ProductCard product={product} />
       ) : (
-        // Placeholder skeleton
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden h-full animate-pulse">
-          <div className="aspect-square bg-gray-100" />
-          <div className="p-3 space-y-2">
-            <div className="h-4 bg-gray-100 rounded w-3/4" />
-            <div className="h-3 bg-gray-100 rounded w-1/2" />
-            <div className="h-8 bg-gray-100 rounded mt-4" />
+        // Placeholder skeleton matching new card design
+        <div className="bg-white border border-gray-100 rounded-[14px] md:rounded-2xl overflow-hidden shadow-sm animate-pulse">
+          <div className="w-full bg-gray-100" style={{ height: "115px" }} />
+          <div className="px-4 pt-3 pb-3 space-y-2">
+            <div className="h-3.5 bg-gray-100 rounded w-3/4" />
+            <div className="h-3.5 bg-gray-100 rounded w-1/2" />
+            <div className="h-3 bg-gray-100 rounded w-1/3 mt-1" />
+            <div className="h-5 bg-gray-100 rounded w-2/5 mt-2" />
+            <div className="h-[46px] md:h-[34px] bg-gray-100 rounded-[12px] md:rounded-full mt-1" />
           </div>
         </div>
       )}

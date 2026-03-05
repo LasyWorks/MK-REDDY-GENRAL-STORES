@@ -31,37 +31,43 @@ function ProductCardWithVariants({ variants }) {
   const promo = productPromoMap[previewProduct.id] || null;
 
   // ── Promo-aware price calculation ────────────────────────────────────────
-  const promoType  = promo?.discount_type;
+  const promoType = promo?.discount_type;
   const promoValue = parseFloat(promo?.discount_value || 0);
 
-  let displayPrice    = price;
+  let displayPrice = price;
   let cardStrikePrice = null;
-  let cardBadgePct    = null;
-  let cardFlatAmt     = null;
+  let cardBadgePct = null;
+  let cardFlatAmt = null;
 
   if (promo && promoValue > 0) {
-    if (promoType === 'percentage') {
-      const promoPrice = parseFloat((price * (1 - promoValue / 100)).toFixed(2));
-      displayPrice    = promoPrice;
+    if (promoType === "percentage") {
+      const promoPrice = parseFloat(
+        (price * (1 - promoValue / 100)).toFixed(2),
+      );
+      displayPrice = promoPrice;
       cardStrikePrice = price;
-      cardBadgePct    = mrp > promoPrice
-        ? Math.round(((mrp - promoPrice) / mrp) * 100)
-        : Math.round(promoValue);
-    } else if (promoType === 'flat') {
+      cardBadgePct =
+        mrp > promoPrice
+          ? Math.round(((mrp - promoPrice) / mrp) * 100)
+          : Math.round(promoValue);
+    } else if (promoType === "flat") {
       // Flat = ₹X off this product regardless of quantity
-      displayPrice    = parseFloat(Math.max(0, price - promoValue).toFixed(2));
+      displayPrice = parseFloat(Math.max(0, price - promoValue).toFixed(2));
       cardStrikePrice = price;
-      cardFlatAmt     = promoValue;
+      cardFlatAmt = promoValue;
       if (mrp > displayPrice) {
         cardBadgePct = Math.round(((mrp - displayPrice) / mrp) * 100);
       }
     }
   } else if (mrp > price) {
     cardStrikePrice = mrp;
-    cardBadgePct    = Math.round(((mrp - price) / mrp) * 100);
+    cardBadgePct = Math.round(((mrp - price) / mrp) * 100);
   }
 
-  const hasDiscount = cardBadgePct != null || cardFlatAmt != null || (cardStrikePrice != null && cardStrikePrice > displayPrice);
+  const hasDiscount =
+    cardBadgePct != null ||
+    cardFlatAmt != null ||
+    (cardStrikePrice != null && cardStrikePrice > displayPrice);
   const discountPercent = cardBadgePct ?? 0;
   const handleCardClick = (e) => {
     e.preventDefault();
@@ -88,57 +94,66 @@ function ProductCardWithVariants({ variants }) {
     <>
       <div
         onClick={handleCardClick}
-        className="group flex flex-col bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-lg hover:border-gray-200 transition-all duration-200 h-full cursor-pointer"
+        className={`group flex flex-col bg-white border border-gray-100 rounded-[14px] md:rounded-2xl overflow-hidden
+          shadow-sm hover:shadow-md active:scale-[0.97]
+          transition-all duration-150 h-full cursor-pointer
+          ${isOutOfStock ? "opacity-60" : ""}`}
       >
-        {}
-        <div className="relative w-full bg-gray-50" style={{ height: "200px" }}>
-          {}
+        {/* Image — fixed 120px matching ProductCard */}
+        <div className="relative w-full bg-gray-50" style={{ height: "115px" }}>
+          {/* Promo badge top-right */}
           {promo && !isOutOfStock && (
             <span
-              className="absolute top-2 right-2 z-10 text-white text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse-glow"
+              className="absolute top-2 right-2 z-10 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow"
               style={{ backgroundColor: promo.theme_color || "#FF6B00" }}
             >
               {promo.badge_text || "OFFER"}
             </span>
           )}
+          {/* Discount badge top-left */}
           {!isOutOfStock && (cardBadgePct != null || cardFlatAmt != null) && (
-            <span className="absolute top-2 left-2 z-10 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-              {cardFlatAmt != null ? `₹${cardFlatAmt} off` : `${cardBadgePct}% off`}
+            <span className="absolute top-2 left-2 z-10 bg-[#FF4D4F] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md leading-tight">
+              {cardFlatAmt != null
+                ? `₹${cardFlatAmt} off`
+                : `${cardBadgePct}% OFF`}
             </span>
           )}
+          {/* Out-of-stock overlay */}
           {isOutOfStock && (
-            <span className="absolute top-2 left-2 z-10 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-              Out of Stock
-            </span>
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50">
+              <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wide bg-gray-100 px-2 py-1 rounded-md">
+                Out of Stock
+              </span>
+            </div>
           )}
-          <div className="w-full h-full p-3">
+          <div className="w-full h-full flex items-center justify-center p-3">
             <ImageWithFallback
               src={previewProduct.image_url}
               alt={previewProduct.name}
-              className={`w-full h-full object-contain ${isOutOfStock ? "opacity-50 grayscale" : ""}`}
+              className={`max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300 ${isOutOfStock ? "grayscale" : ""}`}
               size="lg"
             />
           </div>
         </div>
-        {}
-        <div className="flex flex-col flex-1 px-3 pt-3 pb-3 gap-1">
-          <h3 className="text-sm font-medium text-gray-800 leading-snug line-clamp-2 min-h-[2.6rem]">
+        {/* Info */}
+        <div className="flex flex-col flex-1 px-4 pt-3 pb-3 md:px-2.5 md:pt-2 md:pb-2.5">
+          {/* Name */}
+          <h3 className="text-[15px] md:text-[13px] font-semibold text-gray-800 leading-snug line-clamp-2 min-h-[2.8rem] md:min-h-[2.4rem]">
             {previewProduct.name}
           </h3>
-          {}
-          {displayVariants.length > 1 && (
-            <p className="text-xs text-blue-600 font-medium">
+          {/* Size / variants label */}
+          {displayVariants.length > 1 ? (
+            <p className="text-[12px] md:text-[11px] text-[#16A34A] font-semibold mt-1.5 md:mt-0.5 mb-1">
               {displayVariants.length} sizes available
             </p>
-          )}
-          {displayVariants.length === 1 && (
-            <p className="text-xs text-gray-400">
+          ) : (
+            <p className="text-[12px] md:text-[11px] text-gray-400 mt-1.5 md:mt-0.5 mb-1 line-clamp-1">
               {previewProduct.unit_pack_size ||
                 previewProduct.unit_type ||
                 "1 unit"}
             </p>
           )}
-          {}
+          {/* Promo countdown */}
           {promo?.ends_at && !isOutOfStock && (
             <CountdownTimer
               endsAt={promo.ends_at}
@@ -148,34 +163,36 @@ function ProductCardWithVariants({ variants }) {
             />
           )}
           <div className="flex-1" />
-          {}
-          <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-            <div className="flex flex-col">
-              <span className="text-sm font-bold text-gray-900">
-                ₹{displayPrice.toFixed(2)}
+          {/* Price */}
+          <div className="mt-3 md:mt-1.5">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-[18px] md:text-[14px] font-bold text-gray-900 leading-tight">
+                ₹{Math.round(displayPrice)}
                 {displayVariants.length > 1 && (
-                  <span className="text-xs text-gray-400 font-normal">
-                    {" "}
+                  <span className="text-[11px] md:text-[10px] text-gray-400 font-normal ml-0.5">
                     onwards
                   </span>
                 )}
               </span>
               {cardStrikePrice != null && cardStrikePrice > displayPrice && (
-                <span className="text-[10px] text-gray-400 line-through leading-none">
-                  ₹{cardStrikePrice.toFixed(2)}
+                <span className="text-[11px] md:text-[10px] text-gray-400 line-through leading-none">
+                  ₹{Math.round(cardStrikePrice)}
                 </span>
               )}
             </div>
-            {}
+          </div>
+          {/* ADD / SELECT button */}
+          <div className="mt-2 md:mt-1.5">
             {isOutOfStock ? (
-              <span className="text-xs text-red-400 font-medium">
-                Unavailable
-              </span>
+              <span className="text-[11px] text-gray-400 font-medium">N/A</span>
             ) : (
               <button
                 onClick={handleAddClick}
-                className="border border-green-600 text-green-700 text-xs font-bold px-4 py-1.5 rounded-lg
-                  hover:bg-green-600 hover:text-white active:scale-95 transition-all duration-150"
+                className="w-full h-[46px] md:h-[34px] rounded-[12px] md:rounded-full
+                  border-2 border-[#16A34A]
+                  text-[#16A34A] text-[14px] md:text-[12px] font-bold bg-white
+                  hover:bg-green-50 active:scale-[0.97] active:bg-green-100
+                  transition-all duration-150 flex items-center justify-center shadow-sm"
               >
                 {displayVariants.length > 1 ? "SELECT" : "ADD"}
               </button>
@@ -212,36 +229,49 @@ function ProductCardWithVariants({ variants }) {
             <div className="flex-1 overflow-y-auto p-4">
               <div className="grid grid-cols-1 gap-3">
                 {displayVariants.map((variant) => {
-                  const variantMrp   = parseFloat(variant.mrp   || 0);
-                  const variantPrice = parseFloat(variant.price  || 0);
+                  const variantMrp = parseFloat(variant.mrp || 0);
+                  const variantPrice = parseFloat(variant.price || 0);
                   const variantPromo = productPromoMap[variant.id];
 
                   // Promo-aware pricing for each variant in the modal
-                  const vPromoType  = variantPromo?.discount_type;
-                  const vPromoValue = parseFloat(variantPromo?.discount_value || 0);
-                  let vDisplayPrice   = variantPrice;
-                  let vStrikePrice    = null;
-                  let vBadgePct       = null;
-                  let vFlatAmt        = null;
+                  const vPromoType = variantPromo?.discount_type;
+                  const vPromoValue = parseFloat(
+                    variantPromo?.discount_value || 0,
+                  );
+                  let vDisplayPrice = variantPrice;
+                  let vStrikePrice = null;
+                  let vBadgePct = null;
+                  let vFlatAmt = null;
                   if (variantPromo && vPromoValue > 0) {
-                    if (vPromoType === 'percentage') {
-                      const vPromoPrice = parseFloat((variantPrice * (1 - vPromoValue / 100)).toFixed(2));
+                    if (vPromoType === "percentage") {
+                      const vPromoPrice = parseFloat(
+                        (variantPrice * (1 - vPromoValue / 100)).toFixed(2),
+                      );
                       vDisplayPrice = vPromoPrice;
-                      vStrikePrice  = variantPrice;
-                      vBadgePct     = variantMrp > vPromoPrice
-                        ? Math.round(((variantMrp - vPromoPrice) / variantMrp) * 100)
-                        : Math.round(vPromoValue);
-                    } else if (vPromoType === 'flat') {
-                      vDisplayPrice = parseFloat(Math.max(0, variantPrice - vPromoValue).toFixed(2));
-                      vStrikePrice  = variantPrice;
-                      vFlatAmt      = vPromoValue;
+                      vStrikePrice = variantPrice;
+                      vBadgePct =
+                        variantMrp > vPromoPrice
+                          ? Math.round(
+                              ((variantMrp - vPromoPrice) / variantMrp) * 100,
+                            )
+                          : Math.round(vPromoValue);
+                    } else if (vPromoType === "flat") {
+                      vDisplayPrice = parseFloat(
+                        Math.max(0, variantPrice - vPromoValue).toFixed(2),
+                      );
+                      vStrikePrice = variantPrice;
+                      vFlatAmt = vPromoValue;
                       if (variantMrp > vDisplayPrice) {
-                        vBadgePct = Math.round(((variantMrp - vDisplayPrice) / variantMrp) * 100);
+                        vBadgePct = Math.round(
+                          ((variantMrp - vDisplayPrice) / variantMrp) * 100,
+                        );
                       }
                     }
                   } else if (variantMrp > variantPrice) {
                     vStrikePrice = variantMrp;
-                    vBadgePct    = Math.round(((variantMrp - variantPrice) / variantMrp) * 100);
+                    vBadgePct = Math.round(
+                      ((variantMrp - variantPrice) / variantMrp) * 100,
+                    );
                   }
                   const variantDiscount = vBadgePct ?? 0;
                   const variantOutOfStock = (variant.stock_quantity ?? 0) <= 0;
@@ -305,11 +335,12 @@ function ProductCardWithVariants({ variants }) {
                               <p className="font-bold text-gray-900">
                                 ₹{vDisplayPrice.toFixed(2)}
                               </p>
-                              {vStrikePrice != null && vStrikePrice > vDisplayPrice && (
-                                <p className="text-xs text-gray-400 line-through">
-                                  ₹{vStrikePrice.toFixed(2)}
-                                </p>
-                              )}
+                              {vStrikePrice != null &&
+                                vStrikePrice > vDisplayPrice && (
+                                  <p className="text-xs text-gray-400 line-through">
+                                    ₹{vStrikePrice.toFixed(2)}
+                                  </p>
+                                )}
                             </div>
                           </div>
                           {}
