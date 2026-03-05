@@ -4,6 +4,7 @@ const config = {
   port: parseInt(process.env.PORT, 10) || 5001,
   apiVersion: process.env.API_VERSION || 'v1',
   database: {
+    // ── PostgreSQL / Supabase ─────────────────────────────────────────────
     host:            process.env.DB_HOST     || 'localhost',
     port:            parseInt(process.env.DB_PORT, 10) || 5432,
     user:            process.env.DB_USER     || 'postgres',
@@ -13,6 +14,12 @@ const config = {
     ssl: process.env.DB_SSL === 'true'
       ? { rejectUnauthorized: false }
       : false,
+    // ── MySQL (used when DB_TYPE=mysql) ───────────────────────────────────
+    mysqlHost:     process.env.MYSQL_HOST     || 'localhost',
+    mysqlPort:     parseInt(process.env.MYSQL_PORT, 10) || 3306,
+    mysqlUser:     process.env.MYSQL_USER     || 'root',
+    mysqlPassword: process.env.MYSQL_PASSWORD || '',
+    mysqlName:     process.env.MYSQL_NAME     || 'mk_kirana_stores',
   },
   jwt: {
     secret: process.env.JWT_SECRET,

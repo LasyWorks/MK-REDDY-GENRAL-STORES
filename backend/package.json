@@ -9,6 +9,7 @@
     "dev": "nodemon src/server.js",
     "dev:cluster": "nodemon src/cluster.js",
     "migrate": "node src/database/migrate.js",
+    "migrate:mysql": "DB_TYPE=mysql node src/database/migrate-mysql.js",
     "seed:orders": "node scripts/seed-orders.js",
     "seed:categories": "node scripts/seed-categories.js",
     "test": "jest --coverage"
@@ -37,6 +38,7 @@
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.1",
     "multer": "^2.1.0",
+    "mysql2": "^3.19.0",
     "node-cache": "^5.1.2",
     "nodemailer": "^8.0.1",
     "pg": "^8.11.3",
