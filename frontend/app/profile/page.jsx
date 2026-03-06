@@ -3,9 +3,6 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  PhoneIcon,
-  EnvelopeIcon,
-  MapPinIcon,
   ShoppingBagIcon,
   ArrowLeftOnRectangleIcon,
   ChevronRightIcon,
@@ -13,18 +10,13 @@ import {
   Squares2X2Icon,
   ClipboardDocumentListIcon,
   BuildingStorefrontIcon,
-  CalendarDaysIcon,
-  FingerPrintIcon,
-  CheckCircleIcon,
-  UserCircleIcon,
+  PhoneIcon,
+  EnvelopeIcon,
+  MapPinIcon,
+  Cog6ToothIcon,
+  TruckIcon,
 } from "@heroicons/react/24/outline";
-import {
-  ShieldCheckIcon,
-  CheckBadgeIcon,
-  TagIcon,
-  SparklesIcon,
-  StarIcon,
-} from "@heroicons/react/24/solid";
+import { CheckBadgeIcon } from "@heroicons/react/24/solid";
 import authService from "@/services/authService";
 import orderService from "@/services/orderService";
 
@@ -67,7 +59,7 @@ export default function ProfilePage() {
 
   if (!authChecked || !user) return null;
 
-  const isAdmin     = user.user_type === "admin";
+  const isAdmin = user.user_type === "admin";
   const isWholesale = user.user_type === "wholesale";
 
   const initials =
@@ -78,352 +70,252 @@ export default function ProfilePage() {
       .map((w) => w[0].toUpperCase())
       .join("") || "?";
 
-  const roleLabel = isAdmin ? "Admin" : isWholesale ? "Wholesale" : "Retail";
-
-  /* ── Per-role design tokens ──────────────────────────────────────── */
-  const theme = isAdmin
-    ? {
-        heroBg:     "from-[#0f0c29] via-[#1a1a3e] to-[#24243e]",
-        avatarGrad: "from-violet-500 via-indigo-500 to-blue-600",
-        glow:       "rgba(139,92,246,0.45)",
-        ring:       "ring-violet-500/40",
-        accentText: "text-violet-300",
-        badge:      "bg-violet-500/20 text-violet-200 border-violet-500/30",
-        verBadge:   "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
-        statBorder: "border-t-violet-500",
-        adminBadge: "bg-amber-400/20 text-amber-300 border-amber-400/30",
-        adminText:  "text-amber-300",
-      }
+  const roleLabel = isAdmin ? "Admin" : isWholesale ? "Wholesale" : "Customer";
+  const roleBadge = isAdmin
+    ? "bg-amber-100 text-amber-700 border border-amber-200"
     : isWholesale
-    ? {
-        heroBg:     "from-[#0a0a1a] via-[#1e1333] to-[#130d2e]",
-        avatarGrad: "from-fuchsia-500 via-purple-500 to-violet-600",
-        glow:       "rgba(217,70,239,0.40)",
-        ring:       "ring-fuchsia-500/40",
-        accentText: "text-fuchsia-300",
-        badge:      "bg-fuchsia-500/20 text-fuchsia-200 border-fuchsia-500/30",
-        verBadge:   "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
-        statBorder: "border-t-fuchsia-500",
-        adminBadge: null,
-        adminText:  null,
-      }
-    : {
-        heroBg:     "from-[#0d1b2a] via-[#0f2847] to-[#0d1b2a]",
-        avatarGrad: "from-sky-400 via-blue-500 to-indigo-600",
-        glow:       "rgba(56,189,248,0.40)",
-        ring:       "ring-sky-500/40",
-        accentText: "text-sky-300",
-        badge:      "bg-sky-500/20 text-sky-200 border-sky-500/30",
-        verBadge:   "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
-        statBorder: "border-t-sky-500",
-        adminBadge: null,
-        adminText:  null,
-      };
+      ? "bg-purple-100 text-purple-700 border border-purple-200"
+      : "bg-green-100 text-green-700 border border-green-200";
+  const avatarBg = isAdmin
+    ? "from-amber-400 to-orange-500"
+    : isWholesale
+      ? "from-purple-500 to-violet-600"
+      : "from-green-500 to-emerald-600";
 
   return (
-    <div className="min-h-screen bg-slate-50">
-
-      {/* ── Hero ──────────────────────────────────────────────────── */}
-      <div className={`bg-linear-to-br ${theme.heroBg} relative overflow-hidden`}>
-        {/* Decorative orbs */}
-        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full opacity-20 blur-3xl"
-             style={{ background: `radial-gradient(circle, ${theme.glow}, transparent 70%)` }} />
-        <div className="absolute -bottom-20 right-10 w-72 h-72 rounded-full opacity-20 blur-3xl"
-             style={{ background: `radial-gradient(circle, ${theme.glow}, transparent 70%)` }} />
-
-        <div className="relative max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 pt-12 pb-24">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-
-            {/* Avatar */}
-            <div className="relative shrink-0">
-              <div className="w-28 h-28 rounded-full p-0.75"
-                   style={{ background: `conic-gradient(from 180deg, ${theme.glow.replace("0.4", "0.9")}, transparent 60%)` }}>
-                <div className={`w-full h-full rounded-full bg-linear-to-br ${theme.avatarGrad}
-                                 flex items-center justify-center text-white text-3xl font-black select-none
-                                 shadow-2xl ring-2 ${theme.ring}`}
-                     style={{ letterSpacing: "-1px" }}>
-                  {user.profile_picture ? (
-                    <img
-                      src={user.profile_picture}
-                      alt={user.name}
-                      className="w-full h-full rounded-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    initials
-                  )}
-                </div>
-              </div>
-              {user.is_active && (
-                <div className="absolute -bottom-0.5 -right-0.5 w-7 h-7 rounded-full
-                                bg-linear-to-br from-emerald-400 to-emerald-600
-                                border-2 border-[#0f0c29] flex items-center justify-center
-                                shadow-[0_0_12px_rgba(16,185,129,0.7)]">
-                  <CheckBadgeIcon className="w-4 h-4 text-white" />
-                </div>
-              )}
-            </div>
-
-            {/* Name + badges */}
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2 mb-2">
-                <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border ${theme.badge}`}>
-                  <ShieldCheckIcon className="w-3.5 h-3.5" />
-                  {roleLabel}
-                </span>
-                {isAdmin && (
-                  <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border ${theme.adminBadge}`}>
-                    <StarIcon className="w-3.5 h-3.5" />
-                    Full Admin
-                  </span>
-                )}
-                {user.is_active && (
-                  <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border ${theme.verBadge}`}>
-                    <CheckBadgeIcon className="w-3.5 h-3.5" />
-                    Verified Account
-                  </span>
-                )}
-              </div>
-              <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-none">
-                {user.name}
-              </h1>
-              {user.email && (
-                <p className="text-sm text-slate-400 mt-1.5 font-medium">{user.email}</p>
-              )}
-            </div>
-
-            {/* Sign out — desktop */}
-            <button
-              onClick={handleLogout}
-              disabled={loggingOut}
-              className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-xl
-                         bg-white/8 hover:bg-white/15 border border-white/15
-                         text-slate-300 hover:text-white transition-all text-sm font-semibold
-                         disabled:opacity-40 backdrop-blur-sm shrink-0"
-            >
-              <ArrowLeftOnRectangleIcon className="w-4 h-4" />
-              {loggingOut ? "Signing out…" : "Sign Out"}
-            </button>
-          </div>
-
-          {/* Stat tiles */}
-          <div className={`grid gap-3 mt-9 grid-cols-2 ${isAdmin ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
-            <StatTile
-              icon={ShoppingBagIcon}
-              label="Total Orders"
-              value={orderCount === null
-                ? <span className="inline-block w-10 h-6 bg-white/10 animate-pulse rounded-lg" />
-                : orderCount}
-              accentClass={theme.accentText}
-              borderClass={theme.statBorder}
-            />
-            <StatTile
-              icon={TagIcon}
-              label="Account Type"
-              value={roleLabel}
-              accentClass={theme.accentText}
-              borderClass={theme.statBorder}
-            />
-            <StatTile
-              icon={BuildingStorefrontIcon}
-              label="Store"
-              value="MK Reddy"
-              accentClass={theme.accentText}
-              borderClass={theme.statBorder}
-            />
-            {isAdmin && (
-              <StatTile
-                icon={SparklesIcon}
-                label="Access Level"
-                value="Full Admin"
-                accentClass="text-amber-300"
-                borderClass="border-t-amber-400"
-              />
-            )}
-          </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* ── Top bar ─────────────────────────────────────────────── */}
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
+        <div className="max-w-2xl mx-auto flex items-center justify-between px-4 h-14">
+          <button
+            onClick={() => router.back()}
+            aria-label="Go back"
+            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors"
+          >
+            <ChevronRightIcon className="w-5 h-5 text-gray-600 rotate-180" />
+          </button>
+          <h1 className="text-base font-bold text-gray-900">My Profile</h1>
+          <div className="w-9" aria-hidden="true" />
         </div>
       </div>
 
-      {/* ── Body ────────────────────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 -mt-8 pb-16">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-
-          {/* ── LEFT COLUMN ──────────────────────────────────────── */}
-          <div className="space-y-5">
-
-            {/* Contact Card */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <SectionHeader title="Contact Details" />
-              <div className="divide-y divide-gray-50">
-                {user.phone  && <InfoRow icon={PhoneIcon}    label="Phone"   value={user.phone}   color="blue"    />}
-                {user.email  && <InfoRow icon={EnvelopeIcon} label="Email"   value={user.email}   color="violet"  />}
-                {user.address && <InfoRow icon={MapPinIcon}  label="Address" value={user.address} color="emerald" />}
-                {!user.phone && !user.email && !user.address && (
-                  <p className="px-5 py-4 text-sm text-gray-400">No contact details on file.</p>
+      <div className="max-w-2xl mx-auto px-4 pt-4 pb-24 space-y-3">
+        {/* ── Profile header card ─────────────────────────────── */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="flex items-center gap-4 px-5 py-5">
+            {/* Avatar */}
+            <div className="relative shrink-0">
+              <div
+                className={`w-16 h-16 rounded-full bg-linear-to-br ${avatarBg}
+                               flex items-center justify-center text-white text-xl font-black select-none shadow-md`}
+              >
+                {user.profile_picture ? (
+                  <img
+                    src={user.profile_picture}
+                    alt={user.name}
+                    className="w-full h-full rounded-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  initials
                 )}
               </div>
+              {user.is_active && (
+                <div
+                  className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-green-500
+                                border-2 border-white flex items-center justify-center shadow"
+                >
+                  <CheckBadgeIcon className="w-3 h-3 text-white" />
+                </div>
+              )}
             </div>
 
-            {/* Account Info Card */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <SectionHeader title="Account Info" />
-              <div className="px-5 py-4 space-y-3">
-                <InfoPair
-                  label="Member Since"
-                  icon={CalendarDaysIcon}
-                  value={user.created_at
-                    ? new Date(user.created_at).toLocaleDateString("en-IN", { year: "numeric", month: "long" })
-                    : "—"}
-                />
-                <InfoPair
-                  label="User ID"
-                  icon={FingerPrintIcon}
-                  value={user.id ? `#${String(user.id).slice(0, 8).toUpperCase()}` : "—"}
-                />
-                <InfoPair
-                  label="Status"
-                  icon={CheckCircleIcon}
-                  value={
-                    <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full ${
-                      user.is_active
-                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        : "bg-red-50 text-red-600 border border-red-200"
-                    }`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${user.is_active ? "bg-emerald-500" : "bg-red-500"}`} />
-                      {user.is_active ? "Active" : "Inactive"}
-                    </span>
-                  }
-                />
+            {/* Name / email / badge */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-lg font-bold text-gray-900 leading-tight truncate">
+                  {user.name}
+                </h2>
+                <span
+                  className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${roleBadge}`}
+                >
+                  {roleLabel}
+                </span>
               </div>
-            </div>
-
-            {/* Sign Out — mobile */}
-            <div className="sm:hidden bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <button
-                onClick={handleLogout}
-                disabled={loggingOut}
-                className="w-full flex items-center gap-3.5 px-5 py-4 hover:bg-red-50/60 transition-colors disabled:opacity-50 group"
-              >
-                <div className="w-9 h-9 rounded-xl bg-red-50 group-hover:bg-red-100 flex items-center justify-center shrink-0 transition-colors">
-                  <ArrowLeftOnRectangleIcon className="w-4 h-4 text-red-500" />
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="text-sm font-semibold text-red-600">{loggingOut ? "Signing out…" : "Sign Out"}</p>
-                  <p className="text-xs text-gray-400">You will be returned to the home page</p>
-                </div>
-              </button>
+              {user.email && (
+                <p className="text-sm text-gray-500 mt-0.5 truncate">
+                  {user.email}
+                </p>
+              )}
+              {user.phone && (
+                <p className="text-sm text-gray-500 truncate">{user.phone}</p>
+              )}
             </div>
           </div>
 
-          {/* ── RIGHT COLUMN (spans 2) ──────────────────────────── */}
-          <div className="lg:col-span-2 space-y-5">
-
-            {/* Admin Panel */}
-            {isAdmin && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <SectionHeader
-                  title="Admin Panel"
-                  badge={
-                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full
-                                     bg-amber-50 text-amber-700 border border-amber-200 uppercase tracking-wide">
-                      Admin Only
-                    </span>
-                  }
-                />
-                <div className="divide-y divide-gray-50">
-                  <NavItem
-                    href="/admin/dashboard"
-                    icon={Squares2X2Icon}
-                    label="Dashboard"
-                    description="Analytics, revenue overview and store insights"
-                    iconColor="violet"
-                  />
-                  <NavItem
-                    href="/admin/dashboard?tab=products"
-                    icon={CubeIcon}
-                    label="Product Management"
-                    description="Add, edit, delete products and manage inventory stock"
-                    iconColor="emerald"
-                  />
-                  <NavItem
-                    href="/admin/dashboard?tab=orders"
-                    icon={ClipboardDocumentListIcon}
-                    label="Order Management"
-                    description="View, update status and manage all customer orders"
-                    iconColor="blue"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* My Account */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <SectionHeader title="My Account" />
-              <div className="divide-y divide-gray-50">
-                <NavItem
-                  href="/orders"
-                  icon={ShoppingBagIcon}
-                  label="My Orders"
-                  iconColor="indigo"
-                  description={orderCount !== null
-                    ? `${orderCount} order${orderCount !== 1 ? "s" : ""} placed in total`
-                    : "Track your deliveries and past orders"}
-                  badge={orderCount !== null && orderCount > 0
-                    ? <span className="text-xs font-bold bg-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-full">{orderCount}</span>
-                    : null}
-                />
-                <NavItem
-                  href="/"
-                  icon={BuildingStorefrontIcon}
-                  label="Browse Store"
-                  iconColor="teal"
-                  description="Shop groceries, essentials, beverages and more"
-                />
-                <NavItem
-                  href="/profile"
-                  icon={UserCircleIcon}
-                  label="Account Settings"
-                  iconColor="slate"
-                  description="Manage your profile and preferences"
-                />
-              </div>
-            </div>
-
-            {/* Sign Out — desktop  */}
-            <div className="hidden sm:block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <SectionHeader title="Session" />
-              <div className="px-5 py-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold text-gray-800">Sign out of your account</p>
-                    <p className="text-xs text-gray-400 mt-0.5">You will be logged out and returned to the home page.</p>
-                  </div>
-                  <button
-                    onClick={handleLogout}
-                    disabled={loggingOut}
-                    className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl
-                               bg-red-50 hover:bg-red-100 border border-red-200
-                               text-red-600 text-sm font-semibold transition-colors disabled:opacity-50"
-                  >
-                    <ArrowLeftOnRectangleIcon className="w-4 h-4" />
-                    {loggingOut ? "Signing out…" : "Sign Out"}
-                  </button>
-                </div>
-              </div>
-            </div>
-
+          {/* Orders stat strip */}
+          <div className="border-t border-gray-100 grid grid-cols-3 divide-x divide-gray-100">
+            <StatStrip
+              label="Orders"
+              value={
+                orderCount === null ? (
+                  <span className="inline-block w-8 h-4 bg-gray-100 animate-pulse rounded" />
+                ) : (
+                  orderCount
+                )
+              }
+            />
+            <StatStrip label="Account" value={roleLabel} />
+            <StatStrip
+              label="Status"
+              value={
+                <span
+                  className={`text-xs font-bold ${user.is_active ? "text-green-600" : "text-red-500"}`}
+                >
+                  {user.is_active ? "Active" : "Inactive"}
+                </span>
+              }
+            />
           </div>
+        </div>
+
+        {/* ── Quick Actions ────────────────────────────────────── */}
+        <SectionLabel>Quick Actions</SectionLabel>
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden divide-y divide-gray-100">
+          <NavRow
+            href="/orders"
+            icon={ShoppingBagIcon}
+            iconBg="bg-indigo-50"
+            iconColor="text-indigo-600"
+            label="My Orders"
+            meta={
+              orderCount !== null && orderCount > 0 ? (
+                <span className="text-xs font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
+                  {orderCount}
+                </span>
+              ) : null
+            }
+          />
+          <NavRow
+            href="/"
+            icon={BuildingStorefrontIcon}
+            iconBg="bg-green-50"
+            iconColor="text-green-600"
+            label="Browse Store"
+          />
+          <NavRow
+            href="/orders"
+            icon={TruckIcon}
+            iconBg="bg-sky-50"
+            iconColor="text-sky-600"
+            label="Track Orders"
+          />
+        </div>
+
+        {/* ── Admin Tools ──────────────────────────────────────── */}
+        {isAdmin && (
+          <>
+            <SectionLabel badge="Admin Only">Admin Tools</SectionLabel>
+            <div className="bg-amber-50 border border-amber-100 rounded-2xl shadow-sm overflow-hidden divide-y divide-amber-100">
+              <NavRow
+                href="/admin/dashboard"
+                icon={Squares2X2Icon}
+                iconBg="bg-amber-100"
+                iconColor="text-amber-700"
+                label="Dashboard"
+                sub="Analytics & revenue overview"
+              />
+              <NavRow
+                href="/admin/dashboard?tab=products"
+                icon={CubeIcon}
+                iconBg="bg-amber-100"
+                iconColor="text-amber-700"
+                label="Product Management"
+                sub="Add, edit & manage inventory"
+              />
+              <NavRow
+                href="/admin/dashboard?tab=orders"
+                icon={ClipboardDocumentListIcon}
+                iconBg="bg-amber-100"
+                iconColor="text-amber-700"
+                label="Order Management"
+                sub="View & update customer orders"
+              />
+            </div>
+          </>
+        )}
+
+        {/* ── Account Settings ─────────────────────────────────── */}
+        <SectionLabel>Account</SectionLabel>
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden divide-y divide-gray-100">
+          {user.email && (
+            <NavRow
+              icon={EnvelopeIcon}
+              iconBg="bg-violet-50"
+              iconColor="text-violet-600"
+              label="Email"
+              sub={user.email}
+              noChevron
+            />
+          )}
+          {user.phone && (
+            <NavRow
+              icon={PhoneIcon}
+              iconBg="bg-blue-50"
+              iconColor="text-blue-600"
+              label="Phone"
+              sub={user.phone}
+              noChevron
+            />
+          )}
+          {user.address && (
+            <NavRow
+              icon={MapPinIcon}
+              iconBg="bg-emerald-50"
+              iconColor="text-emerald-600"
+              label="Address"
+              sub={user.address}
+              noChevron
+            />
+          )}
+          <NavRow
+            href="/profile"
+            icon={Cog6ToothIcon}
+            iconBg="bg-gray-100"
+            iconColor="text-gray-600"
+            label="Account Settings"
+            sub="Manage profile & preferences"
+          />
+        </div>
+
+        {/* ── Sign Out ─────────────────────────────────────────── */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <button
+            onClick={handleLogout}
+            disabled={loggingOut}
+            aria-label="Sign out"
+            className="w-full flex items-center gap-4 px-5 py-4
+                       hover:bg-red-50 active:bg-red-100 transition-colors
+                       disabled:opacity-50 group"
+          >
+            <div className="w-11 h-11 rounded-xl bg-red-50 group-hover:bg-red-100 flex items-center justify-center shrink-0 transition-colors">
+              <ArrowLeftOnRectangleIcon className="w-5 h-5 text-red-500" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-bold text-red-600">
+                {loggingOut ? "Signing out…" : "Sign Out"}
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                You will be returned to the home page
+              </p>
+            </div>
+          </button>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-center gap-2 mt-10">
-          <div className="w-6 h-6 rounded-lg bg-indigo-600 flex items-center justify-center shadow-sm">
-            <BuildingStorefrontIcon className="w-3.5 h-3.5 text-white" />
-          </div>
-          <p className="text-xs text-gray-400 font-medium">
-            MK Reddy General Store &middot; Your daily essentials
-          </p>
-        </div>
+        <p className="text-center text-xs text-gray-400 pt-2">
+          MK Reddy General Store &middot; Your daily essentials
+        </p>
       </div>
     </div>
   );
@@ -431,83 +323,74 @@ export default function ProfilePage() {
 
 /* ─── Sub-components ──────────────────────────────────────────────── */
 
-function StatTile({ icon: Icon, label, value, accentClass, borderClass }) {
+function SectionLabel({ children, badge }) {
   return (
-    <div className={`bg-white/8 backdrop-blur-sm border border-white/12 border-t-2 ${borderClass} rounded-2xl px-5 py-4 hover:bg-white/12 transition-colors`}>
-      <div className="flex items-center gap-2 mb-2.5">
-        <Icon className={`w-4 h-4 ${accentClass}`} />
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">{label}</span>
-      </div>
-      <p className="text-2xl font-black text-white leading-none tracking-tight">{value}</p>
+    <div className="flex items-center gap-2 px-1 pt-1">
+      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+        {children}
+      </p>
+      {badge && (
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 uppercase tracking-wide">
+          {badge}
+        </span>
+      )}
     </div>
   );
 }
 
-function SectionHeader({ title, badge }) {
+function StatStrip({ label, value }) {
   return (
-    <div className="flex items-center justify-between px-5 pt-4 pb-2.5">
-      <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">{title}</p>
-      {badge}
+    <div className="flex flex-col items-center py-3 px-2">
+      <p className="text-base font-black text-gray-900 leading-none">{value}</p>
+      <p className="text-[11px] text-gray-400 font-medium mt-1 uppercase tracking-wide">
+        {label}
+      </p>
     </div>
   );
 }
 
-function InfoRow({ icon: Icon, label, value, color = "slate" }) {
-  const map = {
-    blue:    { bg: "bg-blue-50",    border: "border-blue-100",    icon: "text-blue-500"    },
-    violet:  { bg: "bg-violet-50",  border: "border-violet-100",  icon: "text-violet-500"  },
-    emerald: { bg: "bg-emerald-50", border: "border-emerald-100", icon: "text-emerald-500" },
-    slate:   { bg: "bg-slate-50",   border: "border-slate-100",   icon: "text-slate-400"   },
-  };
-  const c = map[color] ?? map.slate;
-  return (
-    <div className="flex items-start gap-4 px-5 py-3.5">
-      <div className={`w-9 h-9 rounded-xl ${c.bg} border ${c.border} flex items-center justify-center shrink-0 mt-0.5 shadow-sm`}>
-        <Icon className={`w-4 h-4 ${c.icon}`} />
+function NavRow({
+  href,
+  icon: Icon,
+  iconBg,
+  iconColor,
+  label,
+  sub,
+  meta,
+  noChevron,
+}) {
+  const cls = `flex items-center gap-4 px-5 py-4 hover:bg-gray-50 active:bg-gray-100
+               transition-colors group min-h-[56px]`;
+  const inner = (
+    <>
+      <div
+        className={`w-11 h-11 rounded-xl ${iconBg} flex items-center justify-center shrink-0 transition-colors`}
+      >
+        <Icon className={`w-5 h-5 ${iconColor}`} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">{label}</p>
-        <p className="text-sm font-semibold text-gray-800 mt-0.5 wrap-break-word leading-snug">{value}</p>
+        <p className="text-sm font-semibold text-gray-900 leading-tight">
+          {label}
+        </p>
+        {sub && (
+          <p className="text-xs text-gray-400 mt-0.5 leading-snug truncate">
+            {sub}
+          </p>
+        )}
       </div>
-    </div>
+      {meta && <div className="shrink-0">{meta}</div>}
+      {!noChevron && (
+        <ChevronRightIcon className="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition-colors shrink-0" />
+      )}
+    </>
   );
-}
 
-function InfoPair({ label, icon: Icon, value }) {
+  if (!href || noChevron) {
+    return <div className={cls}>{inner}</div>;
+  }
   return (
-    <div className="flex items-center justify-between gap-3 py-2">
-      <div className="flex items-center gap-2">
-        {Icon && <Icon className="w-3.5 h-3.5 text-gray-400" />}
-        <span className="text-xs font-semibold text-gray-400">{label}</span>
-      </div>
-      <span className="text-sm font-semibold text-gray-800 text-right">{value}</span>
-    </div>
-  );
-}
-
-function NavItem({ href, icon: Icon, label, description, badge, iconColor = "indigo" }) {
-  const map = {
-    indigo:  { tile: "bg-indigo-50  group-hover:bg-indigo-100",  icon: "text-indigo-600",  hover: "hover:bg-indigo-50/50"  },
-    violet:  { tile: "bg-violet-50  group-hover:bg-violet-100",  icon: "text-violet-600",  hover: "hover:bg-violet-50/50"  },
-    emerald: { tile: "bg-emerald-50 group-hover:bg-emerald-100", icon: "text-emerald-600", hover: "hover:bg-emerald-50/50" },
-    blue:    { tile: "bg-blue-50    group-hover:bg-blue-100",    icon: "text-blue-600",    hover: "hover:bg-blue-50/50"    },
-    teal:    { tile: "bg-teal-50    group-hover:bg-teal-100",    icon: "text-teal-600",    hover: "hover:bg-teal-50/50"    },
-    slate:   { tile: "bg-slate-50   group-hover:bg-slate-100",   icon: "text-slate-500",   hover: "hover:bg-slate-50/50"   },
-  };
-  const c = map[iconColor] ?? map.indigo;
-  return (
-    <Link href={href}
-      className={`flex items-center gap-4 px-5 py-4 ${c.hover} transition-colors group`}
-    >
-      <div className={`w-10 h-10 rounded-xl ${c.tile} flex items-center justify-center shrink-0 transition-colors shadow-sm`}>
-        <Icon className={`w-5 h-5 ${c.icon}`} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-gray-900 leading-tight">{label}</p>
-        {description && <p className="text-xs text-gray-400 mt-0.5 leading-snug">{description}</p>}
-      </div>
-      {badge && <div className="shrink-0">{badge}</div>}
-      <ChevronRightIcon className="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition-colors shrink-0" />
+    <Link href={href} className={cls}>
+      {inner}
     </Link>
   );
 }

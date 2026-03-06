@@ -11,6 +11,28 @@ import { useCart } from "@/context/CartContext";
 import { usePromotions } from "@/context/PromotionContext";
 import secureStorage from "@/lib/secureStorage";
 
+// ── Product tag badges ────────────────────────────────────────────────────────
+function getProductTags(product) {
+  const tags = [];
+  if (product.created_at) {
+    const daysOld =
+      (Date.now() - new Date(product.created_at).getTime()) / 86400000;
+    if (daysOld <= 30) tags.push("new");
+  }
+  const price = parseFloat(product.price || 0);
+  const mrp = parseFloat(product.mrp || 0);
+  if (mrp > price && price > 0 && ((mrp - price) / mrp) * 100 >= 20)
+    tags.push("hot");
+  const stock = product.stock_quantity ?? 999;
+  if (stock > 0 && stock <= 5) tags.push("limited");
+  return tags.slice(0, 2);
+}
+const TAG_CFG = {
+  new: { label: "New", cls: "bg-blue-100 text-blue-700" },
+  hot: { label: "Hot Deal", cls: "bg-orange-100 text-orange-700" },
+  limited: { label: "Limited", cls: "bg-red-100 text-red-600" },
+};
+
 function ProductCard({ product }) {
   const mrp = parseFloat(product.mrp || 0);
   const price = parseFloat(product.price || 0);
@@ -111,6 +133,24 @@ function ProductCard({ product }) {
           {product.name}
         </h3>
 
+        {/* Tag badges */}
+        {(() => {
+          const tags = getProductTags(product);
+          if (!tags.length) return null;
+          return (
+            <div className="flex gap-1 flex-wrap mt-0.5 mb-0.5">
+              {tags.map((t) => (
+                <span
+                  key={t}
+                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${TAG_CFG[t].cls}`}
+                >
+                  {TAG_CFG[t].label}
+                </span>
+              ))}
+            </div>
+          );
+        })()}
+
         {/* Size / weight — 11px muted */}
         <p className="text-[12px] md:text-[11px] text-gray-400 mt-1.5 md:mt-0.5 mb-1 line-clamp-1">
           {product.unit_pack_size || product.unit_type || "1 unit"}
@@ -134,8 +174,9 @@ function ProductCard({ product }) {
 
         <div className="flex-1" />
 
-        {/* ── Price ── */}
-        <div className="mt-3 md:mt-1.5">
+        {/* ── Price + Add (desktop: side by side) ── */}
+        <div className="mt-3 md:mt-1.5 flex flex-col md:flex-row md:items-center md:justify-between md:gap-2">
+          {/* Price */}
           <div className="flex items-baseline gap-1.5">
             <span className="text-[18px] md:text-[14px] font-bold text-gray-900 leading-tight">
               ₹{Math.round(price)}
@@ -146,64 +187,64 @@ function ProductCard({ product }) {
               </span>
             )}
           </div>
-        </div>
 
-        {/* ── Add / Quantity control ── */}
-        <div className="mt-2 md:mt-1.5">
-          {isOutOfStock ? (
-            <span className="text-[11px] text-gray-400 font-medium">N/A</span>
-          ) : qty === 0 ? (
-            <button
-              onClick={handleAdd}
-              disabled={adding}
-              className={`w-full h-[46px] md:h-[34px] rounded-[12px] md:rounded-full
+          {/* ── Add / Quantity control ── */}
+          <div className="mt-2 md:mt-0 md:shrink-0">
+            {isOutOfStock ? (
+              <span className="text-[11px] text-gray-400 font-medium">N/A</span>
+            ) : qty === 0 ? (
+              <button
+                onClick={handleAdd}
+                disabled={adding}
+                className={`w-full md:w-[58px] h-[46px] md:h-[34px] rounded-[12px] md:rounded-full
                 border-2 border-[#16A34A]
                 text-[#16A34A] text-[14px] md:text-[12px] font-bold bg-white
                 hover:bg-green-50 active:scale-[0.97] active:bg-green-100
                 transition-all duration-150 disabled:opacity-60
                 flex items-center justify-center shadow-sm
                 ${bounce ? "animate-bounce-once" : ""}`}
-            >
-              {adding ? (
-                <span className="w-4 h-4 border-2 border-[#16A34A] border-t-transparent rounded-full animate-spin block" />
-              ) : (
-                "ADD"
-              )}
-            </button>
-          ) : (
-            <div
-              onClick={(e) => e.preventDefault()}
-              className="flex items-center bg-[#16A34A] rounded-[12px] md:rounded-full overflow-hidden h-[46px] md:h-[34px]"
-            >
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  updateQty(product.id, qty - 1);
-                }}
-                className="w-12 md:w-9 h-full flex items-center justify-center text-white hover:bg-green-700 active:bg-green-800 transition-colors font-bold"
-                aria-label="Decrease"
               >
-                <Minus className="w-4 h-4 md:w-3 md:h-3" />
+                {adding ? (
+                  <span className="w-4 h-4 border-2 border-[#16A34A] border-t-transparent rounded-full animate-spin block" />
+                ) : (
+                  "ADD"
+                )}
               </button>
-              <span className="flex-1 text-center text-[15px] md:text-[13px] font-bold text-white select-none">
-                {qty}
-              </span>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  updateQty(product.id, qty + 1);
-                }}
-                disabled={
-                  atMaxQuantity || qty >= (product.stock_quantity ?? 99)
-                }
-                className="w-12 md:w-9 h-full flex items-center justify-center text-white hover:bg-green-700 active:bg-green-800 transition-colors disabled:opacity-40 font-bold"
-                aria-label="Increase"
-                title={atMaxQuantity ? `Max ${maxQuantity} per order` : ""}
+            ) : (
+              <div
+                onClick={(e) => e.preventDefault()}
+                className="flex items-center bg-[#16A34A] rounded-[12px] md:rounded-full overflow-hidden h-[46px] md:h-[34px] md:w-[80px]"
               >
-                <Plus className="w-4 h-4 md:w-3 md:h-3" />
-              </button>
-            </div>
-          )}
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    updateQty(product.id, qty - 1);
+                  }}
+                  className="w-12 md:w-9 h-full flex items-center justify-center text-white hover:bg-green-700 active:bg-green-800 transition-colors font-bold"
+                  aria-label="Decrease"
+                >
+                  <Minus className="w-4 h-4 md:w-3 md:h-3" />
+                </button>
+                <span className="flex-1 text-center text-[15px] md:text-[13px] font-bold text-white select-none">
+                  {qty}
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    updateQty(product.id, qty + 1);
+                  }}
+                  disabled={
+                    atMaxQuantity || qty >= (product.stock_quantity ?? 99)
+                  }
+                  className="w-12 md:w-9 h-full flex items-center justify-center text-white hover:bg-green-700 active:bg-green-800 transition-colors disabled:opacity-40 font-bold"
+                  aria-label="Increase"
+                  title={atMaxQuantity ? `Max ${maxQuantity} per order` : ""}
+                >
+                  <Plus className="w-4 h-4 md:w-3 md:h-3" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {atMaxQuantity && (

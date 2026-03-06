@@ -362,7 +362,13 @@ function OverviewTab({ onSwitchTab }) {
     </div>
   );
 }
-function ProductModal({ product, categories, allProducts = [], onClose, onSaved }) {
+function ProductModal({
+  product,
+  categories,
+  allProducts = [],
+  onClose,
+  onSaved,
+}) {
   const isEdit = !!product;
   const initImages = () => {
     if (Array.isArray(product?.image_urls) && product.image_urls.length)
@@ -403,7 +409,8 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved 
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
   const setImg = (i, val) =>
     setImageUrls((a) => a.map((u, idx) => (idx === i ? val : u)));
-  const addImg = () => setImageUrls((a) => [...a, ""]);  const removeImg = (i) =>
+  const addImg = () => setImageUrls((a) => [...a, ""]);
+  const removeImg = (i) =>
     setImageUrls((a) =>
       a.length === 1 ? [""] : a.filter((_, idx) => idx !== i),
     );
@@ -573,7 +580,9 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved 
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">
                 SKU{" "}
-                <span className="font-normal text-gray-400">(optional — auto-generated if blank)</span>
+                <span className="font-normal text-gray-400">
+                  (optional — auto-generated if blank)
+                </span>
               </label>
               <input
                 value={form.sku}
@@ -746,15 +755,22 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved 
                 <div className="flex items-center gap-2 border border-indigo-200 bg-indigo-50 rounded-lg px-3 py-2">
                   <Package className="w-4 h-4 text-indigo-500 shrink-0" />
                   <span className="text-sm text-gray-800 flex-1 truncate">
-                    {allProducts.find(p => p.id === form.parent_product_id)?.name || form.parent_product_id}
+                    {allProducts.find((p) => p.id === form.parent_product_id)
+                      ?.name || form.parent_product_id}
                   </span>
                   <span className="text-[10px] text-indigo-600 font-semibold bg-indigo-100 px-1.5 py-0.5 rounded">
-                    {allProducts.find(p => p.id === form.parent_product_id)?.variant ||
-                     allProducts.find(p => p.id === form.parent_product_id)?.unit_pack_size || ''}
+                    {allProducts.find((p) => p.id === form.parent_product_id)
+                      ?.variant ||
+                      allProducts.find((p) => p.id === form.parent_product_id)
+                        ?.unit_pack_size ||
+                      ""}
                   </span>
                   <button
                     type="button"
-                    onClick={() => { set("parent_product_id", ""); setParentSearch(""); }}
+                    onClick={() => {
+                      set("parent_product_id", "");
+                      setParentSearch("");
+                    }}
                     className="text-gray-400 hover:text-red-500"
                   >
                     <X className="w-4 h-4" />
@@ -771,13 +787,16 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved 
                   {parentSearch.length >= 2 && (
                     <div className="border border-gray-200 rounded-lg max-h-36 overflow-y-auto divide-y divide-gray-50">
                       {allProducts
-                        .filter(p =>
-                          p.id !== product?.id &&
-                          !p.parent_product_id &&
-                          (p.name || '').toLowerCase().includes(parentSearch.toLowerCase())
+                        .filter(
+                          (p) =>
+                            p.id !== product?.id &&
+                            !p.parent_product_id &&
+                            (p.name || "")
+                              .toLowerCase()
+                              .includes(parentSearch.toLowerCase()),
                         )
                         .slice(0, 8)
-                        .map(p => (
+                        .map((p) => (
                           <button
                             type="button"
                             key={p.id}
@@ -787,35 +806,54 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved 
                               if (p.brand && !form.brand) set("brand", p.brand);
                               if (p.category_id && !form.category_id) {
                                 set("category_id", p.category_id);
-                                const cat = categories.find(c => c.id === p.category_id);
-                                if (cat?.parent_id) setParentCategoryId(cat.parent_id);
+                                const cat = categories.find(
+                                  (c) => c.id === p.category_id,
+                                );
+                                if (cat?.parent_id)
+                                  setParentCategoryId(cat.parent_id);
                               }
                               setParentSearch("");
                             }}
                             className="w-full text-left px-3 py-2 hover:bg-indigo-50 flex items-center gap-2"
                           >
                             <div className="w-7 h-7 rounded bg-gray-50 overflow-hidden shrink-0">
-                              <ImageWithFallback src={p.image_url} alt="" className="w-full h-full object-contain" size="sm" />
+                              <ImageWithFallback
+                                src={p.image_url}
+                                alt=""
+                                className="w-full h-full object-contain"
+                                size="sm"
+                              />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm text-gray-800 truncate">{p.name}</p>
-                              <p className="text-[10px] text-gray-400">{p.variant || p.unit_pack_size || ''} · ₹{p.price}</p>
+                              <p className="text-sm text-gray-800 truncate">
+                                {p.name}
+                              </p>
+                              <p className="text-[10px] text-gray-400">
+                                {p.variant || p.unit_pack_size || ""} · ₹
+                                {p.price}
+                              </p>
                             </div>
                           </button>
                         ))}
-                      {allProducts.filter(p =>
-                        p.id !== product?.id &&
-                        !p.parent_product_id &&
-                        (p.name || '').toLowerCase().includes(parentSearch.toLowerCase())
+                      {allProducts.filter(
+                        (p) =>
+                          p.id !== product?.id &&
+                          !p.parent_product_id &&
+                          (p.name || "")
+                            .toLowerCase()
+                            .includes(parentSearch.toLowerCase()),
                       ).length === 0 && (
-                        <p className="text-xs text-gray-400 px-3 py-2">No matching products</p>
+                        <p className="text-xs text-gray-400 px-3 py-2">
+                          No matching products
+                        </p>
                       )}
                     </div>
                   )}
                 </div>
               )}
               <p className="text-[10px] text-gray-400 mt-1">
-                Link this product as a size variant of another product (e.g. Toor Dal 500gm → parent: Toor Dal 250gm)
+                Link this product as a size variant of another product (e.g.
+                Toor Dal 500gm → parent: Toor Dal 250gm)
               </p>
             </div>
             <div className="col-span-2">
@@ -893,7 +931,12 @@ function VariantSubRow({ p, onEdit, onDelete, deleting }) {
       <td className="pl-14 pr-4 py-2">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-md bg-gray-50 flex-shrink-0 overflow-hidden">
-            <ImageWithFallback src={img} alt={p.name} size="sm" className="w-full h-full object-contain" />
+            <ImageWithFallback
+              src={img}
+              alt={p.name}
+              size="sm"
+              className="w-full h-full object-contain"
+            />
           </div>
           <div>
             <p className="text-xs font-medium text-gray-700">
@@ -905,30 +948,52 @@ function VariantSubRow({ p, onEdit, onDelete, deleting }) {
       <td className="px-4 py-2 text-xs text-gray-400">—</td>
       <td className="px-4 py-2">
         <span className="font-semibold text-gray-900 text-sm">₹{price}</span>
-        {mrp > price && <span className="ml-1 text-xs text-gray-400 line-through">₹{mrp}</span>}
+        {mrp > price && (
+          <span className="ml-1 text-xs text-gray-400 line-through">
+            ₹{mrp}
+          </span>
+        )}
       </td>
       <td className="px-4 py-2">
         {disc > 0 ? (
-          <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">{disc}%</span>
-        ) : <span className="text-gray-400 text-xs">—</span>}
+          <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+            {disc}%
+          </span>
+        ) : (
+          <span className="text-gray-400 text-xs">—</span>
+        )}
       </td>
       <td className="px-4 py-2">
         {(p.stock_quantity ?? 0) > 0 ? (
           <span className="bg-green-50 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-            {p.stock_quantity}{p.unit_pack_size ? ` × ${p.unit_pack_size}` : " units"} in stock
+            {p.stock_quantity}
+            {p.unit_pack_size ? ` × ${p.unit_pack_size}` : " units"} in stock
           </span>
         ) : (
-          <span className="bg-red-50 text-red-600 text-xs font-semibold px-2 py-0.5 rounded-full">Out of Stock</span>
+          <span className="bg-red-50 text-red-600 text-xs font-semibold px-2 py-0.5 rounded-full">
+            Out of Stock
+          </span>
         )}
       </td>
       <td className="px-4 py-2" />
       <td className="px-4 py-2">
         <div className="flex items-center gap-2">
-          <button onClick={() => onEdit(p)} className="p-1 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 transition-colors">
+          <button
+            onClick={() => onEdit(p)}
+            className="p-1 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 transition-colors"
+          >
             <Pencil className="w-3.5 h-3.5" />
           </button>
-          <button onClick={() => onDelete(p.id)} disabled={deleting === p.id} className="p-1 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors">
-            {deleting === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+          <button
+            onClick={() => onDelete(p.id)}
+            disabled={deleting === p.id}
+            className="p-1 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+          >
+            {deleting === p.id ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Trash2 className="w-3.5 h-3.5" />
+            )}
           </button>
         </div>
       </td>
@@ -951,8 +1016,14 @@ function VariantModal({ parent, onClose, onSaved }) {
 
   async function save(e) {
     e.preventDefault();
-    if (!form.unit.trim()) { setError("Size / variant label is required"); return; }
-    if (!form.price || !form.mrp) { setError("Price and MRP are required"); return; }
+    if (!form.unit.trim()) {
+      setError("Size / variant label is required");
+      return;
+    }
+    if (!form.price || !form.mrp) {
+      setError("Price and MRP are required");
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -970,8 +1041,19 @@ function VariantModal({ parent, onClose, onSaved }) {
         is_active: true,
         is_featured: false,
         parent_product_id: parent.id,
-        image_urls: form.image_url ? [form.image_url] : (Array.isArray(parent.image_urls) ? parent.image_urls : parent.image_url ? [parent.image_url] : []),
-        image_url: form.image_url || (Array.isArray(parent.image_urls) ? parent.image_urls[0] : parent.image_url) || null,
+        image_urls: form.image_url
+          ? [form.image_url]
+          : Array.isArray(parent.image_urls)
+            ? parent.image_urls
+            : parent.image_url
+              ? [parent.image_url]
+              : [],
+        image_url:
+          form.image_url ||
+          (Array.isArray(parent.image_urls)
+            ? parent.image_urls[0]
+            : parent.image_url) ||
+          null,
       };
       await api.post("/products", payload);
       onSaved();
@@ -990,35 +1072,91 @@ function VariantModal({ parent, onClose, onSaved }) {
             <h2 className="font-bold text-sm text-gray-900">Add Variant</h2>
             <p className="text-xs text-gray-400 mt-0.5">for {parent.name}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
         <form onSubmit={save} className="p-5 space-y-3">
-          {error && <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-1.5">{error}</p>}
+          {error && (
+            <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-1.5">
+              {error}
+            </p>
+          )}
           <div>
-            <label className="text-xs font-semibold text-gray-600 mb-1 block">Size / Pack Label *</label>
-            <input value={form.unit} onChange={e => set("unit", e.target.value)} placeholder="e.g. 250g, 1 kg, Pack of 4" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+            <label className="text-xs font-semibold text-gray-600 mb-1 block">
+              Size / Pack Label *
+            </label>
+            <input
+              value={form.unit}
+              onChange={(e) => set("unit", e.target.value)}
+              placeholder="e.g. 250g, 1 kg, Pack of 4"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold text-gray-600 mb-1 block">MRP (₹) *</label>
-              <input type="number" step="0.01" value={form.mrp} onChange={e => set("mrp", e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+              <label className="text-xs font-semibold text-gray-600 mb-1 block">
+                MRP (₹) *
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={form.mrp}
+                onChange={(e) => set("mrp", e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-600 mb-1 block">Sell Price (₹) *</label>
-              <input type="number" step="0.01" value={form.price} onChange={e => set("price", e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+              <label className="text-xs font-semibold text-gray-600 mb-1 block">
+                Sell Price (₹) *
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={form.price}
+                onChange={(e) => set("price", e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
             </div>
           </div>
           <div>
-            <label className="text-xs font-semibold text-gray-600 mb-1 block">Stock Quantity</label>
-            <input type="number" value={form.stock_quantity} onChange={e => set("stock_quantity", e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+            <label className="text-xs font-semibold text-gray-600 mb-1 block">
+              Stock Quantity
+            </label>
+            <input
+              type="number"
+              value={form.stock_quantity}
+              onChange={(e) => set("stock_quantity", e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
           </div>
           <div>
-            <label className="text-xs font-semibold text-gray-600 mb-1 block">Image URL (optional)</label>
-            <input value={form.image_url} onChange={e => set("image_url", e.target.value)} placeholder="Leave empty to use parent image" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+            <label className="text-xs font-semibold text-gray-600 mb-1 block">
+              Image URL (optional)
+            </label>
+            <input
+              value={form.image_url}
+              onChange={(e) => set("image_url", e.target.value)}
+              placeholder="Leave empty to use parent image"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
           </div>
           <div className="flex justify-end gap-3 pt-1">
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 hover:bg-gray-50">Cancel</button>
-            <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold flex items-center gap-2 disabled:opacity-60">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold flex items-center gap-2 disabled:opacity-60"
+            >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               Add Variant
             </button>
@@ -1050,148 +1188,161 @@ function ProductRow({
   const hasVariants = variants && variants.length > 0;
   return (
     <>
-    <tr
-      className={`hover:bg-gray-50 transition-colors ${p.is_active === false ? "bg-gray-50 opacity-75" : ""}`}
-    >
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gray-50 flex-shrink-0 overflow-hidden">
-            <ImageWithFallback
-              src={img}
-              alt={p.name}
-              size="sm"
-              className="w-full h-full object-contain"
-            />
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <p className="font-medium text-gray-900 text-sm line-clamp-1">
-                {p.name}
-              </p>
-              {p.is_active === false && (
-                <span className="bg-red-100 text-red-600 text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0">
-                  Inactive
-                </span>
-              )}
+      <tr
+        className={`hover:bg-gray-50 transition-colors ${p.is_active === false ? "bg-gray-50 opacity-75" : ""}`}
+      >
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-gray-50 flex-shrink-0 overflow-hidden">
+              <ImageWithFallback
+                src={img}
+                alt={p.name}
+                size="sm"
+                className="w-full h-full object-contain"
+              />
             </div>
-            <p className="text-xs text-gray-400">
-              {[p.brand, p.variant || p.unit_pack_size || p.unit].filter(Boolean).join(" · ")}
-              {hasVariants && (
-                <button
-                  onClick={() => setExpanded(!expanded)}
-                  className="ml-1.5 text-blue-600 font-medium hover:text-blue-800"
-                >
-                  {variants.length + 1} sizes {expanded ? "▾" : "▸"}
-                </button>
-              )}
-            </p>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <p className="font-medium text-gray-900 text-sm line-clamp-1">
+                  {p.name}
+                </p>
+                {p.is_active === false && (
+                  <span className="bg-red-100 text-red-600 text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0">
+                    Inactive
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-gray-400">
+                {[p.brand, p.variant || p.unit_pack_size || p.unit]
+                  .filter(Boolean)
+                  .join(" · ")}
+                {hasVariants && (
+                  <button
+                    onClick={() => setExpanded(!expanded)}
+                    className="ml-1.5 text-blue-600 font-medium hover:text-blue-800"
+                  >
+                    {variants.length + 1} sizes {expanded ? "▾" : "▸"}
+                  </button>
+                )}
+              </p>
+            </div>
           </div>
-        </div>
-      </td>
-      <td className="px-4 py-3 text-green-700 text-xs font-medium">
-        {p.category_name || "—"}
-      </td>
-      <td className="px-4 py-3">
-        <span className="font-semibold text-gray-900">₹{price}</span>
-        {mrp > price && (
-          <span className="ml-1 text-xs text-gray-400 line-through">
-            ₹{mrp}
-          </span>
-        )}
-      </td>
-      <td className="px-4 py-3">
-        {disc > 0 ? (
-          <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-            {disc}%
-          </span>
-        ) : (
-          <span className="text-gray-400 text-xs">—</span>
-        )}
-      </td>
-      <td className="px-4 py-3">
-        {(p.stock_quantity ?? 0) > 0 ? (
-          <span className="bg-green-50 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-            {p.stock_quantity}{p.unit_pack_size ? ` × ${p.unit_pack_size}` : " units"} in stock
-          </span>
-        ) : (
-          <span className="bg-red-50 text-red-600 text-xs font-semibold px-2 py-0.5 rounded-full">
-            Out of Stock
-          </span>
-        )}
-      </td>
-      <td className="px-4 py-3 text-center">
-        <button
-          onClick={() => onToggleFeatured(p)}
-          disabled={togglingFeatured === p.id}
-          title={p.is_featured ? "Remove from featured" : "Mark as featured"}
-          className={`p-1.5 rounded-lg transition-colors ${
-            p.is_featured
-              ? "text-yellow-500 hover:text-yellow-600 hover:bg-yellow-50"
-              : "text-gray-300 hover:text-yellow-400 hover:bg-yellow-50"
-          }`}
-        >
-          {togglingFeatured === p.id ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <StarIcon
-              className={`w-4 h-4 ${p.is_featured ? "text-yellow-500 fill-yellow-400" : "text-gray-300"}`}
-            />
+        </td>
+        <td className="px-4 py-3 text-green-700 text-xs font-medium">
+          {p.category_name || "—"}
+        </td>
+        <td className="px-4 py-3">
+          <span className="font-semibold text-gray-900">₹{price}</span>
+          {mrp > price && (
+            <span className="ml-1 text-xs text-gray-400 line-through">
+              ₹{mrp}
+            </span>
           )}
-        </button>
-      </td>
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-2">
+        </td>
+        <td className="px-4 py-3">
+          {disc > 0 ? (
+            <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+              {disc}%
+            </span>
+          ) : (
+            <span className="text-gray-400 text-xs">—</span>
+          )}
+        </td>
+        <td className="px-4 py-3">
+          {(p.stock_quantity ?? 0) > 0 ? (
+            <span className="bg-green-50 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+              {p.stock_quantity}
+              {p.unit_pack_size ? ` × ${p.unit_pack_size}` : " units"} in stock
+            </span>
+          ) : (
+            <span className="bg-red-50 text-red-600 text-xs font-semibold px-2 py-0.5 rounded-full">
+              Out of Stock
+            </span>
+          )}
+        </td>
+        <td className="px-4 py-3 text-center">
           <button
-            onClick={() => onEdit(p)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 transition-colors"
-          >
-            <Pencil className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => onToggleActive(p)}
-            disabled={togglingActive === p.id}
-            title={
-              p.is_active === false ? "Activate product" : "Deactivate product"
-            }
+            onClick={() => onToggleFeatured(p)}
+            disabled={togglingFeatured === p.id}
+            title={p.is_featured ? "Remove from featured" : "Mark as featured"}
             className={`p-1.5 rounded-lg transition-colors ${
-              p.is_active === false
-                ? "text-gray-400 hover:text-orange-600 hover:bg-orange-50"
-                : "text-green-500 hover:text-green-700 hover:bg-green-50"
+              p.is_featured
+                ? "text-yellow-500 hover:text-yellow-600 hover:bg-yellow-50"
+                : "text-gray-300 hover:text-yellow-400 hover:bg-yellow-50"
             }`}
           >
-            {togglingActive === p.id ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : p.is_active === false ? (
-              <EyeOff className="w-4 h-4" />
-            ) : (
-              <Eye className="w-4 h-4" />
-            )}
-          </button>
-          <button
-            onClick={() => onAddVariant(p)}
-            title="Add size variant"
-            className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => onDelete(p.id)}
-            disabled={deleting === p.id}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-          >
-            {deleting === p.id ? (
+            {togglingFeatured === p.id ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <Trash2 className="w-4 h-4" />
+              <StarIcon
+                className={`w-4 h-4 ${p.is_featured ? "text-yellow-500 fill-yellow-400" : "text-gray-300"}`}
+              />
             )}
           </button>
-        </div>
-      </td>
-    </tr>
-    {/* Variant sub-rows */}
-    {hasVariants && expanded && variants.map(v => (
-      <VariantSubRow key={v.id} p={v} onEdit={onEdit} onDelete={onDelete} deleting={deleting} />
-    ))}
+        </td>
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onEdit(p)}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 transition-colors"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => onToggleActive(p)}
+              disabled={togglingActive === p.id}
+              title={
+                p.is_active === false
+                  ? "Activate product"
+                  : "Deactivate product"
+              }
+              className={`p-1.5 rounded-lg transition-colors ${
+                p.is_active === false
+                  ? "text-gray-400 hover:text-orange-600 hover:bg-orange-50"
+                  : "text-green-500 hover:text-green-700 hover:bg-green-50"
+              }`}
+            >
+              {togglingActive === p.id ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : p.is_active === false ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4" />
+              )}
+            </button>
+            <button
+              onClick={() => onAddVariant(p)}
+              title="Add size variant"
+              className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => onDelete(p.id)}
+              disabled={deleting === p.id}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+            >
+              {deleting === p.id ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4" />
+              )}
+            </button>
+          </div>
+        </td>
+      </tr>
+      {/* Variant sub-rows */}
+      {hasVariants &&
+        expanded &&
+        variants.map((v) => (
+          <VariantSubRow
+            key={v.id}
+            p={v}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            deleting={deleting}
+          />
+        ))}
     </>
   );
 }
@@ -1246,7 +1397,9 @@ function ProductsTab() {
     const headers = { ...(options.headers || {}) };
     if (token) headers["Authorization"] = `Bearer ${token}`;
     const lang =
-      typeof window !== "undefined" ? localStorage.getItem("language") || "en" : "en";
+      typeof window !== "undefined"
+        ? localStorage.getItem("language") || "en"
+        : "en";
     headers["Accept-Language"] = lang;
     return fetch(`${API_BASE}${endpoint}`, { ...options, headers });
   }
@@ -1297,7 +1450,9 @@ function ProductsTab() {
     try {
       const token = secureStorage.getItem("token");
       const lang =
-        typeof window !== "undefined" ? localStorage.getItem("language") || "en" : "en";
+        typeof window !== "undefined"
+          ? localStorage.getItem("language") || "en"
+          : "en";
       const formData = new FormData();
       formData.append("file", file);
       const res = await fetch(`${API_BASE}/products/bulk-upload`, {
@@ -1309,7 +1464,8 @@ function ProductsTab() {
         body: formData,
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json.message || `Upload failed (${res.status})`);
+      if (!res.ok)
+        throw new Error(json.message || `Upload failed (${res.status})`);
       setUploadResult(json.data || json);
       load();
     } catch (e) {
@@ -1418,13 +1574,16 @@ function ProductsTab() {
     for (const p of products) {
       if (p.parent_product_id) {
         childIds.add(p.id);
-        if (!variantMap[p.parent_product_id]) variantMap[p.parent_product_id] = [];
+        if (!variantMap[p.parent_product_id])
+          variantMap[p.parent_product_id] = [];
         variantMap[p.parent_product_id].push(p);
       }
     }
     // Sort variants by price within each group
     for (const key of Object.keys(variantMap)) {
-      variantMap[key].sort((a, b) => parseFloat(a.price || 0) - parseFloat(b.price || 0));
+      variantMap[key].sort(
+        (a, b) => parseFloat(a.price || 0) - parseFloat(b.price || 0),
+      );
     }
 
     const map = {};
@@ -1520,7 +1679,9 @@ function ProductsTab() {
       {uploadResult && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm">
           <div className="flex items-center justify-between mb-2">
-            <span className="font-semibold text-blue-800">Stock Update Complete</span>
+            <span className="font-semibold text-blue-800">
+              Stock Update Complete
+            </span>
             <button
               onClick={() => setUploadResult(null)}
               className="text-blue-400 hover:text-blue-700"
@@ -1529,17 +1690,30 @@ function ProductsTab() {
             </button>
           </div>
           <div className="flex flex-wrap gap-4 text-xs">
-            <span className="text-blue-700 font-medium">↑ Updated: {uploadResult.updated ?? 0}</span>
-            <span className="text-red-600 font-medium">✗ Failed: {uploadResult.failed ?? 0}</span>
-            <span className="text-gray-600">Total rows: {uploadResult.total ?? 0}</span>
+            <span className="text-blue-700 font-medium">
+              ↑ Updated: {uploadResult.updated ?? 0}
+            </span>
+            <span className="text-red-600 font-medium">
+              ✗ Failed: {uploadResult.failed ?? 0}
+            </span>
+            <span className="text-gray-600">
+              Total rows: {uploadResult.total ?? 0}
+            </span>
           </div>
-          {(uploadResult.validationErrors?.length > 0 || uploadResult.updateErrors?.length > 0) && (
+          {(uploadResult.validationErrors?.length > 0 ||
+            uploadResult.updateErrors?.length > 0) && (
             <details className="mt-2">
-              <summary className="cursor-pointer text-xs text-red-600 underline">View errors</summary>
+              <summary className="cursor-pointer text-xs text-red-600 underline">
+                View errors
+              </summary>
               <ul className="mt-1 space-y-1 max-h-40 overflow-y-auto">
-                {[...(uploadResult.validationErrors || []), ...(uploadResult.updateErrors || [])].map((err, i) => (
+                {[
+                  ...(uploadResult.validationErrors || []),
+                  ...(uploadResult.updateErrors || []),
+                ].map((err, i) => (
                   <li key={i} className="text-xs text-red-700">
-                    Row {err.row}{err.name ? ` — ${err.name}` : ""}: {err.error}
+                    Row {err.row}
+                    {err.name ? ` — ${err.name}` : ""}: {err.error}
                   </li>
                 ))}
               </ul>
@@ -1622,7 +1796,9 @@ function ProductsTab() {
                             togglingFeatured={togglingFeatured}
                             onToggleActive={handleToggleActive}
                             togglingActive={togglingActive}
-                            onAddVariant={(parent) => setModal({ _variantParent: parent })}
+                            onAddVariant={(parent) =>
+                              setModal({ _variantParent: parent })
+                            }
                           />
                         ))}
                       </tbody>
@@ -1634,8 +1810,8 @@ function ProductsTab() {
           })}
       </div>
       {}
-      {modal && (
-        modal?._variantParent ? (
+      {modal &&
+        (modal?._variantParent ? (
           <VariantModal
             parent={modal._variantParent}
             onClose={() => setModal(null)}
@@ -1649,8 +1825,7 @@ function ProductsTab() {
             onClose={() => setModal(null)}
             onSaved={onSaved}
           />
-        )
-      )}
+        ))}
     </div>
   );
 }
@@ -4536,6 +4711,12 @@ function StoreSettingsTab() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({});
 
+  // GST-specific state (loaded separately to handle boolean toggles)
+  const [gstEnabled, setGstEnabled] = useState(true);
+  const [gstInclusive, setGstInclusive] = useState(false);
+  const [retailGstRate, setRetailGstRate] = useState("0");
+  const [wholesaleGstRate, setWholesaleGstRate] = useState("0");
+
   useEffect(() => {
     (async () => {
       try {
@@ -4543,7 +4724,14 @@ function StoreSettingsTab() {
         const list = res.data || [];
         setSettings(list);
         const f = {};
-        list.forEach((s) => (f[s.key] = s.value));
+        list.forEach((s) => {
+          f[s.key] = s.value;
+          if (s.key === "gst_enabled") setGstEnabled(s.value !== "0");
+          if (s.key === "gst_inclusive") setGstInclusive(s.value === "1");
+          if (s.key === "retail_gst_rate") setRetailGstRate(s.value || "0");
+          if (s.key === "wholesale_gst_rate")
+            setWholesaleGstRate(s.value || "0");
+        });
         setForm(f);
       } catch (e) {
         toast(e.message || "Failed to load settings", "error");
@@ -4556,7 +4744,15 @@ function StoreSettingsTab() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await api.put("/settings", { settings: form });
+      // Merge GST fields into the form
+      const merged = {
+        ...form,
+        gst_enabled: gstEnabled ? "1" : "0",
+        gst_inclusive: gstInclusive ? "1" : "0",
+        retail_gst_rate: retailGstRate || "0",
+        wholesale_gst_rate: wholesaleGstRate || "0",
+      };
+      const res = await api.put("/settings", { settings: merged });
       const list = res.data || [];
       setSettings(list);
       toast("Settings saved successfully", "success");
@@ -4567,6 +4763,15 @@ function StoreSettingsTab() {
     }
   };
 
+  // Settings that are handled in the dedicated GST section — excluded from generic list
+  const GST_KEYS = new Set([
+    "gst_enabled",
+    "gst_inclusive",
+    "retail_gst_rate",
+    "wholesale_gst_rate",
+  ]);
+  const genericSettings = settings.filter((s) => !GST_KEYS.has(s.key));
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -4576,7 +4781,8 @@ function StoreSettingsTab() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto space-y-5">
+      {/* ── Store Charges ─────────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-gray-100">
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -4589,7 +4795,7 @@ function StoreSettingsTab() {
           </p>
         </div>
         <div className="px-6 py-5 space-y-6">
-          {settings.map((s) => (
+          {genericSettings.map((s) => (
             <div key={s.key}>
               <label className="block text-sm font-semibold text-gray-800 mb-1">
                 {s.label || s.key}
@@ -4598,7 +4804,9 @@ function StoreSettingsTab() {
                 <p className="text-xs text-gray-400 mb-2">{s.description}</p>
               )}
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">₹</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">
+                  ₹
+                </span>
                 <input
                   type="number"
                   min="0"
@@ -4613,25 +4821,153 @@ function StoreSettingsTab() {
             </div>
           ))}
         </div>
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-semibold rounded-lg text-sm transition-colors shadow-sm"
-          >
-            {saving ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Saving…
-              </>
-            ) : (
-              <>
-                <Check className="w-4 h-4" />
-                Save Settings
-              </>
-            )}
-          </button>
+      </div>
+
+      {/* ── GST Settings ──────────────────────────────────────────── */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-100">
+          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <CircleDollarSign className="w-5 h-5 text-indigo-500" />
+            GST / Tax Settings
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Control how GST is applied for retail and wholesale customers.
+          </p>
         </div>
+        <div className="px-6 py-5 space-y-6">
+          {/* GST Enabled toggle */}
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-gray-800">Enable GST</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                When off, no GST is calculated or shown on any order.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setGstEnabled((v) => !v)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                gstEnabled ? "bg-green-500" : "bg-gray-300"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                  gstEnabled ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
+
+          {gstEnabled && (
+            <>
+              {/* Price type toggle */}
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">
+                    Prices are GST-inclusive (MRP)
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    <span className="font-medium text-indigo-600">ON</span> —
+                    Product prices already include GST (standard Indian MRP).
+                    GST is back-calculated for display only.
+                    <br />
+                    <span className="font-medium text-red-500">OFF</span> — GST
+                    is added on top of the set price (prices are ex-GST).
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setGstInclusive((v) => !v)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none ${
+                    gstInclusive ? "bg-indigo-500" : "bg-gray-300"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                      gstInclusive ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Retail GST rate override */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-1">
+                  Retail Customer GST Rate (%)
+                </label>
+                <p className="text-xs text-gray-400 mb-2">
+                  Override GST rate for retail customers. Set to{" "}
+                  <strong>0</strong> to use each product&apos;s individual GST
+                  rate.
+                </p>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    max="28"
+                    step="0.01"
+                    value={retailGstRate}
+                    onChange={(e) => setRetailGstRate(e.target.value)}
+                    className="w-full pr-10 pl-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent transition"
+                    placeholder="0"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                    %
+                  </span>
+                </div>
+              </div>
+
+              {/* Wholesale GST rate override */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-1">
+                  Wholesale Customer GST Rate (%)
+                </label>
+                <p className="text-xs text-gray-400 mb-2">
+                  Override GST rate for wholesale customers. Set to{" "}
+                  <strong>0</strong> to use each product&apos;s individual GST
+                  rate. Wholesale customers can have a different (often lower)
+                  effective tax rate.
+                </p>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    max="28"
+                    step="0.01"
+                    value={wholesaleGstRate}
+                    onChange={(e) => setWholesaleGstRate(e.target.value)}
+                    className="w-full pr-10 pl-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent transition"
+                    placeholder="0"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                    %
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ── Save Button ───────────────────────────────────────────── */}
+      <div className="flex justify-end">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-semibold rounded-lg text-sm transition-colors shadow-sm"
+        >
+          {saving ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Saving…
+            </>
+          ) : (
+            <>
+              <Check className="w-4 h-4" />
+              Save All Settings
+            </>
+          )}
+        </button>
       </div>
     </div>
   );

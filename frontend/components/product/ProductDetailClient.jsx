@@ -88,7 +88,7 @@ function KeyHighlights({ description, highlights }) {
     ? highlights
     : description
       ? description
-          .split(/[.�\n]/)
+          .split(/[.\n]/)
           .map((s) => s.trim())
           .filter((s) => s.length > 8 && s.length < 120)
           .slice(0, 5)
@@ -101,7 +101,7 @@ function KeyHighlights({ description, highlights }) {
         {items.map((item, i) => (
           <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
             <span className="mt-0.5 w-4 h-4 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 text-[10px] font-bold">
-              ?
+              {i + 1}
             </span>
             {item}
           </li>
@@ -582,7 +582,7 @@ export default function ProductDetailClient({
                       In Stock
                       {selected.stock_quantity != null &&
                         selected.stock_quantity <= 10 &&
-                        ` � Only ${selected.stock_quantity} left`}
+                        ` · Only ${selected.stock_quantity} left`}
                     </span>
                   </>
                 )}
@@ -658,16 +658,16 @@ export default function ProductDetailClient({
                   <div className="flex gap-3">
                     <button
                       onClick={handleAdd}
-                      className="flex-1 h-[48px] flex items-center justify-center gap-2 bg-[#16A34A] hover:bg-green-700 text-white rounded-xl font-bold text-base shadow-sm active:scale-[0.98] transition-all"
+                      className="flex-1 h-[48px] flex items-center justify-center gap-2 bg-[#16A34A] hover:bg-green-700 text-white rounded-xl font-bold text-base shadow-sm active:scale-[0.98] transition-all whitespace-nowrap px-4"
                     >
-                      <ShoppingCart className="w-5 h-5" />
+                      <ShoppingCart className="w-5 h-5 shrink-0" />
                       Add to Cart
                     </button>
                     <button
                       onClick={handleBuyNow}
-                      className="flex-1 h-[48px] flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold text-base shadow-sm active:scale-[0.98] transition-all"
+                      className="flex-1 h-[48px] flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold text-base shadow-sm active:scale-[0.98] transition-all whitespace-nowrap px-4"
                     >
-                      <Zap className="w-5 h-5" />
+                      <Zap className="w-5 h-5 shrink-0" />
                       Buy Now
                     </button>
                   </div>

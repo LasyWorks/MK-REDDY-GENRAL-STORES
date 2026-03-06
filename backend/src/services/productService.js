@@ -1,21 +1,22 @@
-const { Product, AdminLog } = require('../models');
-const config = require('../config');
-const ApiError = require('../utils/ApiError');
-const { revalidatePages } = require('../utils/revalidate');
-const { invalidateCache } = require('../middlewares/cache');
-const ExcelJS = require('exceljs');
-const path = require('path');
-const fs = require('fs');
+const { Product, Category, AdminLog } = require("../models");
+const config = require("../config");
+const ApiError = require("../utils/ApiError");
+const { revalidatePages } = require("../utils/revalidate");
+const { invalidateCache } = require("../middlewares/cache");
+const ExcelJS = require("exceljs");
+const path = require("path");
+const fs = require("fs");
 class ProductService {
-  static async getById(id, lang = 'en') {
+  static async getById(id, lang = "en") {
     // Validate UUID format before hitting the DB to avoid PostgreSQL 22P02 errors
-    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const UUID_RE =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!id || !UUID_RE.test(id)) {
-      throw ApiError.notFound('Product not found');
+      throw ApiError.notFound("Product not found");
     }
     const product = await Product.findById(id, lang);
     if (!product) {
-      throw ApiError.notFound('Product not found');
+      throw ApiError.notFound("Product not found");
     }
     return product;
   }
@@ -33,11 +34,13 @@ class ProductService {
     // Enforce catalog size limit to prevent database bloat and performance issues
     const productCount = await Product.count();
     if (productCount >= config.limits.maxProducts) {
-      throw ApiError.forbidden(`Maximum product limit (${config.limits.maxProducts}) reached`);
+      throw ApiError.forbidden(
+        `Maximum product limit (${config.limits.maxProducts}) reached`,
+      );
     }
     const category = await Category.findById(productData.category_id);
     if (!category) {
-      throw ApiError.badRequest('Invalid category');
+      throw ApiError.badRequest("Invalid category");
     }
     if (!productData.sku) {
       // Auto-generate SKU if admin doesn't provide one (prevents duplicate entry errors)
@@ -46,25 +49,27 @@ class ProductService {
     // SKU must be unique across all products for inventory tracking and order management
     const existingSku = await Product.findBySku(productData.sku);
     if (existingSku) {
-      throw ApiError.conflict(`SKU '${productData.sku}' already exists. Please use a unique SKU.`);
+      throw ApiError.conflict(
+        `SKU '${productData.sku}' already exists. Please use a unique SKU.`,
+      );
     }
     const productId = await Product.create(productData);
     await AdminLog.create({
       adminId,
-      action: 'CREATE_PRODUCT',
-      entityType: 'product',
+      action: "CREATE_PRODUCT",
+      entityType: "product",
       entityId: productId,
       newValue: productData,
     });
     // Invalidate product cache so new product appears in API responses
-    invalidateCache('products', '/api/v1/products');
-    invalidateCache('responses', '/api/v1/products');
+    invalidateCache("products", "/api/v1/products");
+    invalidateCache("responses", "/api/v1/products");
     // Flush category cache so product_count increments immediately
-    invalidateCache('categories');
-    
+    invalidateCache("categories");
+
     // Trigger frontend cache refresh so new product appears immediately on website
     await revalidatePages({
-      tags: ['products', `category-${productData.category_id}`],
+      tags: ["products", `category-${productData.category_id}`],
       paths: [`/categories/${productData.category_id}`],
     });
     return this.getById(productId);
@@ -72,101 +77,120 @@ class ProductService {
   static async update(id, productData, adminId) {
     const product = await Product.findById(id);
     if (!product) {
-      throw ApiError.notFound('Product not found');
+      throw ApiError.notFound("Product not found");
     }
     // Validate category_id changes - ensure category exists and is active
     if (productData.category_id) {
       const category = await Category.findById(productData.category_id);
       if (!category) {
-        throw ApiError.badRequest('Invalid category');
+        throw ApiError.badRequest("Invalid category");
       }
       // Optionally warn if assigning to inactive category
       if (!category.is_active) {
-        console.warn(`Product ${id} assigned to inactive category ${productData.category_id}`);
+        console.warn(
+          `Product ${id} assigned to inactive category ${productData.category_id}`,
+        );
       }
     }
     // Validate SKU changes - must remain unique
     if (productData.sku && productData.sku !== product.sku) {
       const existingSku = await Product.findBySku(productData.sku);
       if (existingSku && existingSku.id !== id) {
-        throw ApiError.conflict(`SKU '${productData.sku}' already exists. Please use a unique SKU.`);
+        throw ApiError.conflict(
+          `SKU '${productData.sku}' already exists. Please use a unique SKU.`,
+        );
       }
     }
     const oldData = { ...product };
     await Product.update(id, productData);
     await AdminLog.create({
       adminId,
-      action: 'UPDATE_PRODUCT',
-      entityType: 'product',
+      action: "UPDATE_PRODUCT",
+      entityType: "product",
       entityId: id,
       oldValue: oldData,
       newValue: productData,
     });
     const categoryId = productData.category_id || oldData.category_id;
     const oldCategoryId = oldData.category_id;
-    
+
     // Invalidate caches for updated product and its category
-    invalidateCache('products', `/api/v1/products/${id}`);
-    invalidateCache('products', '/api/v1/products');
-    invalidateCache('responses', '/api/v1/products');
+    invalidateCache("products", `/api/v1/products/${id}`);
+    invalidateCache("products", "/api/v1/products");
+    invalidateCache("responses", "/api/v1/products");
     // Always flush category cache so product_count is up-to-date
     // (covers same-category edits and moves to a different category)
-    invalidateCache('categories');
-    
+    invalidateCache("categories");
+
     await revalidatePages({
-      tags: ['products', `product-${id}`, `category-${categoryId}`, 'categories'],
-      paths: [`/categories/${categoryId}`, ...(oldCategoryId !== categoryId ? [`/categories/${oldCategoryId}`] : [])],
+      tags: [
+        "products",
+        `product-${id}`,
+        `category-${categoryId}`,
+        "categories",
+      ],
+      paths: [
+        `/categories/${categoryId}`,
+        ...(oldCategoryId !== categoryId
+          ? [`/categories/${oldCategoryId}`]
+          : []),
+      ],
     });
     return this.getById(id);
   }
   static async delete(id, adminId) {
     const product = await Product.findById(id);
     if (!product) {
-      throw ApiError.notFound('Product not found');
+      throw ApiError.notFound("Product not found");
     }
     // Soft delete: keep product in database for order history, just hide from customers
     await Product.update(id, { is_active: false });
-    
+
     // Invalidate product caches
-    invalidateCache('products', `/api/v1/products/${id}`);
-    invalidateCache('products', '/api/v1/products');
-    invalidateCache('responses', '/api/v1/products');
+    invalidateCache("products", `/api/v1/products/${id}`);
+    invalidateCache("products", "/api/v1/products");
+    invalidateCache("responses", "/api/v1/products");
     // Flush category cache so the deactivated product doesn't count toward product_count
-    invalidateCache('categories');
-    
+    invalidateCache("categories");
+
     await AdminLog.create({
       adminId,
-      action: 'DEACTIVATE_PRODUCT',
-      entityType: 'product',
+      action: "DEACTIVATE_PRODUCT",
+      entityType: "product",
       entityId: id,
       oldValue: { is_active: product.is_active },
       newValue: { is_active: false },
     });
     await revalidatePages({
-      tags: ['products', `product-${id}`, `category-${product.category_id}`, 'categories'],
+      tags: [
+        "products",
+        `product-${id}`,
+        `category-${product.category_id}`,
+        "categories",
+      ],
       paths: [`/categories/${product.category_id}`],
     });
-    return { message: 'Product deactivated successfully' };
+    return { message: "Product deactivated successfully" };
   }
-  static async updateStock(id, quantity, adminId, operation = 'add') {
+  static async updateStock(id, quantity, adminId, operation = "add") {
     const product = await Product.findById(id);
     if (!product) {
-      throw ApiError.notFound('Product not found');
+      throw ApiError.notFound("Product not found");
     }
     let newStock;
-    if (operation === 'set') {
+    if (operation === "set") {
       newStock = parseInt(quantity);
     } else {
       newStock = product.stock_quantity + quantity;
     }
     if (newStock < 0) {
-      throw ApiError.badRequest('Insufficient stock');
+      throw ApiError.badRequest("Insufficient stock");
     }
     await Product.update(id, { stock_quantity: newStock });
     await AdminLog.create({
       adminId,
-      action: 'UPDATE_STOCK',
-      entityType: 'product',
+      action: "UPDATE_STOCK",
+      entityType: "product",
       entityId: id,
       oldValue: { stock_quantity: product.stock_quantity },
       newValue: { stock_quantity: newStock, change: quantity },
@@ -182,11 +206,13 @@ class ProductService {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(filePath);
     const worksheet = workbook.worksheets[0];
-    if (!worksheet) throw ApiError.badRequest('Excel file has no worksheets');
+    if (!worksheet) throw ApiError.badRequest("Excel file has no worksheets");
 
     const headers = [];
     const data = [];
-    worksheet.getRow(1).eachCell((cell, col) => { headers[col] = cell.value; });
+    worksheet.getRow(1).eachCell((cell, col) => {
+      headers[col] = cell.value;
+    });
     worksheet.eachRow((row, rowNumber) => {
       if (rowNumber === 1) return;
       const rowData = {};
@@ -197,7 +223,7 @@ class ProductService {
       if (Object.keys(rowData).length > 0) data.push(rowData);
     });
 
-    if (data.length === 0) throw ApiError.badRequest('Excel file is empty');
+    if (data.length === 0) throw ApiError.badRequest("Excel file is empty");
 
     const updateQueue = [];
     const errors = [];
@@ -208,36 +234,49 @@ class ProductService {
       try {
         // Match product: by name_en + unit_pack_size (case-insensitive)
         const nameRaw = row.name_en ? String(row.name_en).trim() : null;
-        const packRaw = row.unit_pack_size ? String(row.unit_pack_size).trim() : null;
-        if (!nameRaw) throw new Error('name_en is required');
+        const packRaw = row.unit_pack_size
+          ? String(row.unit_pack_size).trim()
+          : null;
+        if (!nameRaw) throw new Error("name_en is required");
 
         const existing = await Product.findByNameAndPack(nameRaw, packRaw);
         if (!existing) {
-          throw new Error(`Product "${nameRaw}"${packRaw ? ` (${packRaw})` : ''} not found — use Add Product to create new products`);
+          throw new Error(
+            `Product "${nameRaw}"${packRaw ? ` (${packRaw})` : ""} not found — use Add Product to create new products`,
+          );
         }
 
         const updates = {};
-        if (row.stock_quantity !== undefined && row.stock_quantity !== '') {
+        if (row.stock_quantity !== undefined && row.stock_quantity !== "") {
           const qty = parseInt(row.stock_quantity);
           if (!isNaN(qty) && qty >= 0) updates.stock_quantity = qty;
         }
-        if (row.price !== undefined && row.price !== '') {
+        if (row.price !== undefined && row.price !== "") {
           const price = parseFloat(row.price);
           if (!isNaN(price) && price > 0) updates.price = price;
         }
-        if (row.mrp !== undefined && row.mrp !== '') {
+        if (row.mrp !== undefined && row.mrp !== "") {
           const mrp = parseFloat(row.mrp);
           if (!isNaN(mrp) && mrp > 0) updates.mrp = mrp;
         }
-        if (row.wholesale_price !== undefined && row.wholesale_price !== '') {
+        if (row.wholesale_price !== undefined && row.wholesale_price !== "") {
           const wp = parseFloat(row.wholesale_price);
           if (!isNaN(wp) && wp > 0) updates.wholesale_price = wp;
         }
 
         if (Object.keys(updates).length === 0) {
-          errors.push({ row: rowIndex, name: nameRaw, error: 'No updatable fields found in this row' });
+          errors.push({
+            row: rowIndex,
+            name: nameRaw,
+            error: "No updatable fields found in this row",
+          });
         } else {
-          updateQueue.push({ _rowIndex: rowIndex, id: existing.id, name: nameRaw, updates });
+          updateQueue.push({
+            _rowIndex: rowIndex,
+            id: existing.id,
+            name: nameRaw,
+            updates,
+          });
         }
       } catch (error) {
         errors.push({ row: rowIndex, name: row.name_en, error: error.message });
@@ -246,7 +285,10 @@ class ProductService {
 
     if (updateQueue.length === 0) {
       fs.unlinkSync(filePath);
-      throw ApiError.badRequest('No products could be matched for update', errors);
+      throw ApiError.badRequest(
+        "No products could be matched for update",
+        errors,
+      );
     }
 
     let updatedCount = 0;
@@ -256,19 +298,27 @@ class ProductService {
         await Product.update(upd.id, upd.updates);
         updatedCount++;
       } catch (err) {
-        updateErrors.push({ row: upd._rowIndex, name: upd.name, error: err.message });
+        updateErrors.push({
+          row: upd._rowIndex,
+          name: upd.name,
+          error: err.message,
+        });
       }
     }
 
     fs.unlinkSync(filePath);
     await AdminLog.create({
       adminId,
-      action: 'BULK_STOCK_UPDATE',
-      entityType: 'product',
-      newValue: { total: data.length, updated: updatedCount, failed: errors.length + updateErrors.length },
+      action: "BULK_STOCK_UPDATE",
+      entityType: "product",
+      newValue: {
+        total: data.length,
+        updated: updatedCount,
+        failed: errors.length + updateErrors.length,
+      },
     });
     return {
-      message: 'Stock update completed',
+      message: "Stock update completed",
       total: data.length,
       inserted: 0,
       updated: updatedCount,
@@ -297,8 +347,8 @@ class ProductService {
       stockThreshold: threshold,
       isActive: null,
       limit: 500,
-      sortBy: 'stock_quantity',
-      sortOrder: 'ASC',
+      sortBy: "stock_quantity",
+      sortOrder: "ASC",
     });
     return {
       products: result.products,
@@ -308,17 +358,17 @@ class ProductService {
   }
   static async toggleActive(id, adminId) {
     const product = await this.getById(id);
-    if (!product) throw ApiError.notFound('Product not found');
+    if (!product) throw ApiError.notFound("Product not found");
     const newStatus = !product.is_active;
     await Product.update(id, { is_active: newStatus });
     await AdminLog.create({
       adminId,
-      action: newStatus ? 'ACTIVATE_PRODUCT' : 'DEACTIVATE_PRODUCT',
-      entityType: 'product',
+      action: newStatus ? "ACTIVATE_PRODUCT" : "DEACTIVATE_PRODUCT",
+      entityType: "product",
       entityId: id,
     });
     await revalidatePages({
-      tags: ['products', `product-${id}`, `category-${product.category_id}`],
+      tags: ["products", `product-${id}`, `category-${product.category_id}`],
       paths: [`/categories/${product.category_id}`],
     });
     return { ...product, is_active: newStatus };
@@ -329,8 +379,8 @@ class ProductService {
    * Based on order history - finds products that appear in orders with this product
    */
   static async getFrequentlyBoughtTogether(productId, options = {}) {
-    const { lang = 'en', limit = 12 } = options;
-    
+    const { lang = "en", limit = 12 } = options;
+
     // Simplified query that matches the product list format
     const query = `
       SELECT 
@@ -383,9 +433,9 @@ class ProductService {
       ORDER BY purchase_frequency DESC, p.id DESC
       LIMIT $3
     `;
-    
+
     // Use the database query function
-    const { query: dbQuery } = require('../config/database');
+    const { query: dbQuery } = require("../config/database");
     const result = await dbQuery(query, [productId, lang, limit]);
     return result || [];
   }

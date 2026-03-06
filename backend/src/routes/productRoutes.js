@@ -41,15 +41,36 @@ router.get(
 );
 
 // ── Public / optional-auth routes with caching ────────────────────────────
-router.get("/", optionalAuth, cacheMiddleware('products', 180), productController.getAllProducts);
-router.get("/search", optionalAuth, cacheMiddleware('products', 120), productController.searchProducts);
+router.get(
+  "/",
+  optionalAuth,
+  cacheMiddleware("products", 180),
+  productController.getAllProducts,
+);
+router.get(
+  "/search",
+  optionalAuth,
+  cacheMiddleware("products", 120),
+  productController.searchProducts,
+);
+router.get(
+  "/daily-featured",
+  optionalAuth,
+  cacheMiddleware("products", 3600),
+  productController.getDailyFeatured,
+);
 router.get(
   "/:id/frequently-bought-together",
   optionalAuth,
-  cacheMiddleware('products', 300),
+  cacheMiddleware("products", 300),
   productController.getFrequentlyBoughtTogether,
 );
-router.get("/:id", optionalAuth, cacheMiddleware('products', 300), productController.getProductById);
+router.get(
+  "/:id",
+  optionalAuth,
+  cacheMiddleware("products", 300),
+  productController.getProductById,
+);
 
 // ── Admin-only mutation routes ─────────────────────────────────────────────
 router.use(authenticate);
