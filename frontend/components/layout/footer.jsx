@@ -6,10 +6,12 @@ import {
   ClockIcon as Clock,
   ShoppingBagIcon as ShoppingBag,
   ShieldCheckIcon as Shield,
+  TruckIcon as Truck,
   ArrowPathIcon as RotateCcw,
 } from "@heroicons/react/24/outline";
 
 const USP = [
+  { icon: Truck, label: "Home Delivery", sub: "Delivered to your doorstep" },
   { icon: Shield, label: "100% Genuine", sub: "Verified products only" },
   {
     icon: RotateCcw,
@@ -81,10 +83,10 @@ export default function Footer() {
               <div className="flex items-center gap-2.5 text-gray-400">
                 <Mail className="w-4 h-4 shrink-0 text-blue-400" />
                 <a
-                  href="mailto:mkreddygeneralstore@gmail.com"
+                  href="mailto:anuradhap1784@gmail.com"
                   className="hover:text-white transition-colors"
                 >
-                  mkreddygeneralstore@gmail.com
+                  anuradhap1784@gmail.com
                 </a>
               </div>
               <div className="flex items-center gap-2.5 text-gray-400">
