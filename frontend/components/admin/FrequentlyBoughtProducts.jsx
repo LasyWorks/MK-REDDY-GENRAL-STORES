@@ -44,11 +44,6 @@ export default function FrequentlyBoughtProducts() {
     load();
   }, []);
 
-  const maxQuantity =
-    products.length > 0
-      ? Math.max(...products.map((p) => p.quantitySold || 0))
-      : 1;
-
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
@@ -75,66 +70,50 @@ export default function FrequentlyBoughtProducts() {
             <Package className="w-8 h-8 mx-auto mb-2 opacity-30" />
             <p className="text-xs">No purchase data yet</p>
           </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {products.map((p, i) => {
-              const pct =
-                maxQuantity > 0
-                  ? ((p.quantitySold || 0) / maxQuantity) * 100
-                  : 0;
-              return (
-                <div
-                  key={p.id || i}
-                  className="group bg-gray-50 hover:bg-emerald-50 rounded-xl p-3 transition-all border border-gray-100 hover:border-emerald-200"
-                >
-                  <div className="flex items-start gap-2 mb-2">
-                    <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 overflow-hidden flex-shrink-0">
-                      <ImageWithFallback
-                        src={p.imageUrl}
-                        alt={p.name}
-                        width={40}
-                        height={40}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-gray-900 truncate leading-tight">
-                        {p.name || "Unknown"}
-                      </p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">
-                        {p.orderCount} orders
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-[10px] font-medium text-gray-500">
-                        Quantity Sold
-                      </span>
-                      <span className="text-sm font-bold text-emerald-600">
-                        {p.quantitySold}
-                      </span>
-                    </div>
-                    <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-gray-400">Revenue</span>
-                      <span className="text-[11px] font-semibold text-gray-600">
-                        {fmtCurrency(p.totalSales)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        ) : null}
       </div>
+
+      {!loading && products.length > 0 && (
+        <div>
+          {/* Column headers */}
+          <div className="flex items-center px-5 py-2 border-b border-gray-100 bg-gray-50/60">
+            <span className="w-6 text-[10px] font-semibold text-gray-400 uppercase flex-shrink-0">#</span>
+            <span className="flex-1 text-[10px] font-semibold text-gray-400 uppercase pl-9">Product</span>
+            <span className="w-24 text-right text-[10px] font-semibold text-gray-400 uppercase">Sold</span>
+            <span className="w-20 text-right text-[10px] font-semibold text-gray-400 uppercase pr-5">Revenue</span>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {products.map((p, i) => (
+              <div
+                key={p.id || i}
+                className="flex items-center px-5 py-3 hover:bg-gray-50 transition-colors"
+              >
+                <span className="w-6 text-xs font-bold text-gray-300 flex-shrink-0">{i + 1}</span>
+                <div className="w-8 h-8 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+                  <ImageWithFallback
+                    src={p.imageUrl}
+                    alt={p.name}
+                    width={32}
+                    height={32}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex-1 min-w-0 pl-3">
+                  <p className="text-sm font-medium text-gray-900 truncate">{p.name || "Unknown"}</p>
+                  <p className="text-[10px] text-gray-400">{p.orderCount} orders</p>
+                </div>
+                <div className="w-24 text-right flex-shrink-0">
+                  <span className="text-sm font-semibold text-gray-700">{p.quantitySold}</span>
+                  <span className="text-[10px] text-gray-400 ml-1">units</span>
+                </div>
+                <div className="w-20 text-right flex-shrink-0 pr-0">
+                  <span className="text-sm font-bold text-emerald-600">{fmtCurrency(p.totalSales)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

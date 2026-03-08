@@ -281,6 +281,20 @@ export default function RevenueChart() {
           </div>
         </div>
       )}
+
+      {/* Insight text */}
+      {!loading && summary && data.length > 0 && (
+        <div className="px-6 pb-4">
+          <div className="flex items-start gap-2 bg-violet-50 border border-violet-100 rounded-xl px-4 py-3">
+            <TrendingUp className="w-4 h-4 text-violet-500 mt-0.5 shrink-0" />
+            <p className="text-xs text-violet-700">
+              <span className="font-semibold">Insight: </span>
+              {fmtCurrency(summary.totalRevenue)} revenue from {summary.totalOrders} orders in the last {PERIODS.find((p) => p.id === period)?.label}.
+              {summary.completedOrders > 0 && ` ${summary.completedOrders} orders completed successfully.`}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

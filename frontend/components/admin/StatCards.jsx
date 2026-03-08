@@ -25,33 +25,33 @@ const CARDS = [
   },
   {
     key: "orders",
-    label: "Total Orders",
+    label: "Orders Today",
     icon: ShoppingCart,
     color: "from-emerald-500 to-emerald-600",
     bg: "bg-emerald-50",
     text: "text-emerald-600",
-    getValue: (s) => s?.orders?.total ?? "—",
-    getSub: (s) => `Today: ${s?.today?.orders ?? 0}`,
+    getValue: (s) => s?.today?.orders ?? 0,
+    getSub: (s) => `Total: ${s?.orders?.total ?? 0} all-time`,
     getTrend: (s) => {
       const today = s?.today?.orders ?? 0;
       return today > 0
-        ? { value: today, direction: "up", label: "today" }
+        ? { value: `↑ ${today} new`, direction: "up", label: "today" }
         : null;
     },
   },
   {
     key: "revenue",
-    label: "Revenue",
+    label: "Revenue Today",
     icon: CircleDollarSign,
     color: "from-violet-500 to-violet-600",
     bg: "bg-violet-50",
     text: "text-violet-600",
-    getValue: (s) => fmtCurrency(s?.revenue?.total),
-    getSub: (s) => `Today: ${fmtCurrency(s?.today?.revenue)}`,
+    getValue: (s) => fmtCurrency(s?.today?.revenue),
+    getSub: (s) => `Total: ${fmtCurrency(s?.revenue?.total)}`,
     getTrend: (s) => {
       const today = s?.today?.revenue ?? 0;
       return today > 0
-        ? { value: fmtCurrency(today), direction: "up", label: "today" }
+        ? { value: `↑ ${fmtCurrency(today)}`, direction: "up", label: "today" }
         : null;
     },
   },
@@ -80,16 +80,11 @@ function TrendBadge({ trend }) {
   const isUp = trend.direction === "up";
   return (
     <span
-      className={`inline-flex items-center gap-0.5 text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${
+      className={`inline-flex items-center gap-0.5 text-[11px] font-bold px-2 py-0.5 rounded-full ${
         isUp ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600"
       }`}
     >
-      {isUp ? (
-        <TrendingUp className="w-3 h-3" />
-      ) : (
-        <TrendingDown className="w-3 h-3" />
-      )}
-      {trend.value} {trend.label}
+      {trend.value}
     </span>
   );
 }

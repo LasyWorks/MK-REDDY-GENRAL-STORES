@@ -13,27 +13,31 @@ const ACTIONS = [
   {
     label: "Add Product",
     icon: Plus,
-    color: "bg-indigo-600 hover:bg-indigo-700 text-white",
+    // Primary — filled
+    color: "bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm",
     tab: "products",
     action: "add",
   },
   {
     label: "View Orders",
     icon: ShoppingCart,
-    color: "bg-indigo-600 hover:bg-indigo-700 text-white",
+    // Secondary — outlined
+    color: "bg-white border border-indigo-500 text-indigo-600 hover:bg-indigo-50",
     tab: "orders",
   },
   {
-    label: "New Promotion",
+    label: "Promotions",
     icon: Megaphone,
-    color: "bg-indigo-600 hover:bg-indigo-700 text-white",
+    // Ghost — minimal
+    color: "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300",
     tab: "promotions",
     action: "add",
   },
   {
     label: "Manage Users",
     icon: Users,
-    color: "bg-indigo-600 hover:bg-indigo-700 text-white",
+    // Ghost — minimal
+    color: "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300",
     tab: "users",
   },
 ];

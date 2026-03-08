@@ -322,41 +322,99 @@ function OverviewTab({ onSwitchTab }) {
       {/* Quick Actions */}
       <QuickActions onNavigate={handleQuickNav} />
 
-      {/* KPI Cards */}
-      <StatCards
-        stats={stats}
-        loading={loading}
-        onCardClick={handleCardClick}
-      />
+      {/* ── KPI Metrics ── */}
+      <div>
+        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Store Overview</h2>
+        <StatCards
+          stats={stats}
+          loading={loading}
+          onCardClick={handleCardClick}
+        />
+      </div>
 
       {/* Alert Cards */}
       <AlertCards stats={stats} />
 
-      {/* Revenue Chart */}
-      <RevenueChart />
-
-      {/* Frequently Bought Products */}
-      <FrequentlyBoughtProducts />
-
-      {/* User-wise Sales */}
-      <UserWiseSales />
-
-      {/* Two column layout: Orders + Sidebar */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2">
-          <RecentOrders
-            orders={orders}
-            loading={loading}
-            onStatusUpdate={handleStatusUpdate}
-            onViewAll={() => onSwitchTab?.("orders")}
-          />
+      {/* ── Insight Cards ── */}
+      {!loading && stats && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-100 rounded-xl px-4 py-3 flex items-start gap-3">
+            <div className="bg-emerald-100 p-1.5 rounded-lg mt-0.5 shrink-0"><TrendingUp className="w-4 h-4 text-emerald-700" /></div>
+            <div>
+              <p className="text-sm font-semibold text-emerald-800">Today&apos;s Revenue</p>
+              <p className="text-xs text-emerald-600 mt-0.5">
+                {fmtCurrency(stats?.today?.revenue)} from {stats?.today?.orders ?? 0} order{(stats?.today?.orders ?? 0) !== 1 ? "s" : ""} today
+              </p>
+            </div>
+          </div>
+          {(stats?.products?.lowStock ?? 0) > 0 ? (
+            <div className="bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-100 rounded-xl px-4 py-3 flex items-start gap-3">
+              <div className="bg-amber-100 p-1.5 rounded-lg mt-0.5 shrink-0"><AlertTriangle className="w-4 h-4 text-amber-700" /></div>
+              <div>
+                <p className="text-sm font-semibold text-amber-800">Low Stock Alert</p>
+                <p className="text-xs text-amber-600 mt-0.5">
+                  {stats.products.lowStock} product{stats.products.lowStock !== 1 ? "s are" : " is"} running low
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-gradient-to-br from-blue-50 to-sky-50 border border-blue-100 rounded-xl px-4 py-3 flex items-start gap-3">
+              <div className="bg-blue-100 p-1.5 rounded-lg mt-0.5 shrink-0"><Activity className="w-4 h-4 text-blue-700" /></div>
+              <div>
+                <p className="text-sm font-semibold text-blue-800">Stock Healthy</p>
+                <p className="text-xs text-blue-600 mt-0.5">All {stats?.products?.total ?? 0} products are stocked</p>
+              </div>
+            </div>
+          )}
+          <div className="bg-gradient-to-br from-indigo-50 to-violet-50 border border-indigo-100 rounded-xl px-4 py-3 flex items-start gap-3">
+            <div className="bg-indigo-100 p-1.5 rounded-lg mt-0.5 shrink-0"><Users className="w-4 h-4 text-indigo-700" /></div>
+            <div>
+              <p className="text-sm font-semibold text-indigo-800">Customer Base</p>
+              <p className="text-xs text-indigo-600 mt-0.5">
+                {stats?.customers?.total ?? 0} registered customer{(stats?.customers?.total ?? 0) !== 1 ? "s" : ""}
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="space-y-6">
-          <TopProducts />
-          <RecentActivity
-            initialActivity={stats?.recentActivity}
-            statsLoading={loading}
-          />
+      )}
+
+      {/* ── Revenue Analytics ── */}
+      <div>
+        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Revenue Analytics</h2>
+        <RevenueChart />
+      </div>
+
+      {/* ── Product Performance ── */}
+      <div>
+        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Product Performance</h2>
+        <FrequentlyBoughtProducts />
+      </div>
+
+      {/* ── Customer Insights ── */}
+      <div>
+        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Customer Insights</h2>
+        <UserWiseSales />
+      </div>
+
+      {/* ── Operational Data ── */}
+      <div>
+        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Operational Data</h2>
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="xl:col-span-2">
+            <RecentOrders
+              orders={orders}
+              loading={loading}
+              onStatusUpdate={handleStatusUpdate}
+              onViewAll={() => onSwitchTab?.("orders")}
+            />
+          </div>
+          <div className="space-y-6">
+            <TopProducts />
+            <RecentActivity
+              initialActivity={stats?.recentActivity}
+              statsLoading={loading}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -390,6 +448,7 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved 
     description_en: product?.description || "",
     is_active: product?.is_active !== false,
     is_featured: product?.is_featured || false,
+    is_loose: product?.unit_type === "loose" || false,
     parent_product_id: product?.parent_product_id || "",
   });
 
@@ -400,6 +459,9 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [parentSearch, setParentSearch] = useState("");
+  const [bulkQty, setBulkQty] = useState("");
+  const [bulkUnit, setBulkUnit] = useState("kg");
+  const [showVariantSection, setShowVariantSection] = useState(!!product?.parent_product_id);
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
   const setImg = (i, val) =>
     setImageUrls((a) => a.map((u, idx) => (idx === i ? val : u)));
@@ -434,11 +496,13 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved 
     try {
       const imgs = imageUrls.filter(Boolean);
       // map form.unit → variant (the DB column that stores "1 kg", "500 g" etc.)
+      const { is_loose, ...formRest } = form;
       const payload = {
-        ...form,
+        ...formRest,
         image_urls: imgs,
         image_url: imgs[0] || null,
         variant: form.unit,
+        unit_type: is_loose ? "loose" : (form.unit_type || null),
         parent_product_id: form.parent_product_id || null,
       };
       if (isEdit) await api.put(`/products/${product.id}`, payload);
@@ -458,421 +522,383 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved 
       setSaving(false);
     }
   }
+
+  function parseUnitToGrams(unitStr) {
+    if (!unitStr) return null;
+    const lower = unitStr.toLowerCase().trim();
+    const m = lower.match(/^([\d.]+)\s*(kg|g|gm|gram|grams|kilo|kilogram|kilograms)$/);
+    if (!m) return null;
+    const val = parseFloat(m[1]);
+    const u = m[2];
+    if (u === "kg" || u === "kilo" || u === "kilogram" || u === "kilograms") return val * 1000;
+    return val;
+  }
+
+  const mrpNum = parseFloat(form.mrp) || 0;
+  const priceNum = parseFloat(form.price) || 0;
+  const discountPct = mrpNum > priceNum && mrpNum > 0 ? Math.round(((mrpNum - priceNum) / mrpNum) * 100) : 0;
+  const unitGrams = form.is_loose ? parseUnitToGrams(form.unit) : null;
+  const bulkGrams = bulkQty ? (bulkUnit === "kg" ? parseFloat(bulkQty) * 1000 : parseFloat(bulkQty)) : 0;
+  const calculatedUnits = unitGrams && bulkGrams > 0 ? Math.floor(bulkGrams / unitGrams) : null;
+
+  const SectionHeader = ({ label }) => (
+    <div className="flex items-center gap-2 pt-2">
+      <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 shrink-0">{label}</span>
+      <div className="flex-1 h-px bg-gray-100" />
+    </div>
+  );
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="font-bold text-lg text-gray-900">
-            {isEdit ? "Edit Product" : "Add Product"}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-          >
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col">
+        {/* ── Modal Header ── */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isEdit ? "bg-indigo-100" : "bg-green-100"}`}>
+              <Package className={`w-4 h-4 ${isEdit ? "text-indigo-600" : "text-green-600"}`} />
+            </div>
+            <div>
+              <h2 className="font-bold text-base text-gray-900">
+                {isEdit ? "Edit Product" : "Add New Product"}
+              </h2>
+              {isEdit && <p className="text-[11px] text-gray-400">{product.name}</p>}
+            </div>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100">
             <X className="w-5 h-5" />
           </button>
         </div>
-        <form onSubmit={save} className="p-6 space-y-4">
-          {error && (
-            <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">
-              {error}
-            </p>
-          )}
-          <div className="grid grid-cols-2 gap-4">
-            {}
-            <div className="col-span-2">
+        {/* ── Scrollable Form Body ── */}
+        <form onSubmit={save} className="flex-1 min-h-0 flex flex-col">
+          {/* ── Scrollable fields ── */}
+          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+            {error && (
+              <div className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" /> {error}
+              </div>
+            )}
+
+            {/* ── 1. IMAGES ── */}
+            <SectionHeader label="Product Images" />
+            <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-semibold text-gray-600">
-                  Product Images
-                </label>
-                <button
-                  type="button"
-                  onClick={addImg}
-                  className="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-semibold"
-                >
+                <p className="text-[11px] text-gray-400">First image = primary thumbnail · Use ▲▼ to reorder</p>
+                <button type="button" onClick={addImg} className="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-semibold">
                   <Plus className="w-3.5 h-3.5" /> Add Image
                 </button>
               </div>
               <div className="space-y-2">
                 {imageUrls.map((url, i) => (
                   <div key={i} className="flex gap-2 items-center">
-                    {}
-                    <div className="w-12 h-12 rounded-lg border border-gray-200 bg-gray-50 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                    <div className="w-11 h-11 rounded-lg border border-gray-200 bg-gray-50 shrink-0 overflow-hidden flex items-center justify-center">
                       {url ? (
-                        <img
-                          src={url}
-                          alt={`img-${i}`}
-                          className="w-full h-full object-contain"
-                          referrerPolicy="no-referrer"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                          }}
-                        />
+                        <img src={url} alt={`img-${i}`} className="w-full h-full object-contain" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                       ) : (
                         <Package className="w-4 h-4 text-gray-300" />
                       )}
                     </div>
-                    {}
-                    {i === 0 && (
-                      <span className="text-[10px] font-bold uppercase text-green-700 bg-green-50 px-1.5 py-0.5 rounded flex-shrink-0">
-                        Primary
-                      </span>
-                    )}
-                    {}
-                    <input
-                      value={url}
-                      onChange={(e) => setImg(i, e.target.value)}
-                      placeholder="Paste image URL…"
-                      className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                    {}
-                    <button
-                      type="button"
-                      disabled={i === 0}
-                      onClick={() => moveImg(i, -1)}
-                      className="text-gray-300 hover:text-gray-600 disabled:opacity-20 flex-shrink-0"
-                      title="Move up"
-                    >
-                      ▲
-                    </button>
-                    {}
-                    <button
-                      type="button"
-                      disabled={i === imageUrls.length - 1}
-                      onClick={() => moveImg(i, 1)}
-                      className="text-gray-300 hover:text-gray-600 disabled:opacity-20 flex-shrink-0"
-                      title="Move down"
-                    >
-                      ▼
-                    </button>
-                    {}
-                    <button
-                      type="button"
-                      onClick={() => removeImg(i)}
-                      className="text-gray-300 hover:text-red-500 flex-shrink-0"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+                    {i === 0 && <span className="text-[10px] font-bold uppercase text-green-700 bg-green-50 px-1.5 py-0.5 rounded shrink-0">Primary</span>}
+                    <input value={url} onChange={(e) => setImg(i, e.target.value)} placeholder="Paste image URL…" className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    <button type="button" disabled={i === 0} onClick={() => moveImg(i, -1)} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 shrink-0" title="Move up">▲</button>
+                    <button type="button" disabled={i === imageUrls.length - 1} onClick={() => moveImg(i, 1)} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 shrink-0" title="Move down">▼</button>
+                    <button type="button" onClick={() => removeImg(i)} className="text-gray-300 hover:text-red-500 shrink-0"><X className="w-4 h-4" /></button>
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-gray-400 mt-1.5">
-                First image is the primary thumbnail. Use ▲▼ to reorder.
-              </p>
             </div>
-            <div className="col-span-2">
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Product Name *
-              </label>
-              <input
-                value={form.name_en}
-                onChange={(e) => set("name_en", e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
+
+            {/* ── 2. BASIC INFO ── */}
+            <SectionHeader label="Basic Info" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Product Name *</label>
+                <input value={form.name_en} onChange={(e) => set("name_en", e.target.value)} placeholder="e.g. Toor Dal, Basmati Rice…" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Brand</label>
+                <input value={form.brand} onChange={(e) => set("brand", e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">SKU <span className="font-normal text-gray-400">(optional)</span></label>
+                <input value={form.sku} onChange={(e) => set("sku", e.target.value)} placeholder="Auto-generated if blank" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                {isEdit && <p className="text-[10px] text-amber-600 mt-1">Change carefully — must stay unique</p>}
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                SKU{" "}
-                <span className="font-normal text-gray-400">(optional — auto-generated if blank)</span>
-              </label>
-              <input
-                value={form.sku}
-                onChange={(e) => set("sku", e.target.value)}
-                placeholder="e.g. RICE-BASMATI-1KG (leave blank to auto-generate)"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-              {isEdit && (
-                <p className="text-xs text-amber-600 mt-1">
-                  Change carefully — SKU must stay unique
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Brand
-              </label>
-              <input
-                value={form.brand}
-                onChange={(e) => set("brand", e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Unit
-              </label>
-              {/* Smart chip picker — options change based on selected category */}
-              {(() => {
-                const parentCat = categories.find(
-                  (c) => c.id === parentCategoryId,
-                );
-                const subcat = categories.find(
-                  (c) => c.id === form.category_id,
-                );
-                const chips = getUnitOptions(
-                  subcat?.name || parentCat?.name || "",
-                );
-                return (
-                  <div className="space-y-1.5">
-                    <div className="flex flex-wrap gap-1.5">
-                      {[...new Set(chips)].map((chip, i) => (
-                        <button
-                          type="button"
-                          key={`${chip}-${i}`}
-                          onClick={() => set("unit", chip)}
-                          className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border transition-all ${
-                            form.unit === chip
-                              ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-                              : "bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-600"
-                          }`}
-                        >
-                          {chip}
-                        </button>
-                      ))}
-                    </div>
-                    <input
-                      value={form.unit}
-                      onChange={(e) => set("unit", e.target.value)}
-                      placeholder="e.g. 1 kg / 500 g / pcs / 1 L"
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                    <p className="text-[10px] text-gray-400">
-                      Click a chip or type a custom unit
-                    </p>
-                  </div>
-                );
-              })()}
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                MRP (₹) *
-              </label>
-              <input
-                type="number"
-                value={form.mrp}
-                onChange={(e) => set("mrp", e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Selling Price (₹) *
-              </label>
-              <input
-                type="number"
-                value={form.price}
-                onChange={(e) => set("price", e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Stock Qty
-              </label>
-              <input
-                type="number"
-                value={form.stock_quantity}
-                onChange={(e) => set("stock_quantity", e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Parent Category
-              </label>
-              <select
-                value={parentCategoryId}
-                onChange={(e) => {
+
+            {/* ── 3. CATEGORY ── */}
+            <SectionHeader label="Category" />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Parent Category</label>
+                <select value={parentCategoryId} onChange={(e) => {
                   const pid = e.target.value;
                   setParentCategoryId(pid);
-                  set("category_id", ""); // Reset subcategory
+                  set("category_id", "");
                   const parentCat = categories.find((c) => c.id === pid);
-                  if (parentCat) {
-                    const opts = getUnitOptions(parentCat.name);
-                    if (opts.length) set("unit", opts[0]);
-                  }
-                }}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-              >
-                <option value="">— select parent —</option>
-                {categories
-                  .filter((c) => !c.parent_id)
-                  .map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Subcategory *
-              </label>
-              <select
-                value={form.category_id}
-                onChange={(e) => {
+                  if (parentCat) { const opts = getUnitOptions(parentCat.name); if (opts.length) set("unit", opts[0]); }
+                }} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="">— select parent —</option>
+                  {categories.filter((c) => !c.parent_id).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Subcategory *</label>
+                <select value={form.category_id} onChange={(e) => {
                   const sid = e.target.value;
                   set("category_id", sid);
                   const subcat = categories.find((c) => c.id === sid);
-                  if (subcat) {
-                    const opts = getUnitOptions(subcat.name);
-                    if (opts.length) set("unit", opts[0]);
-                  }
-                }}
-                disabled={!parentCategoryId}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-50 disabled:text-gray-400"
-              >
-                <option value="">— select subcategory —</option>
-                {categories
-                  .filter((c) => c.parent_id === parentCategoryId)
-                  .map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-              </select>
-              {!parentCategoryId && (
-                <p className="text-xs text-gray-400 mt-1">
-                  Select parent category first
-                </p>
-              )}
+                  if (subcat) { const opts = getUnitOptions(subcat.name); if (opts.length) set("unit", opts[0]); }
+                }} disabled={!parentCategoryId} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-50 disabled:text-gray-400">
+                  <option value="">— select subcategory —</option>
+                  {categories.filter((c) => c.parent_id === parentCategoryId).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                {!parentCategoryId && <p className="text-[10px] text-gray-400 mt-1">Select parent category first</p>}
+              </div>
             </div>
-            {/* ── Variant Grouping ── */}
-            <div className="col-span-2">
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Parent Product (for weight/size variants)
-              </label>
-              {form.parent_product_id ? (
-                <div className="flex items-center gap-2 border border-indigo-200 bg-indigo-50 rounded-lg px-3 py-2">
-                  <Package className="w-4 h-4 text-indigo-500 shrink-0" />
-                  <span className="text-sm text-gray-800 flex-1 truncate">
-                    {allProducts.find(p => p.id === form.parent_product_id)?.name || form.parent_product_id}
-                  </span>
-                  <span className="text-[10px] text-indigo-600 font-semibold bg-indigo-100 px-1.5 py-0.5 rounded">
-                    {allProducts.find(p => p.id === form.parent_product_id)?.variant ||
-                     allProducts.find(p => p.id === form.parent_product_id)?.unit_pack_size || ''}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => { set("parent_product_id", ""); setParentSearch(""); }}
-                    className="text-gray-400 hover:text-red-500"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+
+            {/* ── 4. PRODUCT TYPE ── */}
+            <SectionHeader label="Product Type" />
+            <div className="grid grid-cols-2 gap-3">
+              <button type="button" onClick={() => { set("is_loose", false); setBulkQty(""); }}
+                className={`p-3 rounded-xl border-2 text-left transition-all ${!form.is_loose ? "border-indigo-500 bg-indigo-50" : "border-gray-200 hover:border-gray-300 bg-white"}`}>
+                <div className="flex items-center gap-2 mb-1">
+                  <Package className={`w-4 h-4 ${!form.is_loose ? "text-indigo-600" : "text-gray-400"}`} />
+                  <span className={`text-sm font-semibold ${!form.is_loose ? "text-indigo-700" : "text-gray-600"}`}>Regular</span>
+                  {!form.is_loose && <span className="ml-auto text-[10px] bg-indigo-100 text-indigo-600 font-bold px-1.5 py-0.5 rounded">Selected</span>}
                 </div>
-              ) : (
-                <div className="space-y-1.5">
-                  <input
-                    value={parentSearch}
-                    onChange={(e) => setParentSearch(e.target.value)}
-                    placeholder="Search by product name to link as variant…"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                  {parentSearch.length >= 2 && (
-                    <div className="border border-gray-200 rounded-lg max-h-36 overflow-y-auto divide-y divide-gray-50">
-                      {allProducts
-                        .filter(p =>
-                          p.id !== product?.id &&
-                          !p.parent_product_id &&
-                          (p.name || '').toLowerCase().includes(parentSearch.toLowerCase())
-                        )
-                        .slice(0, 8)
-                        .map(p => (
-                          <button
-                            type="button"
-                            key={p.id}
-                            onClick={() => {
-                              set("parent_product_id", p.id);
-                              // Auto-fill brand & category from parent to keep consistency
-                              if (p.brand && !form.brand) set("brand", p.brand);
-                              if (p.category_id && !form.category_id) {
-                                set("category_id", p.category_id);
-                                const cat = categories.find(c => c.id === p.category_id);
-                                if (cat?.parent_id) setParentCategoryId(cat.parent_id);
-                              }
-                              setParentSearch("");
-                            }}
-                            className="w-full text-left px-3 py-2 hover:bg-indigo-50 flex items-center gap-2"
-                          >
-                            <div className="w-7 h-7 rounded bg-gray-50 overflow-hidden shrink-0">
-                              <ImageWithFallback src={p.image_url} alt="" className="w-full h-full object-contain" size="sm" />
-                            </div>
+                <p className="text-[11px] text-gray-500">Pre-packed — e.g. 1 kg bag, 500 ml bottle</p>
+              </button>
+              <button type="button" onClick={() => { set("is_loose", true); if (!form.unit) set("unit", "250 g"); }}
+                className={`p-3 rounded-xl border-2 text-left transition-all ${form.is_loose ? "border-orange-400 bg-orange-50" : "border-gray-200 hover:border-gray-300 bg-white"}`}>
+                <div className="flex items-center gap-2 mb-1">
+                  <Tag className={`w-4 h-4 ${form.is_loose ? "text-orange-500" : "text-gray-400"}`} />
+                  <span className={`text-sm font-semibold ${form.is_loose ? "text-orange-700" : "text-gray-600"}`}>Loose / Bulk</span>
+                  {form.is_loose && <span className="ml-auto text-[10px] bg-orange-100 text-orange-600 font-bold px-1.5 py-0.5 rounded">Selected</span>}
+                </div>
+                <p className="text-[11px] text-gray-500">Sold by weight — Godumulu, Masoor Dal, Pulses</p>
+              </button>
+            </div>
+
+            {/* ── 4a. SELL SIZE — only for loose ── */}
+            {form.is_loose && (
+              <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-orange-500 shrink-0" />
+                  <p className="text-sm font-semibold text-orange-800">Sell Size for this Variant</p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {["100 g", "250 g", "500 g", "750 g", "1 kg", "1.5 kg", "2 kg", "5 kg"].map((w) => (
+                    <button type="button" key={w} onClick={() => { set("unit", w); if (bulkQty) { const bg = bulkUnit === "kg" ? parseFloat(bulkQty) * 1000 : parseFloat(bulkQty); const ug = parseUnitToGrams(w); if (ug && bg > 0) set("stock_quantity", Math.floor(bg / ug)); } }}
+                      className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-all ${form.unit === w ? "bg-orange-500 text-white border-orange-500 shadow-sm" : "bg-white text-gray-600 border-gray-300 hover:border-orange-400 hover:text-orange-600"}`}>
+                      {w}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input value={form.unit} onChange={(e) => set("unit", e.target.value)} placeholder="Or type custom: e.g. 200 g" className="flex-1 border border-orange-200 bg-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
+                  {form.unit && <span className="text-xs text-orange-700 font-semibold bg-orange-100 px-2 py-1 rounded-lg shrink-0">Selling in: {form.unit}</span>}
+                </div>
+                <p className="text-[10px] text-gray-500">Add more variants (250g, 500g, 1kg…) using the &ldquo;Add Variant&rdquo; button on the product row after saving.</p>
+              </div>
+            )}
+
+            {/* ── 5. STOCK ── */}
+            <SectionHeader label="Stock" />
+            {form.is_loose ? (
+              <div className="space-y-3">
+                {/* Bulk stock calculator */}
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-amber-600 shrink-0" />
+                    <p className="text-sm font-semibold text-amber-800">Bulk Stock Calculator</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">Total stock you have</label>
+                      <div className="flex gap-1.5">
+                        <input type="number" min="0" step="0.1" value={bulkQty}
+                          onChange={(e) => {
+                            setBulkQty(e.target.value);
+                            const bg = e.target.value ? (bulkUnit === "kg" ? parseFloat(e.target.value) * 1000 : parseFloat(e.target.value)) : 0;
+                            const ug = parseUnitToGrams(form.unit);
+                            if (ug && bg > 0) set("stock_quantity", Math.floor(bg / ug));
+                          }}
+                          placeholder="e.g. 50"
+                          className="flex-1 min-w-0 border border-amber-200 bg-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                        <select value={bulkUnit} onChange={(e) => {
+                          const nu = e.target.value;
+                          setBulkUnit(nu);
+                          if (bulkQty) {
+                            const bg = nu === "kg" ? parseFloat(bulkQty) * 1000 : parseFloat(bulkQty);
+                            const ug = parseUnitToGrams(form.unit);
+                            if (ug && bg > 0) set("stock_quantity", Math.floor(bg / ug));
+                          }
+                        }} className="border border-amber-200 bg-white rounded-lg px-2 py-2 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                          <option value="kg">kg</option>
+                          <option value="g">g</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">Sell size per packet</label>
+                      <div className="h-[38px] flex items-center px-3 bg-white border border-amber-200 rounded-lg text-sm font-semibold text-gray-700">
+                        {form.unit || <span className="text-gray-400 font-normal text-xs">Select sell size above</span>}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Result */}
+                  {calculatedUnits !== null && form.unit ? (
+                    <div className="flex items-center gap-3 bg-white border border-amber-300 rounded-lg px-3 py-2.5">
+                      <div className="flex-1">
+                        <p className="text-[11px] text-gray-500">{bulkQty} {bulkUnit} ÷ {form.unit} =</p>
+                        <p className="text-xl font-bold text-amber-700 leading-tight">{calculatedUnits} <span className="text-sm font-semibold">packets</span></p>
+                      </div>
+                      <button type="button" onClick={() => set("stock_quantity", calculatedUnits)}
+                        className="text-xs bg-amber-500 hover:bg-amber-600 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors shrink-0">
+                        Use this
+                      </button>
+                    </div>
+                  ) : bulkQty && !form.unit ? (
+                    <p className="text-xs text-amber-600 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> Select a sell size above to calculate</p>
+                  ) : !bulkQty ? (
+                    <p className="text-[11px] text-gray-400">Enter your total stock above to auto-calculate packets</p>
+                  ) : null}
+                </div>
+                {/* Manual stock field */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Packets in stock {form.unit ? <span className="font-normal text-gray-400">(of {form.unit})</span> : ""}
+                  </label>
+                  <input type="number" value={form.stock_quantity}
+                    onChange={(e) => { set("stock_quantity", e.target.value); setBulkQty(""); }}
+                    placeholder="e.g. 200"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                  <p className="text-[10px] text-gray-400 mt-1">This is the number customers see as available stock. You can also type directly here.</p>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Stock Quantity</label>
+                <input type="number" value={form.stock_quantity} onChange={(e) => set("stock_quantity", e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+              </div>
+            )}
+
+            {/* ── 6. UNIT (regular only) ── */}
+            {!form.is_loose && (
+              <>
+                <SectionHeader label="Unit / Pack Size" />
+                {(() => {
+                  const parentCat = categories.find((c) => c.id === parentCategoryId);
+                  const subcat = categories.find((c) => c.id === form.category_id);
+                  const chips = getUnitOptions(subcat?.name || parentCat?.name || "");
+                  return (
+                    <div className="space-y-1.5">
+                      <div className="flex flex-wrap gap-1.5">
+                        {[...new Set(chips)].map((chip, i) => (
+                          <button type="button" key={`${chip}-${i}`} onClick={() => set("unit", chip)}
+                            className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border transition-all ${form.unit === chip ? "bg-indigo-600 text-white border-indigo-600 shadow-sm" : "bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-600"}`}>
+                            {chip}
+                          </button>
+                        ))}
+                      </div>
+                      <input value={form.unit} onChange={(e) => set("unit", e.target.value)} placeholder="e.g. 1 kg / 500 g / pcs / 1 L" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                      <p className="text-[10px] text-gray-400">Click a chip or type a custom unit</p>
+                    </div>
+                  );
+                })()}
+              </>
+            )}
+
+            {/* ── 7. PRICING ── */}
+            <SectionHeader label="Pricing" />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">MRP (₹) *</label>
+                <input type="number" value={form.mrp} onChange={(e) => set("mrp", e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-gray-600">Selling Price (₹) *</label>
+                  {discountPct > 0 && <span className="text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">{discountPct}% OFF</span>}
+                </div>
+                <input type="number" value={form.price} onChange={(e) => set("price", e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+              </div>
+            </div>
+
+            {/* ── 8. VARIANT GROUPING (collapsible) ── */}
+            <button type="button" onClick={() => setShowVariantSection((v) => !v)}
+              className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-indigo-600 transition-colors w-full group pt-2">
+              <span>Variant Grouping</span>
+              <div className="flex-1 h-px bg-gray-100 group-hover:bg-indigo-100" />
+              <span className="text-gray-300 group-hover:text-indigo-400">{showVariantSection ? "▲" : "▼"}</span>
+            </button>
+            {showVariantSection && (
+              <div>
+                {form.parent_product_id ? (
+                  <div className="flex items-center gap-2 border border-indigo-200 bg-indigo-50 rounded-lg px-3 py-2">
+                    <Package className="w-4 h-4 text-indigo-500 shrink-0" />
+                    <span className="text-sm text-gray-800 flex-1 truncate">{allProducts.find(p => p.id === form.parent_product_id)?.name || form.parent_product_id}</span>
+                    <span className="text-[10px] text-indigo-600 font-semibold bg-indigo-100 px-1.5 py-0.5 rounded">{allProducts.find(p => p.id === form.parent_product_id)?.variant || allProducts.find(p => p.id === form.parent_product_id)?.unit_pack_size || ''}</span>
+                    <button type="button" onClick={() => { set("parent_product_id", ""); setParentSearch(""); }} className="text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <input value={parentSearch} onChange={(e) => setParentSearch(e.target.value)} placeholder="Search by product name to link as variant…" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    {parentSearch.length >= 2 && (
+                      <div className="border border-gray-200 rounded-lg max-h-36 overflow-y-auto divide-y divide-gray-50">
+                        {allProducts.filter(p => p.id !== product?.id && !p.parent_product_id && (p.name || '').toLowerCase().includes(parentSearch.toLowerCase())).slice(0, 8).map(p => (
+                          <button type="button" key={p.id} onClick={() => {
+                            set("parent_product_id", p.id);
+                            if (p.brand && !form.brand) set("brand", p.brand);
+                            if (p.category_id && !form.category_id) {
+                              set("category_id", p.category_id);
+                              const cat = categories.find(c => c.id === p.category_id);
+                              if (cat?.parent_id) setParentCategoryId(cat.parent_id);
+                            }
+                            setParentSearch("");
+                          }} className="w-full text-left px-3 py-2 hover:bg-indigo-50 flex items-center gap-2">
+                            <div className="w-7 h-7 rounded bg-gray-50 overflow-hidden shrink-0"><ImageWithFallback src={p.image_url} alt="" className="w-full h-full object-contain" size="sm" /></div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm text-gray-800 truncate">{p.name}</p>
                               <p className="text-[10px] text-gray-400">{p.variant || p.unit_pack_size || ''} · ₹{p.price}</p>
                             </div>
                           </button>
                         ))}
-                      {allProducts.filter(p =>
-                        p.id !== product?.id &&
-                        !p.parent_product_id &&
-                        (p.name || '').toLowerCase().includes(parentSearch.toLowerCase())
-                      ).length === 0 && (
-                        <p className="text-xs text-gray-400 px-3 py-2">No matching products</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-              <p className="text-[10px] text-gray-400 mt-1">
-                Link this product as a size variant of another product (e.g. Toor Dal 500gm → parent: Toor Dal 250gm)
-              </p>
-            </div>
-            <div className="col-span-2">
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Description
+                        {allProducts.filter(p => p.id !== product?.id && !p.parent_product_id && (p.name || '').toLowerCase().includes(parentSearch.toLowerCase())).length === 0 && (
+                          <p className="text-xs text-gray-400 px-3 py-2">No matching products</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+                <p className="text-[10px] text-gray-400 mt-1">Link this product as a size variant of another (e.g. Toor Dal 500g → parent: Toor Dal 250g)</p>
+              </div>
+            )}
+
+            {/* ── 9. DESCRIPTION ── */}
+            <SectionHeader label="Description" />
+            <textarea rows={2} value={form.description_en} onChange={(e) => set("description_en", e.target.value)} placeholder="Optional product description…" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+
+            {/* ── 10. SETTINGS ── */}
+            <SectionHeader label="Settings" />
+            <div className="flex items-center gap-6 pb-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="is_active" checked={form.is_active} onChange={(e) => set("is_active", e.target.checked)} className="w-4 h-4 accent-green-600" />
+                <span className="text-sm text-gray-700">Active <span className="text-[10px] text-gray-400">(visible in store)</span></span>
               </label>
-              <textarea
-                rows={2}
-                value={form.description_en}
-                onChange={(e) => set("description_en", e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-            <div className="col-span-2 flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="is_active"
-                  checked={form.is_active}
-                  onChange={(e) => set("is_active", e.target.checked)}
-                  className="w-4 h-4 accent-green-600"
-                />
-                <label htmlFor="is_active" className="text-sm text-gray-700">
-                  Active (visible in store)
-                </label>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="is_featured"
-                  checked={form.is_featured}
-                  onChange={(e) => set("is_featured", e.target.checked)}
-                  className="w-4 h-4 accent-yellow-500"
-                />
-                <label
-                  htmlFor="is_featured"
-                  className="text-sm text-gray-700 flex items-center gap-1"
-                >
-                  <StarIcon className="w-3.5 h-3.5 text-yellow-500" /> Featured
-                  (show on homepage)
-                </label>
-              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="is_featured" checked={form.is_featured} onChange={(e) => set("is_featured", e.target.checked)} className="w-4 h-4 accent-yellow-500" />
+                <span className="text-sm text-gray-700 flex items-center gap-1"><StarIcon className="w-3.5 h-3.5 text-yellow-500" /> Featured <span className="text-[10px] text-gray-400">(homepage)</span></span>
+              </label>
             </div>
           </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 hover:bg-gray-50"
-            >
+
+          {/* ── Sticky Footer ── */}
+          <div className="shrink-0 flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+            <button type="button" onClick={onClose} className="px-5 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 hover:bg-gray-100">
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-5 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold flex items-center gap-2 disabled:opacity-60"
-            >
+            <button type="submit" disabled={saving} className="px-5 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold flex items-center gap-2 disabled:opacity-60">
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               {isEdit ? "Save Changes" : "Create Product"}
             </button>
@@ -1071,6 +1097,11 @@ function ProductRow({
               {p.is_active === false && (
                 <span className="bg-red-100 text-red-600 text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0">
                   Inactive
+                </span>
+              )}
+              {p.unit_type === "loose" && (
+                <span className="bg-orange-100 text-orange-700 text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 flex items-center gap-0.5">
+                  <Tag className="w-2.5 h-2.5" /> Loose
                 </span>
               )}
             </div>
@@ -4783,6 +4814,13 @@ export default function AdminDashboard() {
         {tab === "users" && <UsersTab />}
         {tab === "settings" && <StoreSettingsTab />}
       </main>
+
+      {/* Minimal admin footer */}
+      <footer className="border-t border-gray-100 py-4 text-center">
+        <p className="text-xs text-gray-400">
+          &copy; {new Date().getFullYear()} MK Reddy Admin Panel
+        </p>
+      </footer>
     </div>
   );
 }
