@@ -168,7 +168,7 @@ export default function MobileBannerCarousel() {
 
           {/* Right: large emoji */}
           <div
-            className="text-7xl leading-none flex-shrink-0 transition-transform duration-300"
+            className="text-7xl leading-none shrink-0 transition-transform duration-300"
             style={{ filter: "drop-shadow(2px 4px 8px rgba(0,0,0,0.12))" }}
           >
             {banner.emoji}

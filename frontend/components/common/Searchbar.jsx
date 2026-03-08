@@ -10,7 +10,9 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
-import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
+import SpeechRecognition, {
+  useSpeechRecognition,
+} from "react-speech-recognition";
 import { translateToEnglish, normalizeTranscript } from "@/lib/voiceSearch";
 
 const API_URL =
@@ -20,7 +22,7 @@ const SILENCE_STOP_MS = 1800; // auto-stop mic after 1.8s of silence
 
 export default function Searchbar() {
   const { lang } = useLanguage();
-  const [query, setQuery] = useState("");         // what user sees in input
+  const [query, setQuery] = useState(""); // what user sees in input
   const [searchTerm, setSearchTerm] = useState(""); // English term sent to API
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -44,7 +46,9 @@ export default function Searchbar() {
     browserSupportsSpeechRecognition,
   } = useSpeechRecognition();
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     function handleOutside(e) {
@@ -59,7 +63,11 @@ export default function Searchbar() {
   const doSearch = useCallback(
     async (term) => {
       const clean = normalizeTranscript(term);
-      if (!clean) { setResults([]); setOpen(false); return; }
+      if (!clean) {
+        setResults([]);
+        setOpen(false);
+        return;
+      }
       setLoading(true);
       try {
         // 1) Full-phrase search
@@ -81,7 +89,7 @@ export default function Searchbar() {
                   `${API_URL}/products?search=${encodeURIComponent(w)}&limit=6&is_active=true&lang=${lang}`,
                   { cache: "no-store" },
                 )
-                  .then((r) => r.ok ? r.json() : { data: [] })
+                  .then((r) => (r.ok ? r.json() : { data: [] }))
                   .then((j) => j.data || [])
                   .catch(() => []),
               ),
@@ -91,7 +99,12 @@ export default function Searchbar() {
             wordResults.forEach((list) => {
               list.forEach((p) => {
                 const prev = scoreMap.get(p.id);
-                scoreMap.set(p.id, prev ? { ...prev, _score: prev._score + 1 } : { ...p, _score: 1 });
+                scoreMap.set(
+                  p.id,
+                  prev
+                    ? { ...prev, _score: prev._score + 1 }
+                    : { ...p, _score: 1 },
+                );
               });
             });
             data = [...scoreMap.values()]
@@ -102,11 +115,14 @@ export default function Searchbar() {
 
         // 3) Last resort: single-keyword fallback (first meaningful word)
         if (data.length === 0) {
-          const firstWord = clean.split(/\s+/).find((w) => w.length > 2) || clean;
+          const firstWord =
+            clean.split(/\s+/).find((w) => w.length > 2) || clean;
           const fb = await fetch(
             `${API_URL}/products?search=${encodeURIComponent(firstWord)}&limit=8&is_active=true&lang=${lang}`,
             { cache: "no-store" },
-          ).then((r) => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] }));
+          )
+            .then((r) => (r.ok ? r.json() : { data: [] }))
+            .catch(() => ({ data: [] }));
           data = fb.data || [];
         }
 
@@ -194,7 +210,11 @@ export default function Searchbar() {
       setResults([]);
       setOpen(false);
       setTranslatedLabel("");
-      SpeechRecognition.startListening({ continuous: true, interimResults: true, language: langMode });
+      SpeechRecognition.startListening({
+        continuous: true,
+        interimResults: true,
+        language: langMode,
+      });
       inputRef.current?.focus();
     }
   };
@@ -210,7 +230,9 @@ export default function Searchbar() {
     if (e.key === "Enter" && (searchTerm || query).trim()) {
       clearTimeout(timerRef.current);
       setOpen(false);
-      router.push(`/search?q=${encodeURIComponent((searchTerm || query).trim())}`);
+      router.push(
+        `/search?q=${encodeURIComponent((searchTerm || query).trim())}`,
+      );
     }
     if (e.key === "Escape") {
       setOpen(false);
@@ -226,9 +248,13 @@ export default function Searchbar() {
         <div className="absolute -top-8 left-0 right-0 flex items-center justify-between px-3 py-1 bg-green-50 border border-green-200 rounded-full text-[11px] text-green-700 font-medium z-10 shadow-sm">
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-            Listening in {langMode === "te-IN" ? "తెలుగు" : "English"}... speak now
+            Listening in {langMode === "te-IN" ? "తెలుగు" : "English"}... speak
+            now
           </div>
-          <button onClick={cycleLang} className="underline text-green-600 font-bold">
+          <button
+            onClick={cycleLang}
+            className="underline text-green-600 font-bold"
+          >
             {langMode === "te-IN" ? "Switch to English" : "Switch to తెలుగు"}
           </button>
         </div>
@@ -289,8 +315,14 @@ export default function Searchbar() {
               </button>
               <button
                 onClick={toggleVoice}
-                aria-label={listening ? "Stop voice search" : "Start voice search"}
-                title={listening ? "Click to stop" : `Voice search (${langMode === "te-IN" ? "Telugu" : "English"})`}
+                aria-label={
+                  listening ? "Stop voice search" : "Start voice search"
+                }
+                title={
+                  listening
+                    ? "Click to stop"
+                    : `Voice search (${langMode === "te-IN" ? "Telugu" : "English"})`
+                }
                 className={`p-1 rounded-full transition-all ${
                   listening
                     ? "bg-red-500 text-white shadow-md scale-110"
@@ -379,10 +411,10 @@ function SearchResultItem({ product, query, onSelect }) {
         )}
       </div>
       <div className="text-right flex-shrink-0">
-        <p className="text-sm font-bold text-gray-900">â‚¹{price.toFixed(0)}</p>
+        <p className="text-sm font-bold text-gray-900">₹{price.toFixed(0)}</p>
         {hasDiscount && (
           <p className="text-[10px] text-gray-400 line-through">
-            â‚¹{mrp.toFixed(0)}
+            ₹{mrp.toFixed(0)}
           </p>
         )}
       </div>

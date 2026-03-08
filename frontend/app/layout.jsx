@@ -4,7 +4,7 @@ import Navbar from "@/components/layout/Navbar";
 import MobileHeader from "@/components/layout/MobileHeader";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import CategoryNav from "@/components/layout/CategoryNav";
-import Footer from "@/components/layout/footer";
+import Footer from "@/components/layout/Footer";
 import CartSidebar from "@/components/cart/CartSidebar";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { CartProvider } from "@/context/CartContext";

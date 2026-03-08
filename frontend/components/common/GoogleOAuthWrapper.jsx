@@ -11,13 +11,18 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
  *   - DOMException:    DOMException { message: "AbortError" }
  * We stringify every arg before matching so none slip through.
  */
-if (typeof window !== "undefined") {
+if (typeof window !== "undefined" && !window.__oauthErrorPatched) {
+  window.__oauthErrorPatched = true;
   const _origError = console.error.bind(console);
   console.error = (...args) => {
-    const combined = args.map((a) =>
-      a instanceof Error ? a.message : String(a ?? "")
-    ).join(" ");
-    if (combined.includes("[GSI_LOGGER]") || combined.includes("FedCM")) {
+    const combined = args
+      .map((a) => (a instanceof Error ? a.message : String(a ?? "")))
+      .join(" ");
+    if (
+      combined.includes("[GSI_LOGGER]") ||
+      combined.includes("FedCM") ||
+      combined.includes("Expected static flag was missing")
+    ) {
       return; // suppress Google Identity Services / FedCM noise — not a real error
     }
     _origError(...args);
@@ -26,8 +31,6 @@ if (typeof window !== "undefined") {
 
 export default function GoogleOAuthWrapper({ clientId, children }) {
   return (
-    <GoogleOAuthProvider clientId={clientId}>
-      {children}
-    </GoogleOAuthProvider>
+    <GoogleOAuthProvider clientId={clientId}>{children}</GoogleOAuthProvider>
   );
 }

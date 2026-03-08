@@ -157,18 +157,22 @@ const downloadTemplate = asyncHandler(async (req, res) => {
   const ws = workbook.addWorksheet("Stock Update");
 
   ws.columns = [
-    { header: "name_en",        key: "name_en",        width: 35 },
+    { header: "name_en", key: "name_en", width: 35 },
     { header: "unit_pack_size", key: "unit_pack_size", width: 14 },
     { header: "stock_quantity", key: "stock_quantity", width: 14 },
-    { header: "price",          key: "price",          width: 10 },
-    { header: "mrp",            key: "mrp",            width: 10 },
-    { header: "wholesale_price",key: "wholesale_price", width: 16 },
+    { header: "price", key: "price", width: 10 },
+    { header: "mrp", key: "mrp", width: 10 },
+    { header: "wholesale_price", key: "wholesale_price", width: 16 },
   ];
 
   // Style header – green background, white bold
   const hRow = ws.getRow(1);
   hRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
-  hRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF388E3C" } };
+  hRow.fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FF388E3C" },
+  };
   hRow.height = 20;
 
   // Example row
@@ -183,8 +187,14 @@ const downloadTemplate = asyncHandler(async (req, res) => {
 
   ws.views = [{ state: "frozen", ySplit: 1 }];
 
-  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-  res.setHeader("Content-Disposition", 'attachment; filename="stock-update-template.xlsx"');
+  res.setHeader(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  );
+  res.setHeader(
+    "Content-Disposition",
+    'attachment; filename="stock-update-template.xlsx"',
+  );
   await workbook.xlsx.write(res);
   res.end();
 });
@@ -204,29 +214,33 @@ const downloadAllProducts = asyncHandler(async (req, res) => {
   const ws = workbook.addWorksheet("Products");
 
   ws.columns = [
-    { header: "name_en",        key: "name_en",        width: 35 },
+    { header: "name_en", key: "name_en", width: 35 },
     { header: "unit_pack_size", key: "unit_pack_size", width: 14 },
     { header: "stock_quantity", key: "stock_quantity", width: 14 },
-    { header: "price",          key: "price",          width: 10 },
-    { header: "mrp",            key: "mrp",            width: 10 },
-    { header: "wholesale_price",key: "wholesale_price", width: 16 },
+    { header: "price", key: "price", width: 10 },
+    { header: "mrp", key: "mrp", width: 10 },
+    { header: "wholesale_price", key: "wholesale_price", width: 16 },
   ];
 
   // Style header row – green background, white bold text
   const headerRow = ws.getRow(1);
   headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
-  headerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF388E3C" } };
+  headerRow.fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FF388E3C" },
+  };
   headerRow.alignment = { vertical: "middle", horizontal: "center" };
   headerRow.height = 20;
 
   for (const p of result.products) {
     ws.addRow({
-      name_en:        p.name_en || p.name || "",
+      name_en: p.name_en || p.name || "",
       unit_pack_size: p.unit_pack_size || "",
       stock_quantity: p.stock_quantity,
-      price:          p.price,
-      mrp:            p.mrp != null ? p.mrp : "",
-      wholesale_price:p.wholesale_price != null ? p.wholesale_price : "",
+      price: p.price,
+      mrp: p.mrp != null ? p.mrp : "",
+      wholesale_price: p.wholesale_price != null ? p.wholesale_price : "",
     });
   }
 
@@ -238,10 +252,7 @@ const downloadAllProducts = asyncHandler(async (req, res) => {
     "Content-Type",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   );
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename="${filename}"`,
-  );
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
   await workbook.xlsx.write(res);
   res.end();
 });
@@ -261,6 +272,65 @@ const getFrequentlyBoughtTogether = asyncHandler(async (req, res) => {
   ApiResponse.success(res, products);
 });
 
+// ── Seeded LCG shuffle — same seed → same order every day ──────────────────
+function seededShuffle(arr, seed) {
+  const a = [...arr];
+  let s = seed >>> 0 || 1;
+  const next = () => {
+    s = (Math.imul(s, 1664525) + 1013904223) | 0;
+    return (s >>> 0) / 4294967296;
+  };
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(next() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ── Daily featured: seeded-shuffle of featured/active products, changes every day ──
+const getDailyFeatured = asyncHandler(async (req, res) => {
+  const lang = req.language || "en";
+  const limit = Math.min(parseInt(req.query.limit) || 20, 40);
+
+  // Prefer is_featured products
+  let { products } = await ProductService.getAll({
+    isActive: true,
+    isFeatured: true,
+    limit: 200,
+    page: 1,
+    lang,
+    inStock: true,
+  });
+
+  // If fewer than 8 featured, supplement with recently-added active products
+  if (products.length < 8) {
+    const { products: extra } = await ProductService.getAll({
+      isActive: true,
+      limit: 200,
+      page: 1,
+      lang,
+      inStock: true,
+      sortBy: "created_at",
+      sortOrder: "DESC",
+    });
+    const seen = new Set(products.map((p) => p.id));
+    for (const p of extra) if (!seen.has(p.id)) products.push(p);
+  }
+
+  // Seed = today's YYYYMMDD integer → same shuffle all day, new shuffle tomorrow
+  const now = new Date();
+  const seed =
+    (now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate()) >>>
+    0;
+
+  const daily = seededShuffle(products, seed).slice(0, limit);
+  ApiResponse.paginated(res, daily, {
+    page: 1,
+    limit,
+    totalItems: daily.length,
+  });
+});
+
 module.exports = {
   getAllProducts: getProducts,
   getProductById: getProduct,
@@ -277,4 +347,5 @@ module.exports = {
   downloadAllProducts,
   getProductCount,
   getFrequentlyBoughtTogether,
+  getDailyFeatured,
 };
