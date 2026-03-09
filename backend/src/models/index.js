@@ -10,6 +10,7 @@ const AdminLog = require('./AdminLog');
 const SystemConfig = require('./SystemConfig');
 const Promotion = require('./Promotion');
 const { MergeSession, MergeOTP, LinkedIdentity, MergeAudit } = require('./MergeSession');
+const AdminNotification = require('./AdminNotification');
 module.exports = {
   User,
   OTP,
@@ -26,4 +27,5 @@ module.exports = {
   MergeOTP,
   LinkedIdentity,
   MergeAudit,
+  AdminNotification,
 };

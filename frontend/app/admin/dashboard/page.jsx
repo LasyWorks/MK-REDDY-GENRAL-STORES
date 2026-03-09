@@ -50,6 +50,7 @@ import {
   ChartPieIcon as Analytics,
   Bars3Icon as MenuIcon,
   FireIcon,
+  BanknotesIcon as Banknotes,
 } from "@heroicons/react/24/outline";
 const Loader2 = ArrowPathIcon;
 const RefreshCcw = ArrowPathIcon;
@@ -266,6 +267,9 @@ function OverviewTab({ onSwitchTab }) {
     else if (key === "customers") onSwitchTab?.("users");
   }
 
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good Morning" : hour < 17 ? "Good Afternoon" : "Good Evening";
+
   if (error && !stats)
     return (
       <div className="text-center py-20">
@@ -276,88 +280,119 @@ function OverviewTab({ onSwitchTab }) {
     );
 
   return (
-    <div className="space-y-6">
-      {/* -- KPI Stats Cards -- */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <button onClick={() => handleCardClick("products")} className="bg-white rounded-[14px] border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow text-left relative overflow-hidden group">
-          <div className="absolute top-4 right-4 w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
-            <Package className="w-5 h-5 text-indigo-500" />
-          </div>
-          <p className="text-[13px] font-medium text-gray-500">Total Products</p>
-          <p className="text-[28px] font-bold text-gray-900 mt-1 tracking-tight">{loading ? "-" : (stats?.products?.total ?? 0)}</p>
-          <p className="text-[12px] text-gray-400 mt-1">{stats?.products?.active ?? 0} active</p>
-        </button>
+    <div className="space-y-8">
 
-        <button onClick={() => handleCardClick("orders")} className="bg-white rounded-[14px] border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow text-left relative overflow-hidden group">
-          <div className="absolute top-4 right-4 w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
-            <ShoppingCart className="w-5 h-5 text-emerald-500" />
-          </div>
-          <p className="text-[13px] font-medium text-gray-500">Orders Today</p>
-          <p className="text-[28px] font-bold text-gray-900 mt-1 tracking-tight">{loading ? "-" : (stats?.today?.orders ?? 0)}</p>
-          <p className="text-[12px] text-gray-400 mt-1">{stats?.orders?.pending ?? 0} pending</p>
-        </button>
-
-        <div className="bg-white rounded-[14px] border border-gray-100 p-5 shadow-sm relative overflow-hidden">
-          <div className="absolute top-4 right-4 w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
-            <CircleDollarSign className="w-5 h-5 text-green-500" />
-          </div>
-          <p className="text-[13px] font-medium text-gray-500">Revenue Today</p>
-          <p className="text-[28px] font-bold text-gray-900 mt-1 tracking-tight">{loading ? "-" : fmtCurrency(stats?.today?.revenue)}</p>
-          <p className="text-[12px] text-gray-400 mt-1">All time: {fmtCurrency(stats?.revenue?.allTime)}</p>
+      {/* ── Greeting ── */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-[22px] font-semibold text-gray-900">{greeting}, Aanu</h1>
+          <p className="text-[14px] text-gray-400 mt-0.5">Here's what's happening with your store today.</p>
         </div>
-
-        <button onClick={() => handleCardClick("customers")} className="bg-white rounded-[14px] border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow text-left relative overflow-hidden group">
-          <div className="absolute top-4 right-4 w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center group-hover:bg-violet-100 transition-colors">
-            <Users className="w-5 h-5 text-violet-500" />
-          </div>
-          <p className="text-[13px] font-medium text-gray-500">Customers</p>
-          <p className="text-[28px] font-bold text-gray-900 mt-1 tracking-tight">{loading ? "-" : (stats?.customers?.total ?? 0)}</p>
-          <p className="text-[12px] text-gray-400 mt-1">{stats?.customers?.newToday ?? 0} new today</p>
-        </button>
+        <div className="flex items-center gap-3">
+          <span className="hidden sm:flex items-center gap-1.5 text-[12px] text-gray-400">
+            {refreshing
+              ? <><Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" /> Updating...</>
+              : "Auto-refreshes every 30s"}
+          </span>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-1.5 px-3 h-9 rounded-xl border border-gray-200 text-[13px] text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
+            <RefreshCcw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
-      {/* -- Sales Analytics -- */}
-      <div className="bg-white rounded-[14px] border border-gray-100 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-[16px] font-bold text-gray-900">Revenue Overview</h2>
-          <div className="flex items-center gap-1 text-xs text-gray-400">
-            {refreshing && <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-500" />}
-            {refreshing ? "Updating..." : "Auto-refreshes every 30s"}
-            <button onClick={handleRefresh} disabled={refreshing} className="ml-2 p-1.5 rounded-lg hover:bg-gray-50 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50">
-              <RefreshCcw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
-            </button>
+      {/* ── KPI Cards ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        {[
+          {
+            label: "Orders Today",
+            value: loading ? null : (stats?.today?.orders ?? 0),
+            sub: `${stats?.orders?.pending ?? 0} pending`,
+            icon: <ShoppingCart className="w-5 h-5 text-emerald-600" />,
+            iconBg: "bg-emerald-50",
+            onClick: () => handleCardClick("orders"),
+          },
+          {
+            label: "Revenue Today",
+            value: loading ? null : fmtCurrency(stats?.today?.revenue),
+            sub: `All time: ${fmtCurrency(stats?.revenue?.allTime)}`,
+            icon: <CircleDollarSign className="w-5 h-5 text-green-600" />,
+            iconBg: "bg-green-50",
+            onClick: null,
+          },
+          {
+            label: "Pending Orders",
+            value: loading ? null : (stats?.orders?.pending ?? 0),
+            sub: `${stats?.orders?.completed ?? 0} completed`,
+            icon: <Clock className="w-5 h-5 text-amber-600" />,
+            iconBg: "bg-amber-50",
+            onClick: () => handleCardClick("orders"),
+          },
+          {
+            label: "Customers",
+            value: loading ? null : (stats?.customers?.total ?? 0),
+            sub: `${stats?.customers?.newToday ?? 0} new today`,
+            icon: <Users className="w-5 h-5 text-violet-600" />,
+            iconBg: "bg-violet-50",
+            onClick: () => handleCardClick("customers"),
+          },
+        ].map(({ label, value, sub, icon, iconBg, onClick }) => {
+          const Tag = onClick ? "button" : "div";
+          return (
+            <Tag
+              key={label}
+              onClick={onClick || undefined}
+              className={`bg-white rounded-2xl border border-gray-100 p-5 shadow-sm text-left relative overflow-hidden transition-all duration-150 ${onClick ? "hover:shadow-md hover:-translate-y-px cursor-pointer" : ""}`}
+            >
+              <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center mb-4`}>
+                {icon}
+              </div>
+              <p className="text-[12px] font-medium text-gray-400 uppercase tracking-wider">{label}</p>
+              <p className="text-[30px] font-bold text-gray-900 mt-0.5 tracking-tight leading-none">
+                {value === null ? <span className="text-gray-300 text-[22px]">--</span> : value}
+              </p>
+              <p className="text-[12px] text-gray-400 mt-2">{sub}</p>
+            </Tag>
+          );
+        })}
+      </div>
+
+      {/* ── Revenue Chart (full width) ── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+          <div>
+            <h2 className="text-[16px] font-bold text-gray-900">Revenue Overview</h2>
+            <p className="text-[12px] text-gray-400 mt-0.5">7-day trend</p>
           </div>
+          {!loading && stats && (
+            <div className="flex items-center gap-6">
+              <div className="text-right">
+                <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Today</p>
+                <p className="text-[16px] font-bold text-gray-900">{fmtCurrency(stats?.today?.revenue)}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Completed</p>
+                <p className="text-[16px] font-bold text-emerald-600">{stats?.orders?.completed ?? 0}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Cancelled</p>
+                <p className="text-[16px] font-bold text-red-500">{stats?.orders?.cancelled ?? 0}</p>
+              </div>
+            </div>
+          )}
         </div>
         <div className="p-6">
           <RevenueChart />
         </div>
-        {/* Metrics under chart */}
-        {!loading && stats && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-0 border-t border-gray-100">
-            <div className="px-6 py-4 border-r border-gray-100">
-              <p className="text-[12px] font-medium text-gray-400 uppercase tracking-wider">Orders</p>
-              <p className="text-[18px] font-bold text-gray-900 mt-0.5">{stats?.today?.orders ?? 0}</p>
-            </div>
-            <div className="px-6 py-4 border-r border-gray-100">
-              <p className="text-[12px] font-medium text-gray-400 uppercase tracking-wider">Completed</p>
-              <p className="text-[18px] font-bold text-emerald-600 mt-0.5">{stats?.orders?.completed ?? 0}</p>
-            </div>
-            <div className="px-6 py-4 border-r border-gray-100">
-              <p className="text-[12px] font-medium text-gray-400 uppercase tracking-wider">Cancelled</p>
-              <p className="text-[18px] font-bold text-red-500 mt-0.5">{stats?.orders?.cancelled ?? 0}</p>
-            </div>
-            <div className="px-6 py-4">
-              <p className="text-[12px] font-medium text-gray-400 uppercase tracking-wider">Revenue</p>
-              <p className="text-[18px] font-bold text-gray-900 mt-0.5">{fmtCurrency(stats?.today?.revenue)}</p>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* -- Operational Panels (Two Columns) -- */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Recent Orders */}
-        <div className="bg-white rounded-[14px] border border-gray-100 shadow-sm overflow-hidden">
+      {/* ── Recent Orders + Top Selling (8/4 split) ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        <div className="xl:col-span-8 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <h2 className="text-[16px] font-bold text-gray-900">Recent Orders</h2>
             <button onClick={() => onSwitchTab?.("orders")} className="text-[13px] text-indigo-600 hover:text-indigo-700 font-medium">View All</button>
@@ -366,12 +401,10 @@ function OverviewTab({ onSwitchTab }) {
             <RecentOrders orders={orders} loading={loading} onStatusUpdate={handleStatusUpdate} onViewAll={() => onSwitchTab?.("orders")} />
           </div>
         </div>
-
-        {/* Top Products */}
-        <div className="bg-white rounded-[14px] border border-gray-100 shadow-sm overflow-hidden">
+        <div className="xl:col-span-4 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="text-[16px] font-bold text-gray-900">Top Selling Products</h2>
-            <button onClick={() => onSwitchTab?.("products")} className="text-[13px] text-indigo-600 hover:text-indigo-700 font-medium">View All</button>
+            <h2 className="text-[16px] font-bold text-gray-900">Top Selling</h2>
+            <button onClick={() => onSwitchTab?.("products")} className="text-[13px] text-indigo-600 hover:text-indigo-700 font-medium">All</button>
           </div>
           <div className="p-4">
             <TopProducts />
@@ -379,10 +412,32 @@ function OverviewTab({ onSwitchTab }) {
         </div>
       </div>
 
-      {/* -- Activity + Insights Row -- */}
+      {/* ── Product Performance + Customer Insights (6/6) ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h2 className="text-[16px] font-bold text-gray-900">Product Performance</h2>
+            <p className="text-[12px] text-gray-400 mt-0.5">Units sold and revenue per product</p>
+          </div>
+          <div className="p-4">
+            <FrequentlyBoughtProducts />
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h2 className="text-[16px] font-bold text-gray-900">Customer Insights</h2>
+            <p className="text-[12px] text-gray-400 mt-0.5">Revenue by customer type</p>
+          </div>
+          <div className="p-4">
+            <UserWiseSales />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Activity + Store Insights (6/6) ── */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Recent Activity */}
-        <div className="bg-white rounded-[14px] border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100">
             <h2 className="text-[16px] font-bold text-gray-900">Recent Activity</h2>
           </div>
@@ -391,40 +446,48 @@ function OverviewTab({ onSwitchTab }) {
           </div>
         </div>
 
-        {/* Insights Panel */}
-        <div className="bg-white rounded-[14px] border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+        {/* Store Insights */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-6 py-5 border-b border-gray-100 flex items-center gap-2">
             <LightBulbIcon className="w-5 h-5 text-amber-500" />
-            <h2 className="text-[16px] font-bold text-gray-900">Insights</h2>
+            <h2 className="text-[16px] font-bold text-gray-900">Store Insights</h2>
           </div>
           <div className="p-5 space-y-3">
             {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-5 h-5 animate-spin text-gray-300" />
+              <div className="space-y-2.5">
+                {[1,2,3].map((i) => (
+                  <div key={i} className="h-14 bg-gray-100 rounded-xl animate-pulse" />
+                ))}
               </div>
             ) : (
               <>
                 {(stats?.products?.lowStock ?? 0) > 0 && (
-                  <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-100 rounded-xl">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                  <div className="flex items-start gap-3 p-3.5 bg-amber-50 border border-amber-100 rounded-xl">
+                    <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                      <AlertTriangle className="w-4 h-4 text-amber-600" />
+                    </div>
                     <div>
-                      <p className="text-[13px] font-semibold text-amber-800">{stats.products.lowStock} product{stats.products.lowStock !== 1 ? "s" : ""} low stock</p>
+                      <p className="text-[13px] font-semibold text-amber-800">{stats.products.lowStock} product{stats.products.lowStock !== 1 ? "s" : ""} low on stock</p>
                       <p className="text-[12px] text-amber-600 mt-0.5">Review inventory to avoid stockouts</p>
                     </div>
                   </div>
                 )}
                 {(stats?.today?.revenue ?? 0) > 0 && (
-                  <div className="flex items-start gap-3 p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
-                    <TrendingUp className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+                  <div className="flex items-start gap-3 p-3.5 bg-emerald-50 border border-emerald-100 rounded-xl">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                      <TrendingUp className="w-4 h-4 text-emerald-600" />
+                    </div>
                     <div>
-                      <p className="text-[13px] font-semibold text-emerald-800">Revenue: {fmtCurrency(stats.today.revenue)} today</p>
+                      <p className="text-[13px] font-semibold text-emerald-800">Revenue {fmtCurrency(stats.today.revenue)} today</p>
                       <p className="text-[12px] text-emerald-600 mt-0.5">From {stats.today.orders} order{stats.today.orders !== 1 ? "s" : ""}</p>
                     </div>
                   </div>
                 )}
                 {(stats?.orders?.pending ?? 0) > 0 && (
-                  <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-100 rounded-xl">
-                    <Clock className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
+                  <div className="flex items-start gap-3 p-3.5 bg-blue-50 border border-blue-100 rounded-xl">
+                    <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                      <Clock className="w-4 h-4 text-blue-600" />
+                    </div>
                     <div>
                       <p className="text-[13px] font-semibold text-blue-800">{stats.orders.pending} pending order{stats.orders.pending !== 1 ? "s" : ""}</p>
                       <p className="text-[12px] text-blue-600 mt-0.5">Needs attention</p>
@@ -432,18 +495,22 @@ function OverviewTab({ onSwitchTab }) {
                   </div>
                 )}
                 {(stats?.customers?.newToday ?? 0) > 0 && (
-                  <div className="flex items-start gap-3 p-3 bg-violet-50 border border-violet-100 rounded-xl">
-                    <UserCheck className="w-4 h-4 text-violet-600 mt-0.5 shrink-0" />
+                  <div className="flex items-start gap-3 p-3.5 bg-violet-50 border border-violet-100 rounded-xl">
+                    <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                      <UserCheck className="w-4 h-4 text-violet-600" />
+                    </div>
                     <div>
                       <p className="text-[13px] font-semibold text-violet-800">{stats.customers.newToday} new customer{stats.customers.newToday !== 1 ? "s" : ""} today</p>
                       <p className="text-[12px] text-violet-600 mt-0.5">Customer base growing</p>
                     </div>
                   </div>
                 )}
-                {(stats?.products?.lowStock ?? 0) === 0 && (stats?.today?.revenue ?? 0) === 0 && (stats?.orders?.pending ?? 0) === 0 && (
-                  <div className="flex items-start gap-3 p-3 bg-gray-50 border border-gray-100 rounded-xl">
-                    <Check className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-                    <p className="text-[13px] text-gray-500">All clear! No alerts right now.</p>
+                {(stats?.products?.lowStock ?? 0) === 0 && (stats?.today?.revenue ?? 0) === 0 && (stats?.orders?.pending ?? 0) === 0 && (stats?.customers?.newToday ?? 0) === 0 && (
+                  <div className="flex items-start gap-3 p-3.5 bg-gray-50 border border-gray-100 rounded-xl">
+                    <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                      <Check className="w-4 h-4 text-gray-400" />
+                    </div>
+                    <p className="text-[13px] text-gray-500 mt-1">All clear. No alerts right now.</p>
                   </div>
                 )}
               </>
@@ -452,25 +519,6 @@ function OverviewTab({ onSwitchTab }) {
         </div>
       </div>
 
-      {/* -- Product Performance + Customer Insights -- */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="bg-white rounded-[14px] border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-[16px] font-bold text-gray-900">Product Performance</h2>
-          </div>
-          <div className="p-4">
-            <FrequentlyBoughtProducts />
-          </div>
-        </div>
-        <div className="bg-white rounded-[14px] border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-[16px] font-bold text-gray-900">Customer Insights</h2>
-          </div>
-          <div className="p-4">
-            <UserWiseSales />
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
@@ -525,16 +573,50 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
     is_featured: product?.is_featured || false,
     price: product?.price || "",
     mrp: product?.mrp || "",
+    wholesale_price: product?.wholesale_price || "",
+    purchase_price: product?.purchase_price || "",
+    gst_percentage: product?.gst_percentage ?? "18",
     stock: product?.stock_quantity ?? "",
     low_stock_threshold: product?.low_stock_threshold ?? 10,
     unit: product?.variant || product?.unit || "",
-    unit_type: product?.unit_type || null,
+    unit_type: product?.unit_type || "pcs",
   });
   const [imageUrls, setImageUrls] = useState(getAllImages);
   const [newImageInput, setNewImageInput] = useState("");
   const [activeImageIdx, setActiveImageIdx] = useState(0);
+  const [uploadingImg, setUploadingImg] = useState(false);
+  const imgUploadRef = useRef(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  async function handleImgFileUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingImg(true);
+    try {
+      const token = secureStorage.getItem("token");
+      const fd = new FormData();
+      fd.append("image", file);
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
+      const res = await fetch(`${baseUrl}/products/upload-image`, {
+        method: "POST",
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+        body: fd,
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Upload failed");
+      const url = json.data?.url;
+      if (url) {
+        setImageUrls((prev) => [...prev, url]);
+        setActiveImageIdx((prev) => prev); // keep selection stable
+      }
+    } catch (err) {
+      setError(err.message || "Image upload failed");
+    } finally {
+      setUploadingImg(false);
+      if (imgUploadRef.current) imgUploadRef.current.value = "";
+    }
+  }
 
   // Multi-variant creation (create mode)
   const [activeTab, setActiveTab] = useState("sizes");
@@ -561,6 +643,28 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
     return allProducts.filter((p) => p.parent_product_id === product.id);
   }, [product, allProducts]);
 
+  // Editable variant rows (edit mode only)
+  const [editVariants, setEditVariants] = useState(() => existingVariants.map(v => ({ ...v })));
+
+  useEffect(() => {
+    setEditVariants(existingVariants.map(v => ({ ...v })));
+  }, [product?.id]);
+
+  function updateVariantRow(id, field, value) {
+    setEditVariants(prev => prev.map(v => {
+      if (v.id !== id) return v;
+      // keep variant/unit_pack_size/unit in sync when size field is changed
+      if (field === "_size") {
+        return { ...v, variant: value, unit_pack_size: value, unit: value };
+      }
+      return { ...v, [field]: value };
+    }));
+  }
+
+  function removeVariantRow(id) {
+    setEditVariants(prev => prev.filter(v => v.id !== id));
+  }
+
   const PRESETS = {
     "Grocery": ["100 g", "250 g", "500 g", "1 kg", "2 kg"],
     "Spice": ["50 g", "100 g", "200 g", "500 g"],
@@ -575,7 +679,7 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
         const existing = curr.find(r => r.size === s);
         if (existing) return existing;
         const p = calcVariantPrice(s, bp);
-        return { size: s, price: p ? String(p) : "", mrp: p ? String(p) : "", stock: "10", low_stock_threshold: 10 };
+        return { size: s, price: p ? String(p) : "", mrp: p ? String(p) : "", wholesale_price: "", stock: "10", low_stock_threshold: 10 };
       })
     );
   }
@@ -616,6 +720,12 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
     setError("");
     try {
       const imgs = imageUrls.filter(Boolean);
+      // Price hierarchy validation: wholesale_price <= price <= mrp
+      const priceVal = parseFloat(form.price) || 0;
+      const mrpVal = parseFloat(form.mrp) || 0;
+      const wsVal = parseFloat(form.wholesale_price) || 0;
+      if (priceVal > 0 && mrpVal > 0 && priceVal > mrpVal) { setError("Selling Price cannot exceed MRP"); setSaving(false); return; }
+      if (wsVal > 0 && priceVal > 0 && wsVal > priceVal) { setError("Wholesale Price cannot exceed Selling Price"); setSaving(false); return; }
       if (isEdit) {
         if (!form.price || !form.mrp) { setError("Price and MRP are required"); setSaving(false); return; }
         const res = await api.put(`/products/${product.id}`, {
@@ -624,11 +734,14 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
           sku: form.sku || undefined,
           mrp: form.mrp !== "" ? parseFloat(form.mrp) : undefined,
           price: form.price !== "" ? parseFloat(form.price) : undefined,
+          wholesale_price: form.wholesale_price !== "" ? parseFloat(form.wholesale_price) : null,
+          purchase_price: form.purchase_price !== "" ? parseFloat(form.purchase_price) : null,
+          gst_percentage: form.gst_percentage !== "" ? parseFloat(form.gst_percentage) : undefined,
           stock_quantity: form.stock !== "" && form.stock !== null && form.stock !== undefined ? parseFloat(form.stock) : undefined,
           low_stock_threshold: form.low_stock_threshold,
           unit: form.unit || undefined,
           variant: form.unit || undefined,
-          unit_type: form.unit_type || undefined,
+          unit_type: form.unit_type || "pcs",
           category_id: form.category_id,
           description_en: form.description || undefined,
           is_active: form.is_active,
@@ -636,7 +749,26 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
           image_url: imgs[0] || null,
           image_urls: imgs,
         });
-        onSaved(res.data || res);
+        // Save each edited variant
+        for (const v of editVariants) {
+          const unitVal = v.variant || v.unit_pack_size || v.unit || undefined;
+          await api.put(`/products/${v.id}`, {
+            price: v.price !== "" && v.price !== null && v.price !== undefined ? parseFloat(v.price) : undefined,
+            mrp: v.mrp !== "" && v.mrp !== null && v.mrp !== undefined ? parseFloat(v.mrp) : undefined,
+            wholesale_price: v.wholesale_price !== "" && v.wholesale_price !== null && v.wholesale_price !== undefined ? parseFloat(v.wholesale_price) : null,
+            stock_quantity: v.stock_quantity !== "" && v.stock_quantity !== null && v.stock_quantity !== undefined ? parseFloat(v.stock_quantity) : undefined,
+            low_stock_threshold: v.low_stock_threshold ?? 10,
+            variant: unitVal,
+            unit_pack_size: unitVal,
+          });
+        }
+        // Delete variants that were removed
+        const removedVariants = existingVariants.filter(v => !editVariants.find(ev => ev.id === v.id));
+        for (const v of removedVariants) {
+          await api.delete(`/products/${v.id}`);
+        }
+        const hasVariantChanges = editVariants.length !== existingVariants.length || editVariants.length > 0;
+        onSaved(hasVariantChanges ? undefined : (res.data || res));
       } else if (activeTab === "sizes" && variantRows.length > 0) {
         let parentId = null;
         for (let i = 0; i < variantRows.length; i++) {
@@ -648,10 +780,14 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
             sku: generateSKU(form.name, row.size) || undefined,
             mrp: row.mrp ? parseFloat(row.mrp) : (row.price ? parseFloat(row.price) : undefined),
             price: row.price ? parseFloat(row.price) : undefined,
+            wholesale_price: row.wholesale_price ? parseFloat(row.wholesale_price) : undefined,
+            purchase_price: form.purchase_price !== "" ? parseFloat(form.purchase_price) : undefined,
+            gst_percentage: form.gst_percentage !== "" ? parseFloat(form.gst_percentage) : undefined,
             stock_quantity: parseFloat(row.stock) || 0,
             low_stock_threshold: row.low_stock_threshold ?? form.low_stock_threshold,
             unit: row.size,
             variant: row.size,
+            unit_type: form.unit_type || "pcs",
             category_id: form.category_id,
             description_en: form.description || undefined,
             is_active: form.is_active,
@@ -671,10 +807,14 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
           sku: form.sku || undefined,
           mrp: form.mrp !== "" ? parseFloat(form.mrp) : undefined,
           price: form.price !== "" ? parseFloat(form.price) : undefined,
+          wholesale_price: form.wholesale_price !== "" ? parseFloat(form.wholesale_price) : undefined,
+          purchase_price: form.purchase_price !== "" ? parseFloat(form.purchase_price) : undefined,
+          gst_percentage: form.gst_percentage !== "" ? parseFloat(form.gst_percentage) : undefined,
           stock_quantity: form.stock !== "" && form.stock !== null && form.stock !== undefined ? parseFloat(form.stock) : undefined,
           low_stock_threshold: form.low_stock_threshold,
           unit: form.unit || undefined,
           variant: form.unit || undefined,
+          unit_type: form.unit_type || "pcs",
           category_id: form.category_id,
           description_en: form.description || undefined,
           is_active: form.is_active,
@@ -895,6 +1035,7 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
                                 <th className="px-3 py-2.5 text-left text-[11px] font-bold text-gray-400 uppercase tracking-wide">Size</th>
                                 <th className="px-3 py-2.5 text-left text-[11px] font-bold text-gray-400 uppercase tracking-wide">Selling Price (₹)</th>
                                 <th className="px-3 py-2.5 text-left text-[11px] font-bold text-gray-400 uppercase tracking-wide">MRP (₹)</th>
+                                <th className="px-3 py-2.5 text-left text-[11px] font-bold text-amber-500 uppercase tracking-wide">Wholesale (₹)</th>
                                 <th className="px-3 py-2.5 text-left text-[11px] font-bold text-gray-400 uppercase tracking-wide">Stock</th>
                                 <th className="px-3 py-2.5 text-left text-[11px] font-bold text-orange-400 uppercase tracking-wide">Alert</th>
                                 <th className="px-3 py-2.5 w-8"></th>
@@ -928,6 +1069,19 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
                                         value={row.mrp}
                                         onChange={(e) => updateRow(row.size, "mrp", e.target.value)}
                                         className="w-full border border-gray-200 rounded-lg pl-5 pr-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-gray-300"
+                                      />
+                                    </div>
+                                  </td>
+                                  <td className="px-3 py-2.5">
+                                    <div className="relative w-20">
+                                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-amber-400 text-xs">₹</span>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        placeholder="-"
+                                        value={row.wholesale_price || ""}
+                                        onChange={(e) => updateRow(row.size, "wholesale_price", e.target.value)}
+                                        className="w-full border border-amber-200 rounded-lg pl-5 pr-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400"
                                       />
                                     </div>
                                   </td>
@@ -976,6 +1130,10 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
                       <input value={form.sku} onChange={(e) => set("sku", e.target.value)} placeholder="Auto-generated if blank" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
                     </div>
                     <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">MRP (₹) *</label>
+                      <input type="number" value={form.mrp} onChange={(e) => set("mrp", e.target.value)} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    </div>
+                    <div>
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Selling Price (₹) *</label>
                         {discountPct > 0 && <span className="text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">{discountPct}% OFF</span>}
@@ -983,12 +1141,29 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
                       <input type="number" value={form.price} onChange={(e) => set("price", e.target.value)} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">MRP (₹) *</label>
-                      <input type="number" value={form.mrp} onChange={(e) => set("mrp", e.target.value)} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                      <label className="block text-xs font-bold text-amber-600 uppercase tracking-wide mb-1.5">Wholesale Price (₹) <span className="text-gray-400 font-normal normal-case">optional</span></label>
+                      <input type="number" min="0" step="0.01" placeholder="Leave blank if same as retail" value={form.wholesale_price} onChange={(e) => set("wholesale_price", e.target.value)} className="w-full border border-amber-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
                     </div>
-                    <div className="col-span-2">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Purchase Price (₹) <span className="text-gray-400 font-normal normal-case">optional</span></label>
+                      <input type="number" min="0" step="0.01" placeholder="Cost price" value={form.purchase_price} onChange={(e) => set("purchase_price", e.target.value)} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">GST %</label>
+                      <select value={form.gst_percentage} onChange={(e) => set("gst_percentage", e.target.value)} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white">
+                        <option value="0">0%</option>
+                        <option value="5">5%</option>
+                        <option value="12">12%</option>
+                        <option value="18">18%</option>
+                        <option value="28">28%</option>
+                      </select>
+                    </div>
+                    <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Stock Quantity</label>
                       <input type="number" value={form.stock} onChange={(e) => set("stock", e.target.value)} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    </div>
+                    <div className="col-span-2 px-3 py-2 bg-blue-50 rounded-xl border border-blue-100">
+                      <p className="text-[10px] font-bold text-blue-600">Wholesale Price &le; Selling Price &le; MRP</p>
                     </div>
                   </div>
                 )}
@@ -1031,6 +1206,29 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
                           <span className={`text-sm font-bold ${discountPct > 0 ? "text-green-600" : "text-gray-400"}`}>
                             {discountPct > 0 ? `${discountPct}% OFF` : "-"}
                           </span>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-amber-600 uppercase tracking-wide mb-1.5">Wholesale Price (₹) <span className="text-gray-400 font-normal normal-case">optional, for wholesale customers</span></label>
+                          <input type="number" min="0" step="0.01" placeholder="Leave blank if same as retail" value={form.wholesale_price} onChange={(e) => set("wholesale_price", e.target.value)} className="w-full border border-amber-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Purchase Price (₹) <span className="text-gray-400 font-normal normal-case">optional</span></label>
+                            <input type="number" min="0" step="0.01" placeholder="Cost price" value={form.purchase_price} onChange={(e) => set("purchase_price", e.target.value)} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">GST %</label>
+                            <select value={form.gst_percentage} onChange={(e) => set("gst_percentage", e.target.value)} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white">
+                              <option value="0">0%</option>
+                              <option value="5">5%</option>
+                              <option value="12">12%</option>
+                              <option value="18">18%</option>
+                              <option value="28">28%</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="px-3 py-2 bg-blue-50 rounded-xl border border-blue-100">
+                          <p className="text-[10px] font-bold text-blue-600">Wholesale Price &le; Selling Price &le; MRP</p>
                         </div>
                       </div>
                     </div>
@@ -1075,32 +1273,97 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
                           </button>
                         )}
                       </div>
-                      {existingVariants.length > 0 ? (
-                        <>
-                          <div className="border border-gray-200 rounded-xl overflow-hidden">
-                            <table className="w-full text-sm">
-                              <thead>
-                                <tr className="bg-gray-50 border-b border-gray-100">
-                                  <th className="px-3 py-2 text-left text-[11px] font-bold text-gray-400 uppercase">Size</th>
-                                  <th className="px-3 py-2 text-left text-[11px] font-bold text-gray-400 uppercase">Price</th>
-                                  <th className="px-3 py-2 text-left text-[11px] font-bold text-gray-400 uppercase">Stock</th>
+                      {editVariants.length > 0 ? (
+                        <div className="border border-gray-200 rounded-xl overflow-hidden">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="bg-gray-50 border-b border-gray-100">
+                                <th className="px-2 py-2 text-left text-[11px] font-bold text-gray-400 uppercase">Size</th>
+                                <th className="px-2 py-2 text-left text-[11px] font-bold text-gray-400 uppercase">Price (₹)</th>
+                                <th className="px-2 py-2 text-left text-[11px] font-bold text-gray-400 uppercase">MRP (₹)</th>
+                                <th className="px-2 py-2 text-left text-[11px] font-bold text-amber-500 uppercase">Wholesale (₹)</th>
+                                <th className="px-2 py-2 text-left text-[11px] font-bold text-gray-400 uppercase">Stock</th>
+                                <th className="px-2 py-2 text-left text-[11px] font-bold text-orange-400 uppercase">Alert</th>
+                                <th className="px-2 py-2 w-7"></th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                              {editVariants.map((v) => (
+                                <tr key={v.id} className="hover:bg-gray-50/80 transition-colors">
+                                  <td className="px-2 py-1.5">
+                                    <input
+                                      value={v.variant || v.unit_pack_size || v.unit || ""}
+                                      onChange={(e) => updateVariantRow(v.id, "_size", e.target.value)}
+                                      className="w-20 border border-gray-200 rounded-lg px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                                    />
+                                  </td>
+                                  <td className="px-2 py-1.5">
+                                    <div className="relative w-20">
+                                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">₹</span>
+                                      <input
+                                        type="number"
+                                        value={v.price || ""}
+                                        onChange={(e) => updateVariantRow(v.id, "price", e.target.value)}
+                                        className="w-full border border-gray-200 rounded-lg pl-4 pr-1 py-1 text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-green-500"
+                                      />
+                                    </div>
+                                  </td>
+                                  <td className="px-2 py-1.5">
+                                    <div className="relative w-20">
+                                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">₹</span>
+                                      <input
+                                        type="number"
+                                        value={v.mrp || ""}
+                                        onChange={(e) => updateVariantRow(v.id, "mrp", e.target.value)}
+                                        className="w-full border border-gray-200 rounded-lg pl-4 pr-1 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-gray-300"
+                                      />
+                                    </div>
+                                  </td>
+                                  <td className="px-2 py-1.5">
+                                    <div className="relative w-20">
+                                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-amber-400 text-xs">₹</span>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        placeholder="-"
+                                        value={v.wholesale_price || ""}
+                                        onChange={(e) => updateVariantRow(v.id, "wholesale_price", e.target.value)}
+                                        className="w-full border border-amber-200 rounded-lg pl-4 pr-1 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400"
+                                      />
+                                    </div>
+                                  </td>
+                                  <td className="px-2 py-1.5">
+                                    <input
+                                      type="number"
+                                      value={v.stock_quantity ?? ""}
+                                      onChange={(e) => updateVariantRow(v.id, "stock_quantity", e.target.value)}
+                                      className="w-16 border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-gray-300"
+                                    />
+                                  </td>
+                                  <td className="px-2 py-1.5">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={v.low_stock_threshold ?? 10}
+                                      onChange={(e) => updateVariantRow(v.id, "low_stock_threshold", parseInt(e.target.value, 10) || 0)}
+                                      className="w-16 border border-orange-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-orange-400"
+                                    />
+                                  </td>
+                                  <td className="px-2 py-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => removeVariantRow(v.id)}
+                                      className="text-gray-300 hover:text-red-500 transition-colors"
+                                      title="Remove variant"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  </td>
                                 </tr>
-                              </thead>
-                              <tbody className="divide-y divide-gray-50">
-                                {existingVariants.map((v) => (
-                                  <tr key={v.id} className="hover:bg-gray-50">
-                                    <td className="px-3 py-2">
-                                      <span className="text-xs font-semibold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">{v.variant || v.unit || "Variant"}</span>
-                                    </td>
-                                    <td className="px-3 py-2 text-sm font-semibold text-gray-900">₹{v.price}</td>
-                                    <td className="px-3 py-2 text-sm text-gray-600">{v.stock_quantity ?? 0}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                          <p className="text-[10px] text-gray-400 mt-1">Click a variant row in the products list to edit it individually.</p>
-                        </>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       ) : (
                         <p className="text-xs text-gray-400 py-2">No variants linked yet. Use Add New Size to create variants.</p>
                       )}
@@ -1112,7 +1375,7 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Description</label>
                   <textarea
-                    rows={1}
+                    rows={5}
                     value={form.description}
                     onChange={(e) => {
                       set("description", e.target.value);
@@ -1124,8 +1387,8 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
                       e.target.style.height = e.target.scrollHeight + "px";
                     }}
                     placeholder="Optional product description..."
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none overflow-hidden"
-                    style={{ minHeight: "2.75rem" }}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none leading-relaxed"
+                    style={{ minHeight: "8rem" }}
                   />
                 </div>
               </div>
@@ -1234,6 +1497,26 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
                       Add
                     </button>
                   </div>
+                  {/* Upload from device */}
+                  <input
+                    ref={imgUploadRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    onChange={handleImgFileUpload}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => imgUploadRef.current?.click()}
+                    disabled={uploadingImg}
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-2 border border-dashed border-blue-300 rounded-xl text-xs font-semibold text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50 mt-1"
+                  >
+                    {uploadingImg ? (
+                      <><ArrowPathIcon className="w-3.5 h-3.5 animate-spin" /> Uploading...</>
+                    ) : (
+                      <><ArrowUpTrayIcon className="w-3.5 h-3.5" /> Upload from device</>
+                    )}
+                  </button>
                   <p className="text-[10px] text-gray-400 mt-1">First image is the main thumbnail. Press Enter or Add.</p>
                 </div>
 
@@ -1275,24 +1558,22 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
                   </button>
                 </div>
 
-                {/* Loose / Regular toggle (edit mode only) */}
-                {isEdit && (
-                  <div className="flex items-center justify-between py-3 px-4 bg-white rounded-xl border border-gray-200">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-800 flex items-center gap-1">
-                        <Tag className="w-3.5 h-3.5 text-orange-500" /> Loose / Bulk
-                      </p>
-                      <p className="text-[11px] text-gray-400">{form.unit_type === "loose" ? "Sold by weight" : "Pre-packed product"}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => set("unit_type", form.unit_type === "loose" ? null : "loose")}
-                      className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${form.unit_type === "loose" ? "bg-orange-400" : "bg-gray-300"}`}
-                    >
-                      <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-200 ${form.unit_type === "loose" ? "left-7" : "left-1"}`} />
-                    </button>
+                {/* Loose / Regular toggle */}
+                <div className="flex items-center justify-between py-3 px-4 bg-white rounded-xl border border-gray-200">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800 flex items-center gap-1">
+                      <Tag className="w-3.5 h-3.5 text-orange-500" /> Loose / Bulk
+                    </p>
+                    <p className="text-[11px] text-gray-400">{form.unit_type === "loose" ? "Sold by weight" : "Pre-packed product"}</p>
                   </div>
-                )}
+                  <button
+                    type="button"
+                    onClick={() => set("unit_type", form.unit_type === "loose" ? "pcs" : "loose")}
+                    className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${form.unit_type === "loose" ? "bg-orange-400" : "bg-gray-300"}`}
+                  >
+                    <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-200 ${form.unit_type === "loose" ? "left-7" : "left-1"}`} />
+                  </button>
+                </div>
 
                 {/* Auto SKU preview */}
                 {form.name && (
@@ -1407,6 +1688,7 @@ function VariantModal({ parent, onClose, onSaved }) {
     unit: "",
     price: "",
     mrp: "",
+    wholesale_price: "",
     stock_quantity: 0,
     low_stock_threshold: 10,
     image_url: "",
@@ -1428,6 +1710,7 @@ function VariantModal({ parent, onClose, onSaved }) {
         sku: "",
         mrp: form.mrp ? parseFloat(form.mrp) : undefined,
         price: form.price ? parseFloat(form.price) : undefined,
+        wholesale_price: form.wholesale_price ? parseFloat(form.wholesale_price) : undefined,
         stock_quantity: parent.unit_type === "loose" ? 0 : (parseFloat(form.stock_quantity) || 0),
         low_stock_threshold: form.low_stock_threshold,
         variant: form.unit,
@@ -1475,6 +1758,10 @@ function VariantModal({ parent, onClose, onSaved }) {
               <label className="text-xs font-semibold text-gray-600 mb-1 block">Sell Price (₹) *</label>
               <input type="number" step="0.01" value={form.price} onChange={e => set("price", e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
             </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-amber-600 mb-1 block">Wholesale Price (₹) <span className="text-gray-400 font-normal">optional</span></label>
+            <input type="number" step="0.01" min="0" placeholder="Leave blank if same as retail" value={form.wholesale_price} onChange={e => set("wholesale_price", e.target.value)} className="w-full border border-amber-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
           </div>
           {parent.unit_type !== "loose" ? (
             <div className="grid grid-cols-2 gap-3">
@@ -1737,8 +2024,12 @@ function ProductRow({
         <td className="px-4 py-3">{statusPill()}</td>
         {/* Sales */}
         <td className="px-4 py-3 whitespace-nowrap">
-          <span className="text-[13px] text-gray-600 font-medium">{p.total_sold ?? "-"}</span>
-          {p.total_sold > 0 && <p className="text-[11px] text-gray-400">sold</p>}
+          {(() => {
+            const sold = parseInt(p.total_sold ?? 0, 10);
+            return sold > 0
+              ? <><span className="text-[13px] text-gray-700 font-semibold">{sold}</span><p className="text-[11px] text-gray-400">sold</p></>
+              : <span className="text-[13px] text-gray-400">-</span>;
+          })()}
         </td>
         {/* Actions */}
         <td className="px-4 py-3">
@@ -1748,7 +2039,13 @@ function ProductRow({
               onClick={() => {
                 if (!menuOpen) {
                   const rect = btnRef.current.getBoundingClientRect();
-                  setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+                  const menuHeight = 320;
+                  const spaceBelow = window.innerHeight - rect.bottom;
+                  if (spaceBelow < menuHeight) {
+                    setMenuPos({ bottom: window.innerHeight - rect.top + 4, right: window.innerWidth - rect.right, openUp: true });
+                  } else {
+                    setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right, openUp: false });
+                  }
                 }
                 setMenuOpen((o) => !o);
               }}
@@ -1759,7 +2056,7 @@ function ProductRow({
             {menuOpen && (
               <div
                 ref={menuRef}
-                style={{ position: "fixed", top: menuPos.top, right: menuPos.right }}
+                style={{ position: "fixed", ...(menuPos.openUp ? { bottom: menuPos.bottom } : { top: menuPos.top }), right: menuPos.right }}
                 className="z-[200] w-48 bg-white rounded-xl border border-gray-200 shadow-lg py-1 text-[13px]"
               >
                 <button onClick={() => { onEdit(p); setMenuOpen(false); }} className="w-full flex items-center gap-2.5 px-3.5 py-2 hover:bg-gray-50 text-gray-700 text-left">
@@ -2706,12 +3003,12 @@ function OrdersTab() {
   const totalPages = Math.ceil(total / LIMIT);
 
   const STATUS_BADGE = {
-    pending:   { bg: "bg-orange-100", text: "text-orange-700", dot: "bg-orange-500", label: "Pending" },
-    confirmed: { bg: "bg-blue-100",   text: "text-blue-700",   dot: "bg-blue-500",   label: "Confirmed" },
-    ready:     { bg: "bg-purple-100", text: "text-purple-700", dot: "bg-purple-500",  label: "Ready" },
-    picked_up: { bg: "bg-green-100",  text: "text-green-700",  dot: "bg-green-500",   label: "Picked Up" },
-    cancelled: { bg: "bg-red-100",    text: "text-red-600",    dot: "bg-red-500",     label: "Cancelled" },
-    delivered: { bg: "bg-teal-100",   text: "text-teal-700",   dot: "bg-teal-500",    label: "Delivered" },
+    pending:          { bg: "bg-orange-100", text: "text-orange-700", dot: "bg-orange-500", label: "Pending" },
+    confirmed:        { bg: "bg-blue-100",   text: "text-blue-700",   dot: "bg-blue-500",   label: "Confirmed" },
+    ready_for_pickup: { bg: "bg-purple-100", text: "text-purple-700", dot: "bg-purple-500",  label: "Ready" },
+    picked_up:        { bg: "bg-green-100",  text: "text-green-700",  dot: "bg-green-500",   label: "Picked Up" },
+    cancelled:        { bg: "bg-red-100",    text: "text-red-600",    dot: "bg-red-500",     label: "Cancelled" },
+    delivered:        { bg: "bg-teal-100",   text: "text-teal-700",   dot: "bg-teal-500",    label: "Delivered" },
   };
 
   function OrderBadge({ status }) {
@@ -2728,7 +3025,7 @@ function OrdersTab() {
     { key: "all", label: "All" },
     { key: "pending", label: "Pending" },
     { key: "confirmed", label: "Confirmed" },
-    { key: "ready", label: "Ready" },
+    { key: "ready_for_pickup", label: "Ready" },
     { key: "picked_up", label: "Picked" },
     { key: "cancelled", label: "Cancelled" },
   ];
@@ -2820,7 +3117,7 @@ function OrdersTab() {
         <div className="flex items-center gap-3 px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-xl flex-wrap">
           <span className="text-sm font-bold text-indigo-800 shrink-0">{selected.size} selected</span>
           <div className="flex items-center gap-2 flex-wrap">
-            {["confirmed", "ready", "picked_up"].map((s) => (
+            {["confirmed", "ready_for_pickup", "picked_up"].map((s) => (
               <button
                 key={s}
                 onClick={() => bulkUpdate(s)}
@@ -4954,6 +5251,1057 @@ function PromotionModal({ promo, onClose, onSaved }) {
     </div>
   );
 }
+// ─── helpers ────────────────────────────────────────────────────────────────
+function smartRound(n) {
+  if (!n || isNaN(n)) return n;
+  const last = Math.round(n) % 10;
+  const base = Math.floor(n / 10) * 10;
+  if (last === 0) return base === 0 ? n : base - 1;   // 140 → 139
+  if (last <= 5) return base + 5;                       // 132 → 135
+  return base + 9;                                      // 137 → 139
+}
+
+function calcDerived(cost, price, gstPct, wholesalePct) {
+  const c = parseFloat(cost);
+  const r = parseFloat(price);
+  const g = parseFloat(gstPct) || 0;
+  const wp = parseFloat(wholesalePct) || 8;
+  if (!r || isNaN(r) || r <= 0) return { margin: null, profit: null, mrp: null, wholesale: null, costInclGst: null };
+  const mrp = smartRound(r * 1.05);
+  const wholesale = smartRound(r * (1 - wp / 100));
+  const margin = c > 0 && !isNaN(c) ? ((r - c) / r) * 100 : null;
+  const profit = c > 0 && !isNaN(c) ? r - c : null;
+  const costInclGst = c > 0 && !isNaN(c) && g > 0 ? Math.round(c * (1 + g / 100) * 100) / 100 : null;
+  return { margin, profit, mrp, wholesale, costInclGst };
+}
+// ────────────────────────────────────────────────────────────────────────────
+
+function PricingTab() {
+  const { toast } = useDialog();
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [marginFilter, setMarginFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 25;
+
+  // per-card draft: only cost + price are editable inputs
+  const [forms, setForms] = useState({});   // { [id]: { cost: str, price: str } }
+  const [dirty, setDirty] = useState({});
+  const [savingIds, setSavingIds] = useState({});
+  const [savedIds, setSavedIds] = useState({}); // { [id]: bool } — brief "Saved" tick
+
+  // UI state
+  const [expanded, setExpanded] = useState({}); // { [id]: bool }
+  const [quickEditMode, setQuickEditMode] = useState(false);
+  const [bulkModal, setBulkModal] = useState(false);
+  const [inlineEdit, setInlineEdit] = useState(null); // { id, value } — quick retail edit in collapsed row
+
+  // global settings
+  const [defaultMarginPct, setDefaultMarginPct] = useState(18);
+  const [wholesaleDiscountPct, setWholesaleDiscountPct] = useState(8); // wholesale = retail - X%
+
+  useEffect(() => { loadData(); }, []);
+
+  function initForms(prods) {
+    const f = {};
+    prods.forEach((p) => {
+      f[p.id] = {
+        cost: p.purchase_price != null && parseFloat(p.purchase_price) > 0
+          ? String(parseFloat(p.purchase_price))
+          : "",
+        price: p.price != null ? String(parseFloat(p.price)) : "",
+        wholesale_price: p.wholesale_price != null && parseFloat(p.wholesale_price) > 0
+          ? String(parseFloat(p.wholesale_price))
+          : "",
+        mrp: p.mrp != null && parseFloat(p.mrp) > 0
+          ? String(parseFloat(p.mrp))
+          : "",
+        gst_percentage: p.gst_percentage != null
+          ? String(parseFloat(p.gst_percentage))
+          : "0",
+      };
+    });
+    setForms(f);
+    setDirty({});
+  }
+
+  async function loadData() {
+    setLoading(true);
+    try {
+      const res = await api.get("/products/admin/all", { limit: 1000 });
+      const prods = res.data || [];
+      setProducts(prods);
+      initForms(prods);
+    } catch (e) {
+      toast(e.message || "Failed to load pricing data", "error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleFieldChange(id, field, value) {
+    setForms((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
+    setDirty((prev) => ({ ...prev, [id]: true }));
+    setSavedIds((prev) => { const n = { ...prev }; delete n[id]; return n; });
+  }
+
+  function stepField(id, field, delta) {
+    setForms((prev) => {
+      const cur = parseFloat(prev[id]?.[field]) || 0;
+      const next = Math.max(0, Math.round((cur + delta) * 100) / 100);
+      return { ...prev, [id]: { ...prev[id], [field]: String(next) } };
+    });
+    setDirty((prev) => ({ ...prev, [id]: true }));
+    setSavedIds((prev) => { const n = { ...prev }; delete n[id]; return n; });
+  }
+
+  function applyMarginPreset(id, marginPct) {
+    const cost = parseFloat(forms[id]?.cost);
+    if (!cost || isNaN(cost) || cost <= 0) {
+      toast("Set a cost price first", "error");
+      return;
+    }
+    const raw = cost / (1 - marginPct / 100);
+    const rounded = smartRound(raw);
+    setForms((prev) => ({ ...prev, [id]: { ...prev[id], price: String(rounded) } }));
+    setDirty((prev) => ({ ...prev, [id]: true }));
+    setSavedIds((prev) => { const n = { ...prev }; delete n[id]; return n; });
+  }
+
+  async function saveProduct(id, silent = false) {
+    const f = forms[id];
+    if (!f) return;
+    const price = parseFloat(f.price);
+    const cost = f.cost !== "" ? parseFloat(f.cost) : null;
+    if (isNaN(price) || price <= 0) {
+      if (!silent) toast("Retail price is required", "error");
+      return;
+    }
+    if (cost !== null && isNaN(cost)) {
+      if (!silent) toast("Invalid cost price", "error");
+      return;
+    }
+    const derived = calcDerived(cost, price, parseFloat(f.gst_percentage) || 0, wholesaleDiscountPct);
+    const gst = parseFloat(f.gst_percentage) || 0;
+    if (gst < 0 || gst > 100) {
+      if (!silent) toast("GST % must be 0-100", "error");
+      return;
+    }
+    const formWholesale = f.wholesale_price !== "" ? parseFloat(f.wholesale_price) : null;
+    if (formWholesale !== null && isNaN(formWholesale)) {
+      if (!silent) toast("Invalid wholesale price", "error");
+      return;
+    }
+    const formMrp = f.mrp !== "" ? parseFloat(f.mrp) : null;
+    if (formMrp !== null && isNaN(formMrp)) {
+      if (!silent) toast("Invalid MRP", "error");
+      return;
+    }
+    const payload = { price };
+    // use manual MRP if set, otherwise fall back to auto-derived
+    payload.mrp = formMrp !== null && formMrp > 0 ? formMrp : (derived.mrp || null);
+    if (payload.mrp === null) delete payload.mrp;
+    // use manual wholesale if set, otherwise fall back to auto-derived
+    payload.wholesale_price = formWholesale !== null && formWholesale > 0 ? formWholesale : (derived.wholesale || null);
+    if (payload.wholesale_price === null) delete payload.wholesale_price;
+    if (cost !== null && cost > 0) payload.purchase_price = cost;
+    payload.gst_percentage = gst;
+    setSavingIds((prev) => ({ ...prev, [id]: true }));
+    try {
+      await api.put(`/products/${id}`, payload);
+      setProducts((prev) => prev.map((x) => x.id === id ? { ...x, ...payload } : x));
+      setDirty((prev) => ({ ...prev, [id]: false }));
+      setSavedIds((prev) => ({ ...prev, [id]: true }));
+      setTimeout(() => setSavedIds((prev) => { const n = { ...prev }; delete n[id]; return n; }), 2500);
+    } catch (e) {
+      if (!silent) toast(e.message || "Save failed", "error");
+    } finally {
+      setSavingIds((prev) => ({ ...prev, [id]: false }));
+    }
+  }
+
+  async function runBulkUpdate({ mode, value }) {
+    setBulkModal(false);
+    const eligible = filtered.filter((p) => {
+      const f = forms[p.id];
+      return parseFloat(f?.price) > 0;
+    });
+    if (eligible.length === 0) { toast("No products with a retail price", "error"); return; }
+    let done = 0;
+    for (const p of eligible) {
+      const curPrice = parseFloat(forms[p.id].price);
+      const curCost = parseFloat(forms[p.id].cost) || 0;
+      let newPrice;
+      if (mode === "increase_pct") {
+        newPrice = smartRound(curPrice * (1 + value / 100));
+      } else if (mode === "set_margin") {
+        if (!curCost) continue;
+        newPrice = smartRound(curCost / (1 - value / 100));
+      } else {
+        continue;
+      }
+      setForms((prev) => ({ ...prev, [p.id]: { ...prev[p.id], price: String(newPrice) } }));
+      setDirty((prev) => ({ ...prev, [p.id]: true }));
+      await saveProduct(p.id, true);
+      done++;
+    }
+    toast(`Updated ${done} products`, "success");
+  }
+
+  function getMargin(p) {
+    const price = parseFloat(p.price);
+    const cost = parseFloat(p.purchase_price);
+    if (!price || !cost || price <= 0 || cost <= 0) return null;
+    return ((price - cost) / price) * 100;
+  }
+
+  function getProfit(p) {
+    const price = parseFloat(p.price);
+    const cost = parseFloat(p.purchase_price);
+    if (!price || !cost) return null;
+    return price - cost;
+  }
+
+  function marginBadgeClass(margin) {
+    if (margin === null) return "bg-gray-100 text-gray-400";
+    if (margin > 25) return "bg-green-50 text-green-700 border border-green-200";
+    if (margin > 15) return "bg-blue-50 text-blue-700 border border-blue-200";
+    if (margin > 10) return "bg-orange-50 text-orange-700 border border-orange-200";
+    return "bg-red-50 text-red-700 border border-red-200";
+  }
+
+  function profitColor(profit, margin) {
+    if (profit === null || margin === null) return "text-gray-400";
+    if (profit < 0) return "text-red-800";
+    if (margin > 20) return "text-green-600";
+    if (margin >= 10) return "text-orange-500";
+    return "text-red-500";
+  }
+
+  function profitDot(profit, margin) {
+    if (profit === null || margin === null) return null;
+    if (profit < 0) return "bg-red-700";
+    if (margin > 20) return "bg-green-400";
+    if (margin >= 10) return "bg-amber-400";
+    return "bg-red-400";
+  }
+
+  const categories = useMemo(() => {
+    const cats = new Set();
+    products.forEach((p) => { if (p.category_name) cats.add(p.category_name); });
+    return Array.from(cats).sort();
+  }, [products]);
+
+  const kpis = useMemo(() => {
+    const withBoth = products.filter((p) => parseFloat(p.purchase_price) > 0 && parseFloat(p.price) > 0);
+    const margins = withBoth.map((p) => getMargin(p)).filter((m) => m !== null);
+    const avgMargin = margins.length ? margins.reduce((a, b) => a + b, 0) / margins.length : 0;
+    const lowMarginCount = margins.filter((m) => m < 10).length;
+    const profits = withBoth.map((p) => getProfit(p)).filter((x) => x !== null);
+    const highestProfit = profits.length ? Math.max(...profits) : 0;
+    return { avgMargin, lowMarginCount, highestProfit };
+  }, [products]);
+
+  const maxProfit = useMemo(() => {
+    const profits = products.map((p) => getProfit(p)).filter((x) => x !== null && x > 0);
+    return profits.length ? Math.max(...profits) : 1;
+  }, [products]);
+
+  const filtered = useMemo(() => {
+    let list = products;
+    if (categoryFilter !== "all") list = list.filter((p) => p.category_name === categoryFilter);
+    if (marginFilter === "high") list = list.filter((p) => { const m = getMargin(p); return m !== null && m > 25; });
+    else if (marginFilter === "medium") list = list.filter((p) => { const m = getMargin(p); return m !== null && m > 10 && m <= 25; });
+    else if (marginFilter === "low") list = list.filter((p) => { const m = getMargin(p); return m !== null && m <= 10; });
+    else if (marginFilter === "no_cost") list = list.filter((p) => !p.purchase_price || parseFloat(p.purchase_price) === 0);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (p) =>
+          (p.name_en || "").toLowerCase().includes(q) ||
+          (p.sku || "").toLowerCase().includes(q) ||
+          (p.variant || "").toLowerCase().includes(q),
+      );
+    }
+    return list;
+  }, [products, categoryFilter, marginFilter, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageStart = (page - 1) * PAGE_SIZE;
+  const paginated = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+
+  useEffect(() => { setPage(1); }, [search, categoryFilter, marginFilter]);
+
+  const quickFilters = [
+    { id: "all", label: "All Products", count: products.length },
+    {
+      id: "high",
+      label: "High Margin",
+      count: products.filter((p) => { const m = getMargin(p); return m !== null && m > 25; }).length,
+    },
+    {
+      id: "low",
+      label: "Low Margin",
+      count: products.filter((p) => { const m = getMargin(p); return m !== null && m <= 10; }).length,
+    },
+    {
+      id: "no_cost",
+      label: "No Cost Price",
+      count: products.filter((p) => !p.purchase_price || parseFloat(p.purchase_price) === 0).length,
+    },
+  ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <ArrowPathIcon className="w-6 h-6 animate-spin text-indigo-500" />
+        <span className="ml-2 text-gray-500 text-[14px]">Loading pricing data...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Page Header */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Pricing Management</h2>
+          <p className="text-[13px] text-gray-500 mt-0.5">
+            Edit Cost and Retail — MRP, Wholesale, Margin auto-calculate
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+          <button
+            onClick={() => setQuickEditMode((v) => !v)}
+            className={`h-9 px-3 rounded-lg text-[13px] font-medium border transition-colors flex items-center gap-1.5 ${
+              quickEditMode
+                ? "bg-indigo-600 text-white border-indigo-600"
+                : "border-gray-200 text-gray-600 hover:bg-gray-50"
+            }`}
+            title="Show compact rows with only Cost, Retail, Profit"
+          >
+            <FireIcon className="w-4 h-4" />
+            Quick Edit
+          </button>
+          <button
+            onClick={() => setBulkModal(true)}
+            className="h-9 px-3 border border-violet-300 bg-violet-50 text-violet-700 rounded-lg text-[13px] font-medium hover:bg-violet-100 transition-colors flex items-center gap-1.5"
+          >
+            <ArrowUpTrayIcon className="w-4 h-4" />
+            Bulk Update
+          </button>
+          <button
+            onClick={loadData}
+            className="h-9 w-9 flex items-center justify-center border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 transition-colors"
+            title="Refresh"
+          >
+            <ArrowPathIcon className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Total Products</p>
+          <p className="text-[28px] font-bold text-indigo-600 mt-1 leading-none tabular-nums">{products.length}</p>
+          <p className="text-[11px] text-gray-400 mt-1.5">{filtered.length} match current filter</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Avg Margin</p>
+          <p className={`text-[28px] font-bold mt-1 leading-none tabular-nums ${
+            kpis.avgMargin > 25 ? "text-green-600"
+            : kpis.avgMargin > 15 ? "text-blue-600"
+            : kpis.avgMargin > 10 ? "text-orange-500"
+            : "text-red-500"
+          }`}>
+            {kpis.avgMargin.toFixed(1)}%
+          </p>
+          <p className="text-[11px] text-gray-400 mt-1.5">across priced products</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Low Margin</p>
+          <p className="text-[28px] font-bold text-red-500 mt-1 leading-none tabular-nums">{kpis.lowMarginCount}</p>
+          <p className="text-[11px] text-gray-400 mt-1.5">products below 10% margin</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Best Profit</p>
+          <p className="text-[28px] font-bold text-green-600 mt-1 leading-none tabular-nums">
+            &#x20b9;{kpis.highestProfit.toFixed(0)}
+          </p>
+          <p className="text-[11px] text-gray-400 mt-1.5">highest single item profit</p>
+        </div>
+      </div>
+
+      {/* Toolbar */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 space-y-3">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search product name, SKU or variant..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-3 h-9 rounded-lg border border-gray-200 text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            />
+          </div>
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="h-9 px-3 rounded-lg border border-gray-200 text-[13px] text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+          >
+            <option value="all">All Categories</option>
+            {categories.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          <select
+            value={marginFilter}
+            onChange={(e) => setMarginFilter(e.target.value)}
+            className="h-9 px-3 rounded-lg border border-gray-200 text-[13px] text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+          >
+            <option value="all">All Margins</option>
+            <option value="high">High (&gt;25%)</option>
+            <option value="medium">Medium (10-25%)</option>
+            <option value="low">Low (&lt;10%)</option>
+            <option value="no_cost">No Cost Price</option>
+          </select>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          {quickFilters.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setMarginFilter(f.id)}
+              className={`inline-flex items-center gap-1.5 px-3 h-7 rounded-full text-[12px] font-medium border transition-colors ${
+                marginFilter === f.id
+                  ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                  : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+              }`}
+            >
+              {f.label}
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                marginFilter === f.id ? "bg-indigo-100 text-indigo-600" : "bg-gray-100 text-gray-500"
+              }`}>
+                {f.count}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Product Cards */}
+      {paginated.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-100 p-12 text-center text-gray-400 text-[13px]">
+          No products match the current filter
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {paginated.map((p) => {
+            const f = forms[p.id] || { cost: "", price: "" };
+            const isDirty = !!dirty[p.id];
+            const isSaving = !!savingIds[p.id];
+            const isSaved = !!savedIds[p.id];
+            const isExpanded = !!expanded[p.id];
+
+            // live derived values from current draft
+            const liveRetail = parseFloat(f.price) || 0;
+            const liveCost = parseFloat(f.cost) || 0;
+            const liveGst = parseFloat(f.gst_percentage) || 0;
+            const derived = calcDerived(liveCost || null, liveRetail || null, liveGst, wholesaleDiscountPct);
+            const liveMargin = derived.margin;
+            const liveProfit = derived.profit;
+            const liveMrp = derived.mrp;
+            const liveWholesale = derived.wholesale;
+            const liveCostInclGst = derived.costInclGst;
+
+            const profitCls = profitColor(liveProfit, liveMargin);
+            const dotCls = profitDot(liveProfit, liveMargin);
+            const barWidth = liveProfit !== null && maxProfit > 0
+              ? Math.max(4, Math.round((Math.max(0, liveProfit) / maxProfit) * 100))
+              : 0;
+
+            // Quick-edit mode: single compact bar, no expansion
+            if (quickEditMode) {
+              return (
+                <div
+                  key={p.id}
+                  className={`bg-white rounded-lg border px-4 py-2.5 flex items-center gap-3 transition-colors ${
+                    isDirty ? "border-indigo-200" : "border-gray-100"
+                  }`}
+                >
+                  {/* name */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-semibold text-gray-900 truncate">{p.name_en}</p>
+                    {p.variant && <p className="text-[11px] text-gray-400 truncate">{p.variant}</p>}
+                  </div>
+                  {/* cost stepper */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className="text-[10px] text-gray-400 hidden sm:inline">Cost</span>
+                    <button
+                      onClick={() => stepField(p.id, "cost", -0.5)}
+                      className="w-6 h-6 flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-100 text-[13px] leading-none"
+                    >-</button>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      value={f.cost}
+                      onChange={(e) => handleFieldChange(p.id, "cost", e.target.value)}
+                      onBlur={() => isDirty && saveProduct(p.id, true)}
+                      className="w-16 text-center text-[12px] border border-gray-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-indigo-300 tabular-nums"
+                    />
+                    <button
+                      onClick={() => stepField(p.id, "cost", 0.5)}
+                      className="w-6 h-6 flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-100 text-[13px] leading-none"
+                    >+</button>
+                  </div>
+                  {/* retail stepper */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className="text-[10px] text-blue-500 hidden sm:inline">Retail</span>
+                    <button
+                      onClick={() => stepField(p.id, "price", -0.5)}
+                      className="w-6 h-6 flex items-center justify-center rounded border border-blue-200 text-blue-500 hover:bg-blue-50 text-[13px] leading-none"
+                    >-</button>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      value={f.price}
+                      onChange={(e) => handleFieldChange(p.id, "price", e.target.value)}
+                      onBlur={() => isDirty && saveProduct(p.id, true)}
+                      className="w-16 text-center text-[12px] border border-blue-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-300 text-blue-700 font-bold tabular-nums"
+                    />
+                    <button
+                      onClick={() => stepField(p.id, "price", 0.5)}
+                      className="w-6 h-6 flex items-center justify-center rounded border border-blue-200 text-blue-500 hover:bg-blue-50 text-[13px] leading-none"
+                    >+</button>
+                  </div>
+                  {/* profit */}
+                  <div className="flex items-center gap-1.5 shrink-0 w-16 justify-end">
+                    {dotCls && <span className={`w-2 h-2 rounded-full shrink-0 ${dotCls}`} />}
+                    <span className={`text-[12px] font-semibold tabular-nums ${profitCls}`}>
+                      {liveProfit !== null ? `\u20b9${liveProfit.toFixed(2)}` : "-"}
+                    </span>
+                  </div>
+                  {/* save indicator */}
+                  <div className="w-14 flex justify-end shrink-0">
+                    {isSaving && <ArrowPathIcon className="w-3.5 h-3.5 animate-spin text-indigo-400" />}
+                    {isSaved && !isSaving && <span className="text-[11px] text-green-500 font-medium">Saved</span>}
+                    {isDirty && !isSaving && !isSaved && (
+                      <button
+                        onClick={() => saveProduct(p.id)}
+                        className="text-[11px] text-indigo-600 font-semibold hover:underline"
+                      >Save</button>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+
+            // Normal card (collapsed + expandable)
+            return (
+              <div
+                key={p.id}
+                className={`bg-white rounded-xl border shadow-sm transition-colors ${
+                  isDirty ? "border-indigo-200 shadow-indigo-50" : "border-gray-100"
+                }`}
+              >
+                {/* Collapsed summary row — always visible */}
+                <div
+                  className="flex items-center gap-3 px-4 py-3 cursor-pointer select-none"
+                  onClick={() => setExpanded((prev) => ({ ...prev, [p.id]: !prev[p.id] }))}
+                >
+                  {/* chevron */}
+                  <span className="text-gray-400 shrink-0">
+                    {isExpanded
+                      ? <ChevronDown className="w-4 h-4" />
+                      : <ChevronRight className="w-4 h-4" />}
+                  </span>
+
+                  {/* product name + meta */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-bold text-gray-900 truncate leading-snug">{p.name_en}</p>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      {p.sku && (
+                        <span className="text-[10px] font-mono bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">{p.sku}</span>
+                      )}
+                      {p.variant && (
+                        <span className="text-[10px] text-gray-400">{p.variant}</span>
+                      )}
+                      <span className="text-[11px] bg-gray-50 border border-gray-200 text-gray-500 px-2 py-0.5 rounded-full">
+                        {p.category_name || "Uncategorized"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* inline summary + quick retail edit */}
+                  <div
+                    className="flex items-center gap-3 shrink-0"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Cost | Retail [pencil] | Profit inline pill */}
+                    <div className="hidden sm:flex items-center gap-1.5 text-[13px] tabular-nums">
+                      <span className="text-gray-400 font-medium">
+                        Cost
+                        {liveCost > 0
+                          ? <span className="text-gray-700 font-semibold ml-1">&#x20b9;{liveCost.toFixed(2)}</span>
+                          : <span className="text-gray-300 text-[11px] ml-1">—</span>}
+                      </span>
+                      <span className="text-gray-300">|</span>
+                      {/* Retail: static display or quick-edit input */}
+                      {inlineEdit?.id === p.id ? (
+                        <span className="flex items-center gap-1">
+                          <span className="text-[12px] text-blue-400">&#x20b9;</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.5"
+                            autoFocus
+                            value={inlineEdit.value}
+                            onChange={(e) =>
+                              setInlineEdit((prev) => ({ ...prev, value: e.target.value }))
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                handleFieldChange(p.id, "price", inlineEdit.value);
+                                saveProduct(p.id, true);
+                                setInlineEdit(null);
+                              }
+                              if (e.key === "Escape") setInlineEdit(null);
+                            }}
+                            onBlur={() => {
+                              handleFieldChange(p.id, "price", inlineEdit.value);
+                              saveProduct(p.id, true);
+                              setInlineEdit(null);
+                            }}
+                            className="w-20 text-center text-[13px] font-bold text-blue-700 border border-blue-300 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                          />
+                          <button
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => setInlineEdit(null)}
+                            className="text-gray-400 hover:text-gray-600"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 group/retail">
+                          <span className="text-blue-500 font-medium">Retail</span>
+                          {liveRetail > 0
+                            ? <span className="text-blue-700 font-bold ml-1">&#x20b9;{liveRetail.toFixed(2)}</span>
+                            : <span className="text-gray-300 text-[11px] ml-1">—</span>}
+                          <button
+                            onClick={() => setInlineEdit({ id: p.id, value: f.price })}
+                            className="ml-0.5 text-gray-300 hover:text-blue-500 transition-colors opacity-0 group-hover/retail:opacity-100"
+                            title="Quick edit retail price"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+                      <span className="text-gray-300">|</span>
+                      <span className="flex items-center gap-1">
+                        {dotCls && <span className={`w-2 h-2 rounded-full shrink-0 ${dotCls}`} />}
+                        <span className="text-gray-400 font-medium">Profit</span>
+                        <span className={`font-bold ml-1 ${profitCls}`}>
+                          {liveProfit !== null ? `\u20b9${liveProfit.toFixed(2)}` : <span className="text-gray-300 text-[11px]">—</span>}
+                        </span>
+                        {liveMargin !== null && (
+                          <span className={`text-[11px] font-bold ml-1 hidden lg:inline ${profitCls}`}>
+                            ({liveMargin.toFixed(1)}%)
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    {/* save state */}
+                    <div className="w-12 flex justify-end">
+                      {isSaving && <ArrowPathIcon className="w-4 h-4 animate-spin text-indigo-400" />}
+                      {isSaved && !isSaving && <span className="text-[11px] text-green-500 font-medium">Saved</span>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Expanded detail */}
+                {isExpanded && (
+                  <div className="border-t border-gray-100 px-5 pb-5 pt-4 space-y-5">
+
+                    {/* Row 1: Cost | GST | Retail — 3-column */}
+                    <div className="grid grid-cols-3 gap-3">
+                      {/* Cost Price */}
+                      <div>
+                        <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                          Cost Price
+                        </label>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => stepField(p.id, "cost", -0.5)} className="h-10 w-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 text-[17px] leading-none shrink-0">-</button>
+                          <div className="flex-1 flex items-center border border-gray-200 rounded-xl bg-white focus-within:ring-2 focus-within:ring-gray-300 h-10 min-w-0 transition-colors">
+                            <span className="text-[12px] text-gray-400 pl-3 shrink-0">&#x20b9;</span>
+                            <input
+                              type="number" min="0" step="0.5" placeholder="0.00"
+                              value={f.cost}
+                              onChange={(e) => handleFieldChange(p.id, "cost", e.target.value)}
+                              onBlur={() => isDirty && saveProduct(p.id, true)}
+                              className="flex-1 w-0 bg-transparent text-[14px] font-semibold text-gray-800 px-2 focus:outline-none tabular-nums"
+                            />
+                          </div>
+                          <button onClick={() => stepField(p.id, "cost", 0.5)} className="h-10 w-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 text-[17px] leading-none shrink-0">+</button>
+                        </div>
+                        {liveCostInclGst !== null && (
+                          <p className="text-[10px] text-purple-500 mt-1">
+                            Incl. GST: &#x20b9;{liveCostInclGst.toFixed(2)}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* GST dropdown */}
+                      <div>
+                        <label className="block text-[11px] font-semibold text-purple-600 uppercase tracking-wider mb-1.5">
+                          GST Rate
+                        </label>
+                        <select
+                          value={f.gst_percentage ?? "0"}
+                          onChange={(e) => handleFieldChange(p.id, "gst_percentage", e.target.value)}
+                          onBlur={() => isDirty && saveProduct(p.id, true)}
+                          className="w-full h-10 px-3 rounded-xl border border-purple-200 bg-purple-50/40 text-[14px] font-semibold text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-300 transition-colors appearance-none cursor-pointer"
+                        >
+                          {[0, 5, 12, 18, 28].map((g) => (
+                            <option key={g} value={g}>{g}%</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Retail Price */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="text-[11px] font-semibold text-blue-600 uppercase tracking-wider">Retail Price</label>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => stepField(p.id, "price", -0.5)} className="h-10 w-9 flex items-center justify-center rounded-lg border border-blue-200 text-blue-500 hover:bg-blue-50 text-[17px] leading-none shrink-0">-</button>
+                          <div className="flex-1 flex items-center border border-blue-200 rounded-xl bg-blue-50/30 focus-within:ring-2 focus-within:ring-blue-400 h-10 min-w-0 transition-colors">
+                            <span className="text-[12px] text-blue-400 pl-3 shrink-0">&#x20b9;</span>
+                            <input
+                              type="number" min="0" step="0.5" placeholder="0.00"
+                              value={f.price}
+                              onChange={(e) => handleFieldChange(p.id, "price", e.target.value)}
+                              onBlur={() => isDirty && saveProduct(p.id, true)}
+                              className="flex-1 w-0 bg-transparent text-[14px] font-bold text-blue-700 px-2 focus:outline-none tabular-nums"
+                            />
+                          </div>
+                          <button onClick={() => stepField(p.id, "price", 0.5)} className="h-10 w-9 flex items-center justify-center rounded-lg border border-blue-200 text-blue-500 hover:bg-blue-50 text-[17px] leading-none shrink-0">+</button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Margin presets */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-gray-400 font-medium shrink-0">Set margin:</span>
+                      {[10, 15, 20, 25].map((m) => (
+                        <button
+                          key={m}
+                          onClick={() => applyMarginPreset(p.id, m)}
+                          className={`h-7 px-3 text-[12px] font-bold rounded-lg border transition-colors ${
+                            liveMargin !== null && Math.abs(liveMargin - m) < 0.5
+                              ? "bg-indigo-600 text-white border-indigo-600"
+                              : "border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+                          }`}
+                          title={`Set ${m}% margin`}
+                        >{m}%</button>
+                      ))}
+                    </div>
+
+                    {/* Row 2: 4 calc tiles */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {/* MRP tile */}
+                      <div className="bg-gray-50 rounded-xl p-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">MRP</p>
+                          {f.mrp === "" && liveMrp && <span className="text-[9px] text-gray-400">auto</span>}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => stepField(p.id, "mrp", -0.5)} className="h-6 w-6 flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-200 text-[13px] leading-none shrink-0">-</button>
+                          <div className="flex-1 flex items-center border border-gray-200 rounded-lg bg-white focus-within:ring-1 focus-within:ring-gray-400 h-7 min-w-0">
+                            <span className="text-[11px] text-gray-400 pl-1.5 shrink-0">&#x20b9;</span>
+                            <input
+                              type="number" min="0" step="0.5"
+                              placeholder={liveMrp ? String(liveMrp) : "auto"}
+                              value={f.mrp ?? ""}
+                              onChange={(e) => handleFieldChange(p.id, "mrp", e.target.value)}
+                              onBlur={() => isDirty && saveProduct(p.id, true)}
+                              className="flex-1 w-0 bg-transparent text-[13px] font-bold text-gray-700 px-1 focus:outline-none tabular-nums"
+                            />
+                          </div>
+                          <button onClick={() => stepField(p.id, "mrp", 0.5)} className="h-6 w-6 flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-200 text-[13px] leading-none shrink-0">+</button>
+                        </div>
+                        <p className="text-[9px] text-gray-400 mt-1">retail + 5%</p>
+                      </div>
+
+                      {/* Wholesale tile */}
+                      <div className="bg-amber-50 rounded-xl p-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-[10px] text-amber-600 font-semibold uppercase tracking-wider">Wholesale</p>
+                          {f.wholesale_price === "" && liveWholesale && <span className="text-[9px] text-amber-400">auto</span>}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => stepField(p.id, "wholesale_price", -0.5)} className="h-6 w-6 flex items-center justify-center rounded border border-amber-200 text-amber-500 hover:bg-amber-100 text-[13px] leading-none shrink-0">-</button>
+                          <div className="flex-1 flex items-center border border-amber-200 rounded-lg bg-white focus-within:ring-1 focus-within:ring-amber-400 h-7 min-w-0">
+                            <span className="text-[11px] text-amber-400 pl-1.5 shrink-0">&#x20b9;</span>
+                            <input
+                              type="number" min="0" step="0.5"
+                              placeholder={liveWholesale ? String(liveWholesale) : "auto"}
+                              value={f.wholesale_price ?? ""}
+                              onChange={(e) => handleFieldChange(p.id, "wholesale_price", e.target.value)}
+                              onBlur={() => isDirty && saveProduct(p.id, true)}
+                              className="flex-1 w-0 bg-transparent text-[13px] font-bold text-amber-700 px-1 focus:outline-none tabular-nums"
+                            />
+                          </div>
+                          <button onClick={() => stepField(p.id, "wholesale_price", 0.5)} className="h-6 w-6 flex items-center justify-center rounded border border-amber-200 text-amber-500 hover:bg-amber-100 text-[13px] leading-none shrink-0">+</button>
+                        </div>
+                        <p className="text-[9px] text-amber-400 mt-1">retail - {wholesaleDiscountPct}%</p>
+                      </div>
+
+                      {/* Margin tile */}
+                      <div className={`rounded-xl p-3 ${
+                        liveMargin === null ? "bg-gray-50" :
+                        liveMargin > 20 ? "bg-green-50" :
+                        liveMargin >= 10 ? "bg-orange-50" : "bg-red-50"
+                      }`}>
+                        <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider mb-1">Margin</p>
+                        <p className={`text-[20px] font-bold tabular-nums leading-none ${
+                          liveMargin === null ? "text-gray-300" :
+                          liveMargin > 20 ? "text-green-700" :
+                          liveMargin >= 10 ? "text-orange-600" : "text-red-600"
+                        }`}>
+                          {liveMargin !== null ? `${liveMargin.toFixed(1)}%` : "-"}
+                        </p>
+                        <p className="text-[9px] text-gray-400 mt-1">(retail - cost) / retail</p>
+                      </div>
+
+                      {/* Profit tile */}
+                      <div className={`rounded-xl p-3 relative overflow-hidden ${
+                        liveProfit === null ? "bg-gray-50" :
+                        liveProfit < 0 ? "bg-red-50" :
+                        liveMargin !== null && liveMargin > 20 ? "bg-green-50" :
+                        liveMargin !== null && liveMargin >= 10 ? "bg-orange-50" : "bg-red-50"
+                      }`}>
+                        {liveProfit !== null && liveProfit > 0 && (
+                          <div
+                            className="absolute bottom-0 left-0 h-1 rounded-b-xl bg-gradient-to-r from-emerald-300 to-green-400 transition-all"
+                            style={{ width: `${barWidth}%` }}
+                          />
+                        )}
+                        <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider mb-1">Profit</p>
+                        <div className="flex items-center gap-1.5">
+                          {dotCls && <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${dotCls}`} />}
+                          <p className={`text-[20px] font-bold tabular-nums leading-none ${profitCls}`}>
+                            {liveProfit !== null ? `\u20b9${liveProfit.toFixed(2)}` : "-"}
+                          </p>
+                        </div>
+                        <p className="text-[9px] text-gray-400 mt-1">retail - cost</p>
+                      </div>
+                    </div>
+
+                    {/* Footer: save / cancel / saved */}
+                    <div className="flex items-center justify-between pt-1">
+                      <p className="text-[11px] text-gray-400">Auto-saves on blur.</p>
+                      <div className="flex items-center gap-2">
+                        {isSaved && !isDirty && (
+                          <span className="text-[12px] text-green-500 font-medium flex items-center gap-1">
+                            <Check className="w-3.5 h-3.5" /> Saved
+                          </span>
+                        )}
+                        {isDirty && (
+                          <>
+                            <button
+                              onClick={() => {
+                                initForms(products);
+                                setDirty((prev) => ({ ...prev, [p.id]: false }));
+                              }}
+                              className="h-9 px-4 border border-gray-200 rounded-xl text-[12px] font-medium text-gray-500 hover:bg-gray-50 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => saveProduct(p.id)}
+                              disabled={isSaving}
+                              className="flex items-center gap-1.5 h-9 px-5 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-semibold rounded-xl disabled:opacity-50 transition-colors"
+                            >
+                              {isSaving
+                                ? <ArrowPathIcon className="w-3.5 h-3.5 animate-spin" />
+                                : <Check className="w-3.5 h-3.5" />}
+                              Save
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Pagination footer */}
+      {filtered.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-1">
+          <span className="text-[12px] text-gray-400">
+            Showing {pageStart + 1}&#8211;{Math.min(pageStart + PAGE_SIZE, filtered.length)} of {filtered.length} products
+            {filtered.length !== products.length && ` (filtered from ${products.length} total)`}
+          </span>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                disabled={page === 1}
+                className="h-7 px-2.5 text-[12px] border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Prev
+              </button>
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let num;
+                if (totalPages <= 5) num = i + 1;
+                else if (page <= 3) num = i + 1;
+                else if (page >= totalPages - 2) num = totalPages - 4 + i;
+                else num = page - 2 + i;
+                return (
+                  <button
+                    key={num}
+                    onClick={() => setPage(num)}
+                    className={`h-7 w-7 text-[12px] border rounded-lg transition-colors font-medium ${
+                      page === num
+                        ? "bg-indigo-600 text-white border-indigo-600"
+                        : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    {num}
+                  </button>
+                );
+              })}
+              <button
+                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={page === totalPages}
+                className="h-7 px-2.5 text-[12px] border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Bulk Update Modal */}
+      {bulkModal && (
+        <BulkPriceModal
+          onClose={() => setBulkModal(false)}
+          onApply={runBulkUpdate}
+          productCount={filtered.length}
+        />
+      )}
+    </div>
+  );
+}
+
+function BulkPriceModal({ onClose, onApply, productCount }) {
+  const [mode, setMode] = useState("increase_pct");
+  const [value, setValue] = useState("");
+
+  function handleApply() {
+    const v = parseFloat(value);
+    if (isNaN(v) || v <= 0) return;
+    onApply({ mode, value: v });
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[16px] font-bold text-gray-900">Bulk Price Update</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <p className="text-[13px] text-gray-500">
+          Applies to <strong>{productCount}</strong> product(s) matching the current filter.
+        </p>
+        <div className="space-y-3">
+          <label className="block text-[12px] font-semibold text-gray-700 uppercase tracking-wider">Update Mode</label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => setMode("increase_pct")}
+              className={`p-3 rounded-xl border text-left transition-colors ${
+                mode === "increase_pct"
+                  ? "border-indigo-400 bg-indigo-50"
+                  : "border-gray-200 hover:bg-gray-50"
+              }`}
+            >
+              <p className="text-[13px] font-semibold text-gray-800">Increase by %</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Raise all retail prices</p>
+            </button>
+            <button
+              onClick={() => setMode("set_margin")}
+              className={`p-3 rounded-xl border text-left transition-colors ${
+                mode === "set_margin"
+                  ? "border-indigo-400 bg-indigo-50"
+                  : "border-gray-200 hover:bg-gray-50"
+              }`}
+            >
+              <p className="text-[13px] font-semibold text-gray-800">Set Margin %</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Requires cost price set</p>
+            </button>
+          </div>
+          <div>
+            <label className="block text-[12px] font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+              {mode === "increase_pct" ? "Increase by (%)" : "Target Margin (%)"}
+            </label>
+            <div className="flex items-center border border-gray-200 rounded-xl h-10 focus-within:ring-2 focus-within:ring-indigo-300">
+              <input
+                type="number"
+                min="1"
+                max="99"
+                step="1"
+                placeholder={mode === "increase_pct" ? "e.g. 5" : "e.g. 20"}
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                className="flex-1 px-3 bg-transparent text-[14px] text-gray-700 focus:outline-none tabular-nums"
+              />
+              <span className="pr-3 text-[13px] text-gray-400">%</span>
+            </div>
+          </div>
+          {mode === "increase_pct" && value && !isNaN(parseFloat(value)) && (
+            <p className="text-[12px] text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
+              Example: &#x20b9;100.00 retail price becomes &#x20b9;{smartRound(100 * (1 + parseFloat(value) / 100))}
+            </p>
+          )}
+          {mode === "set_margin" && value && !isNaN(parseFloat(value)) && (
+            <p className="text-[12px] text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
+              Example: cost &#x20b9;100 at {value}% margin = retail &#x20b9;{smartRound(100 / (1 - parseFloat(value) / 100))}
+            </p>
+          )}
+        </div>
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={onClose}
+            className="flex-1 h-10 border border-gray-200 rounded-xl text-[13px] font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleApply}
+            disabled={!value || isNaN(parseFloat(value)) || parseFloat(value) <= 0}
+            className="flex-1 h-10 bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-semibold rounded-xl disabled:opacity-40 transition-colors"
+          >
+            Apply to {productCount} products
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PromotionsTab() {
   const { confirm, toast } = useDialog();
   const { refresh: refreshContext } = usePromotions();
@@ -5337,6 +6685,506 @@ function PromotionsTab() {
     </div>
   );
 }
+/* ─── GST Management Tab ─── */
+const GST_SLABS = [0, 3, 5, 12, 18, 28];
+
+function GSTTab() {
+  const { toast } = useDialog();
+  const [summary, setSummary] = useState([]);   // flat list from backend
+  const [products, setProducts] = useState([]); // full product list for per-item editing
+  const [loading, setLoading] = useState(true);
+  const [applying, setApplying] = useState(null); // category_id being bulk-applied
+  const [expanded, setExpanded] = useState({}); // category_id -> bool (show product list)
+  const [pendingRate, setPendingRate] = useState({}); // category_id -> rate string in the select
+  const [editCell, setEditCell] = useState(null); // { id, value }
+  const [saving, setSaving] = useState(null);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => { loadAll(); }, []);
+
+  async function loadAll() {
+    setLoading(true);
+    try {
+      const [sumRes, prodRes] = await Promise.all([
+        api.get("/products/gst-summary"),
+        api.get("/products/admin/all", { limit: 1000 }),
+      ]);
+      setSummary(sumRes.data || []);
+      setProducts(prodRes.data || []);
+    } catch (e) {
+      toast(e.message || "Failed to load GST data", "error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Build category tree: parents -> subcategories
+  const tree = useMemo(() => {
+    const parents = summary.filter((c) => !c.parent_id);
+    const children = summary.filter((c) => c.parent_id);
+    return parents.map((p) => ({
+      ...p,
+      subcategories: children.filter((c) => c.parent_id === p.category_id),
+    }));
+  }, [summary]);
+
+  // Filter tree by search
+  const filteredTree = useMemo(() => {
+    if (!search.trim()) return tree;
+    const q = search.toLowerCase();
+    return tree
+      .map((p) => {
+        const subMatch = p.subcategories.filter((s) =>
+          s.category_name.toLowerCase().includes(q)
+        );
+        const parentMatch = p.category_name.toLowerCase().includes(q);
+        if (!parentMatch && subMatch.length === 0) return null;
+        return { ...p, subcategories: parentMatch ? p.subcategories : subMatch };
+      })
+      .filter(Boolean);
+  }, [tree, search]);
+
+  // KPIs
+  const kpis = useMemo(() => {
+    const allProducts = products;
+    const uniqueRates = new Set(
+      allProducts.map((p) => String(parseFloat(p.gst_percentage ?? 0)))
+    );
+    const atZero = allProducts.filter((p) => parseFloat(p.gst_percentage) === 0).length;
+    const rateMap = {};
+    allProducts.forEach((p) => {
+      const r = String(parseFloat(p.gst_percentage ?? 0));
+      rateMap[r] = (rateMap[r] || 0) + 1;
+    });
+    const topRate = Object.entries(rateMap).sort((a, b) => b[1] - a[1])[0];
+    return { total: allProducts.length, uniqueRates: uniqueRates.size, atZero, topRate };
+  }, [products]);
+
+  async function applyBulkGST(categoryId, includeSubcategories) {
+    const rate = pendingRate[categoryId];
+    if (rate === undefined || rate === "") {
+      toast("Select a GST rate first", "error");
+      return;
+    }
+    const catName = summary.find((c) => c.category_id === categoryId)?.category_name || "this category";
+    const sub = includeSubcategories ? " and all subcategories" : "";
+    if (!window.confirm(`Set GST to ${rate}% for all products in "${catName}"${sub}?`)) return;
+    setApplying(categoryId);
+    try {
+      const res = await api.put("/products/bulk-gst", {
+        category_id: categoryId,
+        gst_percentage: parseFloat(rate),
+        include_subcategories: includeSubcategories,
+      });
+      toast(res.message || `GST updated`, "success");
+      await loadAll();
+    } catch (e) {
+      toast(e.message || "Failed to update GST", "error");
+    } finally {
+      setApplying(null);
+    }
+  }
+
+  async function saveProductGST() {
+    if (!editCell) return;
+    const num = parseFloat(editCell.value);
+    if (isNaN(num) || num < 0 || num > 100) {
+      toast("GST % must be between 0 and 100", "error");
+      return;
+    }
+    setSaving(editCell.id);
+    try {
+      await api.put(`/products/${editCell.id}`, { gst_percentage: num });
+      setProducts((prev) =>
+        prev.map((p) => (p.id === editCell.id ? { ...p, gst_percentage: num } : p))
+      );
+      setEditCell(null);
+      toast("GST updated", "success");
+      await loadAll(); // refresh summary
+    } catch (e) {
+      toast(e.message || "Save failed", "error");
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  function rateChips(rates) {
+    if (!rates || rates.length === 0)
+      return <span className="text-[11px] text-gray-300">no products</span>;
+    return (
+      <div className="flex flex-wrap gap-1">
+        {rates.map((r) => (
+          <span
+            key={r.gst}
+            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${rateColor(r.gst)}`}
+          >
+            {r.gst}% &times; {r.count}
+          </span>
+        ))}
+      </div>
+    );
+  }
+
+  function rateColor(rate) {
+    if (rate === 0) return "bg-gray-50 text-gray-500 border-gray-200";
+    if (rate <= 5) return "bg-green-50 text-green-700 border-green-200";
+    if (rate <= 12) return "bg-blue-50 text-blue-700 border-blue-200";
+    if (rate <= 18) return "bg-orange-50 text-orange-700 border-orange-200";
+    return "bg-red-50 text-red-700 border-red-200";
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <ArrowPathIcon className="w-6 h-6 animate-spin text-indigo-500" />
+        <span className="ml-2 text-gray-500 text-[14px]">Loading GST data...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">GST Management</h2>
+          <p className="text-[13px] text-gray-500 mt-0.5">
+            Set or bulk-update GST rates by category and subcategory. Override individual products inline.
+          </p>
+        </div>
+        <button
+          onClick={loadAll}
+          className="h-9 w-9 flex items-center justify-center border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 transition-colors shrink-0"
+          title="Refresh"
+        >
+          <ArrowPathIcon className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Total Products</p>
+          <p className="text-[28px] font-bold text-indigo-600 mt-1 leading-none tabular-nums">{kpis.total}</p>
+          <p className="text-[11px] text-gray-400 mt-1.5">across all categories</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">GST Slabs Used</p>
+          <p className="text-[28px] font-bold text-blue-600 mt-1 leading-none tabular-nums">{kpis.uniqueRates}</p>
+          <p className="text-[11px] text-gray-400 mt-1.5">distinct rates active</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Zero GST Products</p>
+          <p className="text-[28px] font-bold text-gray-500 mt-1 leading-none tabular-nums">{kpis.atZero}</p>
+          <p className="text-[11px] text-gray-400 mt-1.5">exempt / unrated</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Most Common Rate</p>
+          <p className="text-[28px] font-bold text-orange-500 mt-1 leading-none tabular-nums">
+            {kpis.topRate ? `${kpis.topRate[0]}%` : "-"}
+          </p>
+          <p className="text-[11px] text-gray-400 mt-1.5">
+            {kpis.topRate ? `${kpis.topRate[1]} products` : ""}
+          </p>
+        </div>
+      </div>
+
+      {/* GST Slab Reference */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-3">Indian GST Slabs Reference</p>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { rate: 0, label: "0% — Exempt (fresh produce, grains, salt)" },
+            { rate: 3, label: "3% — Gold & precious items" },
+            { rate: 5, label: "5% — Basic foods, edible oil, spices" },
+            { rate: 12, label: "12% — Processed foods, snacks" },
+            { rate: 18, label: "18% — Packaged goods, household items" },
+            { rate: 28, label: "28% — Luxury / premium goods" },
+          ].map(({ rate, label }) => (
+            <div
+              key={rate}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[12px] ${rateColor(rate)}`}
+            >
+              <span className="font-bold">{rate}%</span>
+              <span className="text-[10px] opacity-70 hidden sm:inline">{label.split(" \u2014 ")[1]}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search categories..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full pl-9 pr-3 h-9 rounded-lg border border-gray-200 text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-300"
+        />
+      </div>
+
+      {/* Category Tree */}
+      <div className="space-y-3">
+        {filteredTree.length === 0 && (
+          <div className="bg-white rounded-xl border border-gray-100 p-8 text-center text-gray-400 text-[13px]">
+            No categories found
+          </div>
+        )}
+        {filteredTree.map((parent) => {
+          const parentProducts = products.filter((p) => p.category_id === parent.category_id);
+          const isExpanded = expanded[parent.category_id];
+          const isApplying = applying === parent.category_id;
+
+          return (
+            <div key={parent.category_id} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+              {/* Parent category row */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 border-b border-gray-50">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[14px] font-bold text-gray-900">{parent.category_name}</span>
+                    <span className="text-[10px] bg-indigo-50 text-indigo-600 border border-indigo-100 px-2 py-0.5 rounded-full font-semibold">
+                      {parent.total} products
+                    </span>
+                    {parent.subcategories.length > 0 && (
+                      <span className="text-[10px] bg-gray-50 text-gray-500 border border-gray-200 px-2 py-0.5 rounded-full">
+                        {parent.subcategories.length} subcategories
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1.5">{rateChips(parent.rates)}</div>
+                </div>
+
+                {/* Bulk GST controls for parent */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <select
+                    value={pendingRate[parent.category_id] ?? ""}
+                    onChange={(e) =>
+                      setPendingRate((prev) => ({ ...prev, [parent.category_id]: e.target.value }))
+                    }
+                    className="h-8 px-2 rounded-lg border border-gray-200 text-[12px] text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  >
+                    <option value="">Select GST %</option>
+                    {GST_SLABS.map((r) => (
+                      <option key={r} value={r}>{r}%</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => applyBulkGST(parent.category_id, false)}
+                    disabled={isApplying || !pendingRate[parent.category_id]}
+                    className="h-8 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[12px] font-semibold disabled:opacity-40 transition-colors flex items-center gap-1"
+                    title="Apply to this category only"
+                  >
+                    {isApplying ? <ArrowPathIcon className="w-3.5 h-3.5 animate-spin" /> : null}
+                    Apply
+                  </button>
+                  {parent.subcategories.length > 0 && (
+                    <button
+                      onClick={() => applyBulkGST(parent.category_id, true)}
+                      disabled={isApplying || !pendingRate[parent.category_id]}
+                      className="h-8 px-3 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-[12px] font-semibold disabled:opacity-40 transition-colors"
+                      title="Apply to this category and all subcategories"
+                    >
+                      Apply + Subs
+                    </button>
+                  )}
+                  <button
+                    onClick={() =>
+                      setExpanded((prev) => ({ ...prev, [parent.category_id]: !prev[parent.category_id] }))
+                    }
+                    className="h-8 w-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+                    title={isExpanded ? "Hide products" : "Show products"}
+                  >
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {/* Subcategories */}
+              {parent.subcategories.length > 0 && (
+                <div className="divide-y divide-gray-50">
+                  {parent.subcategories.map((sub) => {
+                    const subProducts = products.filter((p) => p.category_id === sub.category_id);
+                    const isSubExpanded = expanded[sub.category_id];
+                    const isSubApplying = applying === sub.category_id;
+
+                    return (
+                      <div key={sub.category_id}>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-2.5 bg-gray-50/40 pl-8">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <ChevronRight className="w-3 h-3 text-gray-300 shrink-0" />
+                              <span className="text-[13px] font-semibold text-gray-700">{sub.category_name}</span>
+                              <span className="text-[10px] bg-gray-100 text-gray-500 border border-gray-200 px-2 py-0.5 rounded-full">
+                                {sub.total} products
+                              </span>
+                            </div>
+                            <div className="mt-1 pl-4">{rateChips(sub.rates)}</div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <select
+                              value={pendingRate[sub.category_id] ?? ""}
+                              onChange={(e) =>
+                                setPendingRate((prev) => ({ ...prev, [sub.category_id]: e.target.value }))
+                              }
+                              className="h-7 px-2 rounded-lg border border-gray-200 text-[12px] text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                            >
+                              <option value="">Select GST %</option>
+                              {GST_SLABS.map((r) => (
+                                <option key={r} value={r}>{r}%</option>
+                              ))}
+                            </select>
+                            <button
+                              onClick={() => applyBulkGST(sub.category_id, false)}
+                              disabled={isSubApplying || !pendingRate[sub.category_id]}
+                              className="h-7 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[12px] font-semibold disabled:opacity-40 transition-colors flex items-center gap-1"
+                            >
+                              {isSubApplying ? <ArrowPathIcon className="w-3.5 h-3.5 animate-spin" /> : null}
+                              Apply
+                            </button>
+                            <button
+                              onClick={() =>
+                                setExpanded((prev) => ({ ...prev, [sub.category_id]: !prev[sub.category_id] }))
+                              }
+                              className="h-7 w-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+                            >
+                              <ChevronDown
+                                className={`w-3.5 h-3.5 transition-transform ${isSubExpanded ? "rotate-180" : ""}`}
+                              />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Subcategory product list */}
+                        {isSubExpanded && subProducts.length > 0 && (
+                          <ProductGSTList
+                            products={subProducts}
+                            editCell={editCell}
+                            setEditCell={setEditCell}
+                            saving={saving}
+                            saveProductGST={saveProductGST}
+                            rateColor={rateColor}
+                            indent={true}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Parent category product list */}
+              {isExpanded && parentProducts.length > 0 && (
+                <ProductGSTList
+                  products={parentProducts}
+                  editCell={editCell}
+                  setEditCell={setEditCell}
+                  saving={saving}
+                  saveProductGST={saveProductGST}
+                  rateColor={rateColor}
+                  indent={false}
+                />
+              )}
+              {isExpanded && parentProducts.length === 0 && (
+                <div className="px-6 py-3 text-[12px] text-gray-400 italic">
+                  No products directly in this category (products may be in subcategories)
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ProductGSTList({ products, editCell, setEditCell, saving, saveProductGST, rateColor, indent }) {
+  return (
+    <div className={`border-t border-gray-100 ${indent ? "pl-8" : ""}`}>
+      <table className="w-full">
+        <thead>
+          <tr className="bg-gray-50/60">
+            <th className="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-2">Product</th>
+            <th className="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 py-2">SKU</th>
+            <th className="text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 py-2">Retail Price</th>
+            <th className="text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-4 py-2">GST %</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-50">
+          {products.map((p) => {
+            const isEditing = editCell?.id === p.id;
+            const isSaving = saving === p.id;
+            const rate = parseFloat(p.gst_percentage ?? 0);
+            return (
+              <tr key={p.id} className="hover:bg-gray-50/60 transition-colors">
+                <td className="px-4 py-2.5">
+                  <p className="text-[12px] font-medium text-gray-800 truncate max-w-[220px]">{p.name_en}</p>
+                  {p.variant && (
+                    <p className="text-[10px] text-gray-400">{p.variant}</p>
+                  )}
+                </td>
+                <td className="px-3 py-2.5">
+                  <span className="text-[10px] font-mono bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">
+                    {p.sku || "-"}
+                  </span>
+                </td>
+                <td className="px-3 py-2.5 text-right text-[12px] text-gray-500 tabular-nums">
+                  &#x20b9;{parseFloat(p.price || 0).toFixed(2)}
+                </td>
+                <td className="px-4 py-2.5 text-right">
+                  {isEditing ? (
+                    <div className="flex items-center justify-end gap-1">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        autoFocus
+                        value={editCell.value}
+                        onChange={(e) =>
+                          setEditCell((c) => ({ ...c, value: e.target.value }))
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") saveProductGST();
+                          if (e.key === "Escape") setEditCell(null);
+                        }}
+                        className="w-16 text-right text-[12px] border border-indigo-300 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                      />
+                      <span className="text-[11px] text-gray-400">%</span>
+                      <button
+                        onClick={saveProductGST}
+                        disabled={isSaving}
+                        className="text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
+                      >
+                        {isSaving
+                          ? <ArrowPathIcon className="w-3.5 h-3.5 animate-spin" />
+                          : <Check className="w-3.5 h-3.5" />}
+                      </button>
+                      <button onClick={() => setEditCell(null)} className="text-gray-400 hover:text-gray-600">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setEditCell({ id: p.id, value: String(rate) })}
+                      className={`text-[12px] font-bold px-2 py-0.5 rounded-full border transition-colors hover:opacity-80 ${rateColor(rate)}`}
+                      title="Click to edit GST rate"
+                    >
+                      {rate}%
+                    </button>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 /* ─── Store Settings Tab ─── */
 function StoreSettingsTab() {
   const { toast } = useDialog();
@@ -5351,7 +7199,13 @@ function StoreSettingsTab() {
         const res = await api.get("/settings");
         const list = res.data || [];
         setSettings(list);
-        const f = {};
+        // Seed defaults for wholesale/retail config in case keys are not yet in DB
+        const f = {
+          retail_max_qty_per_item: "10",
+          wholesale_min_order_value: "500",
+          wholesale_discount_pct: "10",
+          wholesale_min_qty_per_item: "1",
+        };
         list.forEach((s) => (f[s.key] = s.value));
         setForm(f);
       } catch (e) {
@@ -5385,7 +7239,8 @@ function StoreSettingsTab() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto space-y-6">
+      {/* ── Store Charges ─────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-gray-100">
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -5407,7 +7262,7 @@ function StoreSettingsTab() {
                 <p className="text-xs text-gray-400 mb-2">{s.description}</p>
               )}
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">₹</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">&#x20b9;</span>
                 <input
                   type="number"
                   min="0"
@@ -5429,15 +7284,106 @@ function StoreSettingsTab() {
             className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-semibold rounded-lg text-sm transition-colors shadow-sm"
           >
             {saving ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Saving…
-              </>
+              <><Loader2 className="w-4 h-4 animate-spin" />Saving…</>
             ) : (
-              <>
-                <Check className="w-4 h-4" />
-                Save Settings
-              </>
+              <><Check className="w-4 h-4" />Save Settings</>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Wholesale & Retail Config ─────────────────────────── */}
+      <div className="bg-white rounded-xl border border-amber-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-5 border-b border-amber-100 bg-amber-50/50">
+          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <Users className="w-5 h-5 text-amber-600" />
+            Wholesale &amp; Retail Config
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Control pricing behaviour and order limits per customer type.
+          </p>
+        </div>
+        <div className="px-6 py-5 grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* Retail */}
+          <div className="space-y-4">
+            <p className="text-xs font-bold text-green-700 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
+              Retail
+            </p>
+            <div>
+              <label className="block text-sm font-semibold text-gray-800 mb-1">
+                Max Qty per Item
+              </label>
+              <p className="text-xs text-gray-400 mb-2">Maximum quantity a retail customer can add per product per order.</p>
+              <input
+                type="number" min="1" step="1"
+                value={form.retail_max_qty_per_item ?? "10"}
+                onChange={(e) => setForm((p) => ({ ...p, retail_max_qty_per_item: e.target.value }))}
+                className="w-full px-3 py-2.5 border border-green-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400 transition"
+              />
+            </div>
+          </div>
+
+          {/* Wholesale */}
+          <div className="space-y-4">
+            <p className="text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
+              Wholesale
+            </p>
+            <div>
+              <label className="block text-sm font-semibold text-gray-800 mb-1">
+                Min Order Value (&#x20b9;)
+              </label>
+              <p className="text-xs text-gray-400 mb-2">Minimum cart value required for wholesale checkout.</p>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">&#x20b9;</span>
+                <input
+                  type="number" min="0" step="1"
+                  value={form.wholesale_min_order_value ?? "500"}
+                  onChange={(e) => setForm((p) => ({ ...p, wholesale_min_order_value: e.target.value }))}
+                  className="w-full pl-7 pr-4 py-2.5 border border-amber-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-800 mb-1">
+                Default Wholesale Discount (%)
+              </label>
+              <p className="text-xs text-gray-400 mb-2">Used by the pricing tab to auto-compute wholesale price from retail.</p>
+              <div className="relative">
+                <input
+                  type="number" min="0" max="90" step="0.5"
+                  value={form.wholesale_discount_pct ?? "10"}
+                  onChange={(e) => setForm((p) => ({ ...p, wholesale_discount_pct: e.target.value }))}
+                  className="w-full pr-8 pl-3 py-2.5 border border-amber-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-800 mb-1">
+                Min Qty per Item
+              </label>
+              <p className="text-xs text-gray-400 mb-2">Minimum quantity per product for wholesale orders (0 = no minimum).</p>
+              <input
+                type="number" min="0" step="1"
+                value={form.wholesale_min_qty_per_item ?? "1"}
+                onChange={(e) => setForm((p) => ({ ...p, wholesale_min_qty_per_item: e.target.value }))}
+                className="w-full px-3 py-2.5 border border-amber-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
+              />
+            </div>
+          </div>
+        </div>
+        <div className="px-6 py-4 bg-amber-50/50 border-t border-amber-100 flex justify-end">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-white font-semibold rounded-lg text-sm transition-colors shadow-sm"
+          >
+            {saving ? (
+              <><Loader2 className="w-4 h-4 animate-spin" />Saving…</>
+            ) : (
+              <><Check className="w-4 h-4" />Save Config</>
             )}
           </button>
         </div>
@@ -5451,22 +7397,90 @@ const SIDEBAR_ITEMS = [
   { id: "products", label: "Products", icon: Package },
   { id: "categories", label: "Categories", icon: Tag },
   { id: "orders", label: "Orders", icon: ShoppingCart },
+  { id: "pricing", label: "Pricing", icon: Banknotes },
   { id: "promotions", label: "Promotions", icon: Megaphone },
   { id: "users", label: "Customers", icon: Users },
+  { id: "billing", label: "Billing", icon: DocumentTextIcon },
   { id: "settings", label: "Settings", icon: Cog },
 ];
 export default function AdminDashboard() {
   const { ready, admin } = useAdminGuard();
   const router = useRouter();
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("adminDashTab") || "overview";
+    }
+    return "overview";
+  });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // --- Notifications ---
+  const [notifications, setNotifications] = useState([]);
+  const [notifUnread, setNotifUnread] = useState(0);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef(null);
+  const NOTIF_API = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1") + "/notifications";
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const token = secureStorage.getItem("token");
+      const res = await fetch(NOTIF_API, {
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      });
+      if (!res.ok) return;
+      const { data } = await res.json();
+      setNotifications(data.notifications || []);
+      setNotifUnread(data.unreadCount || 0);
+    } catch (_) {}
+  }, [NOTIF_API]);
+
+  useEffect(() => {
+    if (!ready) return;
+    fetchNotifications();
+    const id = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(id);
+  }, [ready, fetchNotifications]);
+
+  useEffect(() => {
+    if (!notifOpen) return;
+    function handleClick(e) {
+      if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [notifOpen]);
+
+  async function markNotifRead(id) {
+    try {
+      const token = secureStorage.getItem("token");
+      await fetch(`${NOTIF_API}/${id}/read`, {
+        method: "PATCH",
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      });
+      setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, is_read: true } : n));
+      setNotifUnread((c) => Math.max(0, c - 1));
+    } catch (_) {}
+  }
+
+  async function markAllNotifRead() {
+    try {
+      const token = secureStorage.getItem("token");
+      await fetch(`${NOTIF_API}/read-all`, {
+        method: "PATCH",
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      });
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      setNotifUnread(0);
+    } catch (_) {}
+  }
 
   function handleTabChange(tabId) {
     if (tabId === "billing") {
       router.push("/admin/billing");
     } else {
       setTab(tabId);
+      localStorage.setItem("adminDashTab", tabId);
       setSidebarOpen(false);
     }
   }
@@ -5591,9 +7605,77 @@ export default function AdminDashboard() {
             <button onClick={() => { setTab("products"); }} className="hidden sm:flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-[13px] px-4 py-2.5 rounded-xl transition-colors shadow-sm">
               <Plus className="w-4 h-4" /> Add Product
             </button>
-            <button className="relative p-2.5 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors">
-              <Bell className="w-5 h-5" />
-            </button>
+            {/* Notification Bell */}
+            <div ref={notifRef} className="relative">
+              <button
+                onClick={() => { setNotifOpen((o) => !o); if (!notifOpen) fetchNotifications(); }}
+                className="relative p-2.5 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+              >
+                <Bell className="w-5 h-5" />
+                {notifUnread > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
+                    {notifUnread > 9 ? "9+" : notifUnread}
+                  </span>
+                )}
+              </button>
+              {notifOpen && (
+                <div className="absolute right-0 top-full mt-2 w-[340px] bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden" style={{ maxHeight: "480px" }}>
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-[14px] text-gray-800">Notifications</span>
+                      {notifUnread > 0 && (
+                        <span className="bg-red-100 text-red-600 text-[11px] font-bold px-1.5 py-0.5 rounded-full">{notifUnread} new</span>
+                      )}
+                    </div>
+                    {notifUnread > 0 && (
+                      <button onClick={markAllNotifRead} className="text-[12px] text-indigo-600 hover:text-indigo-800 font-medium transition-colors">
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                  {/* List */}
+                  <div className="overflow-y-auto" style={{ maxHeight: "380px" }}>
+                    {notifications.length === 0 ? (
+                      <div className="px-4 py-10 text-center text-[13px] text-gray-400">No notifications</div>
+                    ) : (
+                      notifications.map((n) => {
+                        const isOut = n.type === "out";
+                        const isResolved = !!n.resolved_at;
+                        const timeAgo = (() => {
+                          const d = new Date(n.created_at);
+                          const diff = Math.floor((Date.now() - d) / 60000);
+                          if (diff < 1) return "just now";
+                          if (diff < 60) return `${diff}m ago`;
+                          if (diff < 1440) return `${Math.floor(diff / 60)}h ago`;
+                          return `${Math.floor(diff / 1440)}d ago`;
+                        })();
+                        return (
+                          <button
+                            key={n.id}
+                            onClick={() => { if (!n.is_read) markNotifRead(n.id); setTab("products"); setNotifOpen(false); }}
+                            className={`w-full text-left px-4 py-3 flex gap-3 items-start border-b border-gray-50 transition-colors ${n.is_read || isResolved ? "bg-white hover:bg-gray-50" : "bg-amber-50 hover:bg-amber-100"}`}
+                          >
+                            <div className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isResolved ? "bg-green-100" : isOut ? "bg-red-100" : "bg-amber-100"}`}>
+                              {isResolved
+                                ? <Check className={`w-4 h-4 text-green-600`} />
+                                : isOut
+                                  ? <X className="w-4 h-4 text-red-500" />
+                                  : <AlertTriangle className="w-4 h-4 text-amber-500" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-[13px] font-semibold leading-tight truncate ${isResolved ? "text-gray-500" : "text-gray-800"}`}>{n.title}</p>
+                              <p className="text-[11px] text-gray-400 mt-0.5">{timeAgo}{isResolved ? " — Resolved" : n.stock_at_alert != null ? ` — ${n.stock_at_alert} units` : ""}</p>
+                            </div>
+                            {!n.is_read && !isResolved && <div className="mt-1.5 w-2 h-2 bg-red-400 rounded-full shrink-0" />}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-gray-200 ml-1">
               <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-[13px]">
                 {(admin?.name || "A")[0].toUpperCase()}
@@ -5621,6 +7703,7 @@ export default function AdminDashboard() {
           {tab === "products" && <ProductsTab />}
           {tab === "categories" && <CategoriesTab />}
           {tab === "orders" && <OrdersTab />}
+          {tab === "pricing" && <PricingTab />}
           {tab === "promotions" && <PromotionsTab />}
           {tab === "users" && <UsersTab />}
           {tab === "settings" && <StoreSettingsTab />}

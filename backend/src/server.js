@@ -21,7 +21,9 @@ const {
   isFailedOver,
 } = require("./config/database");
 const logger = require("./utils/logger");
-const dbSyncService = require("./services/dbSyncService");
+const dbSyncService = require('./services/dbSyncService');
+const { AdminNotification } = require('./models');
+const stockAlertService = require('./services/stockAlertService');
 // cPanel Passenger sets PORT env var — always respect it
 const PORT = process.env.PORT || config.port || 5001;
 
@@ -122,6 +124,67 @@ function startSyncScheduler() {
   }, FAILOVER_CHECK_INTERVAL);
 }
 
+/**
+ * Run once at startup:
+ *   1. Ensure admin_notifications table exists.
+ *   2. Scan all active low/out-of-stock products.
+ *   3. For each, call checkAndAlert — which handles deduplication and 3-day resend.
+ *      (New product => create notification + send email)
+ *      (Already alerted < 3 days ago => skip)
+ *      (Already alerted 3+ days ago => resend)
+ */
+async function checkLowStockOnStartup() {
+  try {
+    await AdminNotification.ensureTable();
+    logger.info('[stock-alert] admin_notifications table ready.');
+  } catch (err) {
+    logger.error('[stock-alert] failed to ensure notifications table:', err);
+    return;
+  }
+
+  try {
+    const { query: dbQuery, modify: dbModify } = require('./config/database');
+
+    // Remove notification rows where email was never delivered (email_sent_at IS NULL).
+    // These are left over from a previous startup that crashed before email delivery.
+    // checkAndAlert will re-create them this run and properly send the email.
+    await dbModify(
+      `DELETE FROM admin_notifications WHERE email_sent_at IS NULL AND resolved_at IS NULL`
+    ).catch(() => {});
+    const rows = await dbQuery(
+      `SELECT p.id, p.sku, p.variant, p.unit_pack_size,
+              p.stock_quantity, p.low_stock_threshold,
+              COALESCE(pt.name, p.sku, 'Unknown') AS name
+       FROM products p
+       LEFT JOIN product_translations pt ON pt.product_id = p.id AND pt.lang_code = 'en'
+       WHERE p.is_active = TRUE
+         AND p.stock_quantity <= COALESCE(p.low_stock_threshold, 10)
+       ORDER BY p.stock_quantity ASC`
+    );
+
+    if (!rows || !rows.length) {
+      logger.info('[stock-alert] No low/out-of-stock products at startup.');
+      return;
+    }
+
+    logger.info(`[stock-alert] Found ${rows.length} low/out-of-stock product(s) at startup — checking alerts.`);
+    for (const row of rows) {
+      const product = {
+        id: row.id,
+        name: row.name,
+        sku: row.sku,
+        variant: row.variant,
+        unit_pack_size: row.unit_pack_size,
+        stock_quantity: parseFloat(row.stock_quantity),
+        low_stock_threshold: parseFloat(row.low_stock_threshold ?? 10),
+      };
+      await stockAlertService.checkAndAlert(product);
+    }
+  } catch (err) {
+    logger.error('[stock-alert] startup scan failed:', err);
+  }
+}
+
 async function startServer() {
   try {
     logger.info("Testing database connection...");
@@ -150,6 +213,8 @@ async function startServer() {
       `);
       // Start background sync after server is listening
       startSyncScheduler();
+      // Scan for products that are already low / out-of-stock at startup
+      checkLowStockOnStartup();
     });
     const gracefulShutdown = async (signal) => {
       logger.info(`${signal} received. Starting graceful shutdown...`);

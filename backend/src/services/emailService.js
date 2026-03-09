@@ -648,6 +648,91 @@ class EmailService {
     return this.send(email, `Account Merge Verification (${roleLabel}) | ${config.store.name}`, html);
   }
 
+  /**
+   * Send a stock alert email to admin(s).
+   * @param {string[]} adminEmails  – list of admin email addresses
+   * @param {object}   product      – product row containing id, name, stock_quantity, low_stock_threshold, sku, variant
+   * @param {'low'|'out'} alertType – 'low' = below threshold, 'out' = zero stock
+   */
+  async sendStockAlert(adminEmails, product, alertType = 'low') {
+    if (!adminEmails || !adminEmails.length) return { success: false, reason: 'No admin emails' };
+
+    const isOut    = alertType === 'out';
+    const stock    = product.stock_quantity ?? 0;
+    const thresh   = product.low_stock_threshold ?? 10;
+    const name     = product.name || product.name_en || 'Unknown Product';
+    const variant  = product.variant || product.unit_pack_size || product.unit || '';
+    const sku      = product.sku || '';
+    const label    = isOut ? 'Out of Stock' : 'Low Stock Alert';
+    const accentBg = isOut ? 'background:linear-gradient(90deg,#7f1d1d 0%,#dc2626 100%);' : 'background:linear-gradient(90deg,#78350f 0%,#f59e0b 100%);';
+    const statusBg = isOut ? 'background:#fef2f2;border-bottom:1px solid #fecaca;' : 'background:#fffbeb;border-bottom:1px solid #fde68a;';
+    const iconBg   = isOut ? 'background:#fee2e2;' : 'background:#fef3c7;';
+    const iconColor= isOut ? 'color:#dc2626;' : 'color:#d97706;';
+    const icon     = isOut ? '&#9888;' : '&#128204;';
+    const h1Color  = isOut ? 'color:#7f1d1d;' : 'color:#78350f;';
+    const badge    = isOut
+      ? `<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:#fee2e2;color:#991b1b;">OUT OF STOCK</span>`
+      : `<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:#fef3c7;color:#92400e;">LOW STOCK</span>`;
+    const bodyNote = isOut
+      ? 'This product has run out of stock and is no longer visible to customers. Please restock immediately.'
+      : `This product has fallen below its minimum stock threshold of <strong>${thresh} units</strong>. Please arrange restocking soon.`;
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const dashboardUrl = `${frontendUrl}/admin/dashboard`;
+
+    const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${label} - ${config.store.name}</title><style>${BASE_STYLES}</style></head>
+<body><div class="em-outer"><div class="em-wrap">
+  <div class="em-accent" style="${accentBg}"></div>
+  <div class="em-brand"><h2>${config.store.name}</h2><p>Admin - Inventory Alert</p></div>
+  <div class="em-status" style="${statusBg}">
+    <div class="status-icon" style="width:56px;height:56px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;${iconBg}margin-bottom:14px;">
+      <span style="font-size:26px;${iconColor}">${icon}</span></div>
+    <h1 style="${h1Color}">${label}</h1>
+    <p>${bodyNote}</p>
+  </div>
+  <div class="em-body" style="padding-top:24px;">
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+      <div class="meta-grid">
+        <div class="meta-cell"><div class="meta-label">Product Name</div><div class="meta-value">${name}</div></div>
+        <div class="meta-cell"><div class="meta-label">Status</div><div class="meta-value">${badge}</div></div>
+      </div>
+      <div style="border-top:1px solid #e2e8f0;" class="meta-grid">
+        <div class="meta-cell"><div class="meta-label">Current Stock</div><div class="meta-value" style="${isOut ? 'color:#dc2626;' : 'color:#d97706;'}font-size:22px;font-weight:800;">${stock} units</div></div>
+        <div class="meta-cell"><div class="meta-label">Min. Threshold</div><div class="meta-value">${thresh} units</div></div>
+      </div>
+      ${variant || sku ? `<div style="border-top:1px solid #e2e8f0;" class="meta-grid">
+        ${variant ? `<div class="meta-cell"><div class="meta-label">Variant / Size</div><div class="meta-value">${variant}</div></div>` : '<div class="meta-cell"></div>'}
+        ${sku ? `<div class="meta-cell"><div class="meta-label">SKU</div><div class="meta-value" style="font-family:monospace;font-size:12px;">${sku}</div></div>` : '<div class="meta-cell"></div>'}
+      </div>` : ''}
+    </div>
+    <div class="em-divider"></div>
+    <div style="text-align:center;">
+      <a href="${dashboardUrl}" style="display:inline-block;background:#0d1b3e;color:#c8972a;font-weight:700;font-size:14px;padding:12px 28px;border-radius:10px;text-decoration:none;letter-spacing:0.5px;">
+        Go to Admin Dashboard
+      </a>
+      <p style="font-size:12px;color:#94a3b8;margin-top:10px;">Update stock from Products tab</p>
+    </div>
+  </div>
+  <div class="em-footer">
+    <div class="em-footer-row">
+      <div><div class="em-footer-brand">${config.store.name}</div>
+      ${config.store.gst ? `<div style="color:#64748b;font-size:12px;margin-top:3px;">GSTIN: ${config.store.gst}</div>` : ''}</div>
+      <div class="em-footer-contact">${config.store.phone ? `${config.store.phone}<br>` : ''}${config.store.email ? `${config.store.email}` : ''}</div>
+    </div>
+    <div class="em-footer-legal">Auto-generated inventory alert. Sent at ${new Date().toLocaleString('en-IN')}.<br>&copy; ${new Date().getFullYear()} ${config.store.name}. Confidential - for internal use only.</div>
+  </div>
+</div></div></body></html>`;
+
+    const subject = isOut
+      ? `[OUT OF STOCK] ${name}${variant ? ' - ' + variant : ''} | ${config.store.name}`
+      : `[LOW STOCK] ${name}${variant ? ' - ' + variant : ''} - ${stock} units left | ${config.store.name}`;
+
+    const results = await Promise.allSettled(adminEmails.map(to => this.send(to, subject, html)));
+    const sent = results.filter(r => r.status === 'fulfilled').length;
+    return { success: sent > 0, sent, total: adminEmails.length };
+  }
+
   async testConnection() {
     try {
       await this.transporter.verify();

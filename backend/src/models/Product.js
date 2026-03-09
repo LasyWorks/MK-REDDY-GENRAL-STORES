@@ -205,6 +205,7 @@ class Product {
     const rows = await query(
       `SELECT p.*,
               (SELECT COUNT(*) FROM products v WHERE v.parent_product_id = p.id) AS variant_count,
+              (SELECT COALESCE(SUM(oi.quantity), 0) FROM order_items oi WHERE oi.product_id = p.id) AS total_sold,
               ${PROD_TRANS_COLS}
        FROM products p
        JOIN categories c ON p.category_id = c.id
@@ -216,7 +217,42 @@ class Product {
     );
     return { products: rows, total: parseInt(countRow.total, 10) };
   }
+
+  /**
+   * Enforce price hierarchy: wholesale_price <= price <= mrp.
+   * Mutates the data object in-place before DB insert/update.
+   */
+  static normalizePrices(data) {
+    const p = parseFloat(data.price);
+    if (isNaN(p) || p <= 0) return;
+
+    // MRP must be >= price
+    if (data.mrp != null) {
+      const m = parseFloat(data.mrp);
+      if (!isNaN(m) && m > 0 && m < p) {
+        data.mrp = p;
+      }
+    }
+
+    // wholesale_price must be <= price
+    if (data.wholesale_price != null) {
+      const ws = parseFloat(data.wholesale_price);
+      if (!isNaN(ws) && ws > p) {
+        data.wholesale_price = parseFloat((p * 0.90).toFixed(2));
+      }
+    }
+
+    // purchase_price must be <= price
+    if (data.purchase_price != null) {
+      const pp = parseFloat(data.purchase_price);
+      if (!isNaN(pp) && pp > p) {
+        data.purchase_price = p;
+      }
+    }
+  }
+
   static async create(data) {
+    this.normalizePrices(data);
     const {
       category_id,
       sku,
@@ -259,7 +295,7 @@ class Product {
         sku || null,
         brand || null,
         variant || null,
-        unit_type || null,
+        unit_type || 'pcs',
         unit_pack_size || null,
         hsn_code || null,
         mrp || null,
@@ -300,6 +336,7 @@ class Product {
     return prodId;
   }
   static async update(id, data) {
+    this.normalizePrices(data);
     const base = [
       "category_id",
       "sku",

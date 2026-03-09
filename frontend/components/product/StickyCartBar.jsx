@@ -9,13 +9,13 @@ import {
 import { useCart } from "@/context/CartContext";
 import ImageWithFallback from "@/components/common/ImageWithFallback";
 
-export default function StickyCartBar({ product, sentinelRef }) {
+export default function StickyCartBar({ product, sentinelRef, effectivePrice }) {
   const { items, addItem, updateQty, openCart, isCartOpen } = useCart();
   const [visible, setVisible] = useState(false);
 
   const cartItem = items.find((i) => i.id === product.id);
   const qty = cartItem?.quantity ?? 0;
-  const price = parseFloat(product.price || 0);
+  const price = effectivePrice != null ? effectivePrice : parseFloat(product.price || 0);
   const isOutOfStock = (product.stock_quantity ?? 0) <= 0;
   const imgSrc = product.image_urls?.[0] || product.image_url || null;
 

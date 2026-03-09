@@ -2,13 +2,16 @@ const { Order, Cart, User, Invoice, AdminLog, Promotion } = require('../models')
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
 const emailService = require('./emailService');
+const stockAlertService = require('./stockAlertService');
+const StoreSetting = require('../models/StoreSetting');
 class OrderService {
-  static async createOrder(userId, notes = null, lang = 'en') {
+  static async createOrder(userId, notes = null, lang = 'en', userType = 'retail') {
     const user = await User.findById(userId);
     if (!user) {
       throw ApiError.notFound('User not found');
     }
-    const cart = await Cart.getWithItems(userId, lang);
+    const gstConfig = await StoreSetting.getGstConfig();
+    const cart = await Cart.getWithItems(userId, lang, gstConfig, userType);
     if (cart.items.length === 0) {
       throw ApiError.badRequest('Cart is empty');
     }
@@ -18,8 +21,13 @@ class OrderService {
       throw ApiError.badRequest('Cart has issues', validation.issues);
     }
     // Sync prices one last time to ensure customer pays current market price
-    await Cart.syncPrices(userId);
-    const updatedCart = await Cart.getWithItems(userId, lang);
+    let wsPct = 0;
+    if (userType === 'wholesale') {
+      const setting = await StoreSetting.get('wholesale_discount_pct');
+      wsPct = setting ? parseFloat(setting.value) || 0 : 0;
+    }
+    await Cart.syncPrices(userId, userType, wsPct);
+    const updatedCart = await Cart.getWithItems(userId, lang, gstConfig, userType);
     // Calculate best promotion discount for this order
     let promoDiscount = 0;
     let promoId = null;
@@ -144,10 +152,20 @@ class OrderService {
 
     // Fire-and-forget emails — never block the order response
     User.findAdminEmails()
-      .then(adminEmails => Promise.allSettled([
-        emailService.sendAdminOrderNotification(order, user, adminEmails),
-        user.email ? emailService.sendOrderConfirmation(order, user) : Promise.resolve(),
-      ]))
+      .then(async (adminEmails) => {
+        await Promise.allSettled([
+          emailService.sendAdminOrderNotification(order, user, adminEmails),
+          user.email ? emailService.sendOrderConfirmation(order, user) : Promise.resolve(),
+        ]);
+
+        // Check stock thresholds for every product touched by this order
+        const productIds = [...new Set(
+          updatedCart.items.map((i) => i.parent_product_id || i.product_id)
+        )];
+        stockAlertService
+          .checkAndAlertMany(productIds, require('../models').Product.findById.bind(require('../models').Product))
+          .catch((err) => logger.error('[stock-alert] checkAndAlertMany failed (order):', err));
+      })
       .catch(() => {});
 
     logger.info(`Order created: ${orderNumber} by user ${userId}`);

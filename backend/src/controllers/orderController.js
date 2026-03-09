@@ -5,7 +5,8 @@ const { getPaginationParams } = require('../utils/helpers');
 const createOrder = asyncHandler(async (req, res) => {
   const { notes } = req.body;
   const lang = req.language || 'en';
-  const order = await OrderService.createOrder(req.user.id, notes, lang);
+  const userType = req.user.userType || 'retail';
+  const order = await OrderService.createOrder(req.user.id, notes, lang, userType);
   ApiResponse.created(res, order, 'Order placed successfully');
 });
 const getMyOrders = asyncHandler(async (req, res) => {

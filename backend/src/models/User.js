@@ -8,7 +8,7 @@ class User {
          AND email IS NOT NULL
          AND email <> ''
          AND is_active = TRUE
-         AND is_blocked = FALSE
+         AND (is_blocked = FALSE OR is_blocked IS NULL)
          AND deleted_at IS NULL
        ORDER BY created_at ASC`,
     );
@@ -28,6 +28,15 @@ class User {
        FROM users u JOIN roles r ON u.role_id = r.id
        WHERE u.phone = $1 AND u.deleted_at IS NULL`,
       [phone],
+    );
+  }
+  static async findByGoogleId(googleId) {
+    if (!googleId) return null;
+    return queryOne(
+      `SELECT u.*, r.name AS role_name
+       FROM users u JOIN roles r ON u.role_id = r.id
+       WHERE u.google_id = $1 AND u.deleted_at IS NULL`,
+      [googleId],
     );
   }
   static async findByEmail(email) {

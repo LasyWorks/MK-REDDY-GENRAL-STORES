@@ -28,7 +28,8 @@ class StoreSetting {
     const rows = await query(
       `SELECT key, value FROM store_settings WHERE key IN (
         'min_order_amount', 'delivery_charge', 'handling_charge',
-        'gst_enabled', 'gst_inclusive', 'retail_gst_rate', 'wholesale_gst_rate'
+        'gst_enabled', 'gst_inclusive', 'retail_gst_rate', 'wholesale_gst_rate',
+        'wholesale_discount_pct'
       )`,
     );
     const result = {};
@@ -44,14 +45,15 @@ class StoreSetting {
   static async getGstConfig() {
     const rows = await query(
       `SELECT key, value FROM store_settings WHERE key IN (
-        'gst_enabled', 'gst_inclusive', 'retail_gst_rate', 'wholesale_gst_rate'
+        'gst_enabled', 'gst_inclusive', 'retail_gst_inclusive', 'retail_gst_rate', 'wholesale_gst_rate'
       )`,
     );
     const cfg = {
-      gst_enabled: "1", // default: GST enabled
-      gst_inclusive: "0", // default: prices are exclusive (GST added on top)
-      retail_gst_rate: "0", // 0 = use per-product rate
-      wholesale_gst_rate: "0", // 0 = use per-product rate
+      gst_enabled: "1",          // default: GST enabled
+      gst_inclusive: "0",        // fallback default: exclusive (add on top)
+      retail_gst_inclusive: "1", // retail prices are MRP-inclusive (don't add GST on top)
+      retail_gst_rate: "0",      // 0 = use per-product rate
+      wholesale_gst_rate: "0",   // 0 = use per-product rate
     };
     for (const row of rows) cfg[row.key] = row.value;
     return cfg;

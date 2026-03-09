@@ -47,6 +47,16 @@ class ApiClient {
 
       const newToken = data.data.accessToken;
       secureStorage.setItem("token", newToken);
+      // Also refresh the stored user object so any admin-changed user_type or role
+      // is picked up without requiring the user to log out and back in.
+      fetch(`${this.baseURL}/auth/profile`, {
+        headers: { Authorization: `Bearer ${newToken}` },
+      })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (d?.data) secureStorage.setItem("user", JSON.stringify(d.data));
+        })
+        .catch(() => {});
       this._refreshQueue.forEach((p) => p.resolve(newToken));
       return newToken;
     } catch (err) {

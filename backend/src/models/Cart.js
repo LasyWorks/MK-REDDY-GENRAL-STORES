@@ -47,6 +47,7 @@ class Cart {
               COALESCE(pt_req.name, pt_en.name)  AS product_name,
               pt_en.name AS product_name_en,
               p.unit_type, p.variant, p.unit_pack_size, p.parent_product_id, p.price AS current_price,
+              p.wholesale_price AS current_wholesale_price,
               p.stock_quantity, p.gst_percentage, p.is_active, p.image_url,
               COALESCE(ct_req.name, ct_en.name)  AS category_name
        FROM cart_items ci
@@ -61,13 +62,18 @@ class Cart {
       [cart.id, lang],
     );
 
-    // Resolve GST config flags (defaults: enabled, exclusive/add-on-top)
+    // Resolve GST config flags
+    // Retail prices are MRP-inclusive (GST already baked in — back-calculate for invoice)
+    // Wholesale prices are GST-exclusive (add GST on top for billing)
     const gstEnabled =
       !gstConfig ||
       (gstConfig.gst_enabled !== "0" && gstConfig.gst_enabled !== "false");
-    const gstInclusive =
-      gstConfig &&
-      (gstConfig.gst_inclusive === "1" || gstConfig.gst_inclusive === "true");
+    const isWholesale = userType === "wholesale";
+    const gstInclusive = isWholesale
+      ? false  // wholesale: price is pre-tax, GST added on top
+      : gstConfig
+        ? (gstConfig.retail_gst_inclusive === "1" || gstConfig.retail_gst_inclusive === "true")
+        : true; // retail default: price is MRP-inclusive
     const retailRate = parseFloat(gstConfig?.retail_gst_rate || 0);
     const wholesaleRate = parseFloat(gstConfig?.wholesale_gst_rate || 0);
 
@@ -108,6 +114,12 @@ class Cart {
       subtotal += itemSub;
       totalGst += itemGst;
 
+      // For wholesale users, compare against wholesale_price (or fallback);
+      // for retail users, compare against the standard retail price.
+      const expectedPrice = isWholesale
+        ? parseFloat(item.current_wholesale_price || item.current_price)
+        : parseFloat(item.current_price);
+
       return {
         id: item.id,
         product_id: item.product_id,
@@ -125,7 +137,7 @@ class Cart {
         is_active: item.is_active,
         image_url: item.image_url,
         price_changed:
-          parseFloat(item.unit_price) !== parseFloat(item.current_price),
+          parseFloat(item.unit_price) !== expectedPrice,
         item_total: itemSub,
         item_gst: itemGst,
         item_grand_total: itemGrandTotal,
@@ -193,11 +205,19 @@ class Cart {
       [cart.id, productId],
     );
   }
-  static async syncPrices(userId) {
+  static async syncPrices(userId, userType = 'retail', wholesaleDiscountPct = 0) {
     const cart = await queryOne("SELECT id FROM carts WHERE user_id = $1", [
       userId,
     ]);
     if (!cart) return 0;
+    if (userType === 'wholesale') {
+      return modify(
+        `UPDATE cart_items ci
+         SET unit_price = COALESCE(p.wholesale_price, p.price * (1 - $2::numeric / 100))
+         FROM products p WHERE ci.product_id = p.id AND ci.cart_id = $1`,
+        [cart.id, wholesaleDiscountPct],
+      );
+    }
     return modify(
       `UPDATE cart_items ci SET unit_price = p.price
        FROM products p WHERE ci.product_id = p.id AND ci.cart_id = $1`,
@@ -272,7 +292,7 @@ class Cart {
     }
     return { valid: issues.length === 0, issues };
   }
-  static async replaceAll(userId, items) {
+  static async replaceAll(userId, items, userType = 'retail', wholesaleDiscountPct = 0) {
     const cart = await this.getOrCreate(userId);
     return withTransaction(async (client) => {
       await client.query("DELETE FROM cart_items WHERE cart_id = $1", [
@@ -280,7 +300,7 @@ class Cart {
       ]);
       for (const item of items) {
         const product = await client.query(
-          "SELECT price, stock_quantity, is_active FROM products WHERE id = $1",
+          "SELECT price, wholesale_price, stock_quantity, is_active FROM products WHERE id = $1",
           [item.product_id],
         );
         if (!product.rows.length) continue;
@@ -288,9 +308,17 @@ class Cart {
         if (!p.is_active) continue;
         const qty = Math.min(item.quantity, p.stock_quantity);
         if (qty <= 0) continue;
+        let unitPrice = parseFloat(p.price);
+        if (userType === 'wholesale') {
+          if (p.wholesale_price) {
+            unitPrice = parseFloat(p.wholesale_price);
+          } else if (wholesaleDiscountPct > 0) {
+            unitPrice = parseFloat((unitPrice * (1 - wholesaleDiscountPct / 100)).toFixed(2));
+          }
+        }
         await client.query(
           "INSERT INTO cart_items (cart_id, product_id, quantity, unit_price) VALUES ($1,$2,$3,$4)",
-          [cart.id, item.product_id, qty, p.price],
+          [cart.id, item.product_id, qty, unitPrice],
         );
       }
     });

@@ -1,6 +1,7 @@
 const { Product, Category, AdminLog } = require("../models");
 const config = require("../config");
 const ApiError = require("../utils/ApiError");
+const stockAlertService = require('./stockAlertService');
 const { revalidatePages } = require("../utils/revalidate");
 const { invalidateCache } = require("../middlewares/cache");
 const ExcelJS = require("exceljs");
@@ -187,6 +188,11 @@ class ProductService {
       throw ApiError.badRequest("Insufficient stock");
     }
     await Product.update(id, { stock_quantity: newStock });
+
+    // Check thresholds and fire alert via stockAlertService (handles dedup + 3-day resend)
+    const alertProduct = { ...product, stock_quantity: newStock };
+    stockAlertService.checkAndAlert(alertProduct).catch(() => {});
+
     await AdminLog.create({
       adminId,
       action: "UPDATE_STOCK",

@@ -28,7 +28,7 @@ const normalizeError = (err) => {
       case '23503': // foreign_key_violation
         return ApiError.conflict('Cannot complete operation. A related record is still referenced.');
       case '23502': // not_null_violation
-        return ApiError.badRequest('Missing required field.');
+        return ApiError.badRequest(`Missing required field: ${err.column || 'unknown'}`);
       case '42703': // undefined_column
         return ApiError.badRequest('Invalid field name in query.');
       case '42P01': // undefined_table

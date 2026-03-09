@@ -77,9 +77,12 @@ const config = {
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
   },
   cors: {
-    origin: (process.env.CORS_ORIGIN && process.env.CORS_ORIGIN !== '*')
-      ? process.env.CORS_ORIGIN
-      : (process.env.FRONTEND_URL || 'http://localhost:3000'),
+    origins: (() => {
+      const raw = (process.env.CORS_ORIGIN && process.env.CORS_ORIGIN !== '*')
+        ? process.env.CORS_ORIGIN
+        : (process.env.FRONTEND_URL || 'http://localhost:3000');
+      return raw.split(',').map((o) => o.trim()).filter(Boolean);
+    })(),
     credentials: true,
   },
 };
@@ -92,7 +95,7 @@ if (config.jwt.secret.includes('default') || config.jwt.refreshSecret.includes('
   throw new Error('CRITICAL: Default JWT secrets detected. Generate secure secrets immediately');
 }
 
-if (!config.cors.origin) {
+if (!config.cors.origins || config.cors.origins.length === 0) {
   throw new Error('CRITICAL: CORS_ORIGIN must be explicitly set (use specific domain, not wildcard)');
 }
 

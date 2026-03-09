@@ -104,10 +104,11 @@ class Order {
       for (const item of cart.items) {
         const nameEn = item.product_name_en || item.product_name;
         const variantLabel = item.variant || item.unit_pack_size || null;
+        const unitType = item.unit_type || 'pcs';
         await client.query(
           `INSERT INTO order_items (order_id, product_id, product_name_en, product_variant, quantity, unit_type, unit_price, gst_percentage, gst_amount, subtotal, total)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
-          [orderId, item.product_id, nameEn, variantLabel, item.quantity, item.unit_type, item.unit_price, item.gst_percentage, item.item_gst, item.item_total, item.item_grand_total]
+          [orderId, item.product_id, nameEn, variantLabel, item.quantity, unitType, item.unit_price, item.gst_percentage, item.item_gst, item.item_total, item.item_grand_total]
         );
         // Critical: Decrement stock atomically within transaction to prevent overselling
         let stockRes;

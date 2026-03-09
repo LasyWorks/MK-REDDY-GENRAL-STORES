@@ -6,12 +6,10 @@ import {
   ClockIcon as Clock,
   ShoppingBagIcon as ShoppingBag,
   ShieldCheckIcon as Shield,
-  TruckIcon as Truck,
   ArrowPathIcon as RotateCcw,
 } from "@heroicons/react/24/outline";
 
 const USP = [
-  { icon: Truck, label: "Home Delivery", sub: "Delivered to your doorstep" },
   { icon: Shield, label: "100% Genuine", sub: "Verified products only" },
   {
     icon: RotateCcw,
@@ -27,7 +25,7 @@ export default function Footer() {
       {/* USP strip */}
       <div className="border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {USP.map(({ icon: Icon, label, sub }) => (
               <div key={label} className="flex items-center gap-3">
                 <div className="bg-blue-600/20 text-blue-400 p-2.5 rounded-lg shrink-0">

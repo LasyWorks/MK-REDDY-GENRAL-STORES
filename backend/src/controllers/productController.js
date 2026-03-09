@@ -3,6 +3,7 @@ const { asyncHandler } = require("../middlewares");
 const ApiResponse = require("../utils/ApiResponse");
 const { getPaginationParams } = require("../utils/helpers");
 const ExcelJS = require("exceljs");
+const { query, modify } = require("../config/database");
 const getProducts = asyncHandler(async (req, res) => {
   // Protect against loading too many products at once to prevent server overload
   const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
@@ -97,6 +98,18 @@ const bulkUpload = asyncHandler(async (req, res) => {
   }
   const result = await ProductService.bulkUpload(req.file.path, req.user.id);
   ApiResponse.success(res, result, "Bulk upload completed");
+});
+
+const uploadProductImage = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    return ApiResponse.error(res, "Please upload an image file", 400);
+  }
+  const appConfig = require("../config");
+  const backendBase =
+    process.env.BACKEND_URL ||
+    `http://localhost:${appConfig.port}`;
+  const imageUrl = `${backendBase}/uploads/${req.file.filename}`;
+  ApiResponse.success(res, { url: imageUrl }, "Image uploaded");
 });
 const getProductCount = asyncHandler(async (req, res) => {
   const result = await ProductService.getCount();
@@ -340,6 +353,88 @@ const getDailyFeatured = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * GET /products/gst-summary
+ * Returns all categories with product count and GST rate breakdown.
+ */
+const getGSTSummary = asyncHandler(async (req, res) => {
+  const rows = await query(
+    `SELECT
+       c.id            AS category_id,
+       c.parent_id,
+       t_en.name       AS category_name,
+       p.gst_percentage,
+       COUNT(p.id)     AS product_count
+     FROM categories c
+     LEFT JOIN category_translations t_en ON c.id = t_en.category_id AND t_en.lang_code = 'en'
+     LEFT JOIN products p ON p.category_id = c.id
+     GROUP BY c.id, c.parent_id, t_en.name, p.gst_percentage
+     ORDER BY c.parent_id NULLS FIRST, t_en.name, p.gst_percentage`,
+    [],
+  );
+
+  // Build a map: category_id -> { category_id, parent_id, category_name, rates: [{gst, count}], total }
+  const catMap = {};
+  for (const r of rows) {
+    if (!catMap[r.category_id]) {
+      catMap[r.category_id] = {
+        category_id: r.category_id,
+        parent_id: r.parent_id,
+        category_name: r.category_name || "Unnamed",
+        rates: [],
+        total: 0,
+      };
+    }
+    if (r.gst_percentage !== null && parseInt(r.product_count) > 0) {
+      catMap[r.category_id].rates.push({
+        gst: parseFloat(r.gst_percentage),
+        count: parseInt(r.product_count),
+      });
+      catMap[r.category_id].total += parseInt(r.product_count);
+    }
+  }
+
+  ApiResponse.success(res, Object.values(catMap));
+});
+
+/**
+ * PUT /products/bulk-gst
+ * Body: { category_id, gst_percentage, include_subcategories }
+ * Bulk-updates gst_percentage on all products of the given category.
+ */
+const bulkUpdateGSTByCategory = asyncHandler(async (req, res) => {
+  const { category_id, gst_percentage, include_subcategories } = req.body;
+
+  if (!category_id) {
+    return ApiResponse.error(res, "category_id is required", 400);
+  }
+  const rate = parseFloat(gst_percentage);
+  if (isNaN(rate) || rate < 0 || rate > 100) {
+    return ApiResponse.error(res, "gst_percentage must be between 0 and 100", 400);
+  }
+
+  let updated;
+  if (include_subcategories) {
+    // Update products in this category AND all its subcategories
+    updated = await modify(
+      `UPDATE products
+       SET gst_percentage = $1, updated_at = NOW()
+       WHERE category_id = $2
+          OR category_id IN (SELECT id FROM categories WHERE parent_id = $2)`,
+      [rate, category_id],
+    );
+  } else {
+    updated = await modify(
+      `UPDATE products
+       SET gst_percentage = $1, updated_at = NOW()
+       WHERE category_id = $2`,
+      [rate, category_id],
+    );
+  }
+
+  ApiResponse.success(res, { updated }, `GST updated to ${rate}% for ${updated} products`);
+});
+
 module.exports = {
   getAllProducts: getProducts,
   getProductById: getProduct,
@@ -352,9 +447,12 @@ module.exports = {
   updateStock,
   toggleActive,
   bulkUpload,
+  uploadProductImage,
   downloadTemplate,
   downloadAllProducts,
   getProductCount,
   getFrequentlyBoughtTogether,
   getDailyFeatured,
+  getGSTSummary,
+  bulkUpdateGSTByCategory,
 };

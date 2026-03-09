@@ -26,18 +26,27 @@ class AuthService {
       throw ApiError.forbidden("Please verify your email with Google first");
     }
 
-    // Check if user exists by email or Google ID
-    let user = await User.findByEmail(googleUser.email);
+    // Normalize email so the lookup matches accounts created via email-OTP
+    // (those are always stored lowercase).
+    const normalizedEmail = googleUser.email.toLowerCase().trim();
 
-    // If user doesn't exist, they need to complete registration with phone number
+    // Check if user exists by email, then fall back to google_id.
+    // The account may have been created with a different primary email
+    // (e.g. via phone-OTP) but later linked to this Google account.
+    let user = await User.findByEmail(normalizedEmail);
     if (!user) {
-      logger.info(`New Google user attempting login: ${googleUser.email}`);
+      user = await User.findByGoogleId(googleUser.googleId);
+    }
+
+    // If still no match, they need to complete registration with phone number
+    if (!user) {
+      logger.info(`New Google user attempting login: ${normalizedEmail}`);
       return {
         authenticated: false,
         requiresRegistration: true,
         requiresPhone: true,
         googleData: {
-          email: googleUser.email,
+          email: normalizedEmail,
           name: googleUser.name,
           picture: googleUser.picture,
           googleId: googleUser.googleId,
@@ -82,8 +91,9 @@ class AuthService {
 
   // Complete registration for new Google users (needs phone number)
   static async completeGoogleRegistration(userData) {
-    const { name, phone, email, googleId, picture, user_type, address } =
-      userData;
+    const { name, phone, googleId, picture, user_type, address } = userData;
+    // Normalize email consistently with the email-OTP registration path
+    const email = (userData.email || "").toLowerCase().trim();
 
     // Validate required fields
     if (!email || !googleId || !phone || !name) {
@@ -92,10 +102,36 @@ class AuthService {
       );
     }
 
-    // Check if user already exists by email
+    // If a user already exists with this email it means they registered via
+    // email-OTP previously. Google OAuth proves email ownership, so link the
+    // Google account to the existing user and log them in instead of rejecting.
     const existingUserByEmail = await User.findByEmail(email);
     if (existingUserByEmail) {
-      throw ApiError.conflict("User with this email already exists");
+      if (!existingUserByEmail.is_active) {
+        throw ApiError.forbidden("Account is inactive. Please contact support.");
+      }
+      if (existingUserByEmail.is_blocked) {
+        throw ApiError.forbidden(
+          `Account is blocked: ${existingUserByEmail.blocked_reason || "Contact support"}`,
+        );
+      }
+      // Link Google ID if not already set
+      if (!existingUserByEmail.google_id) {
+        await User.updateGoogleId(existingUserByEmail.id, googleId);
+      }
+      if (picture && picture !== existingUserByEmail.profile_picture) {
+        await User.updateProfilePicture(existingUserByEmail.id, picture);
+        existingUserByEmail.profile_picture = picture;
+      }
+      const tokens = await this.generateTokens(existingUserByEmail);
+      await User.updateLastLogin(existingUserByEmail.id);
+      logger.info(
+        `Linked Google account to existing email user ${existingUserByEmail.id} (${email})`,
+      );
+      return {
+        user: this.sanitizeUser(existingUserByEmail),
+        ...tokens,
+      };
     }
 
     // Check if phone number is already taken

@@ -57,7 +57,19 @@ class CartService {
         `Maximum order quantity is ${product.max_order_quantity}`,
       );
     }
-    await Cart.addItem(userId, productId, quantity, product.price);
+    let unitPrice = parseFloat(product.price);
+    if (userType === 'wholesale') {
+      if (product.wholesale_price) {
+        unitPrice = parseFloat(product.wholesale_price);
+      } else {
+        const setting = await StoreSetting.get('wholesale_discount_pct');
+        const wsPct = setting ? parseFloat(setting.value) || 0 : 0;
+        if (wsPct > 0) {
+          unitPrice = parseFloat((unitPrice * (1 - wsPct / 100)).toFixed(2));
+        }
+      }
+    }
+    await Cart.addItem(userId, productId, quantity, unitPrice);
     return this.getCart(userId, "en", userType);
   }
   static async updateItem(userId, productId, quantity, userType = "retail") {
@@ -117,7 +129,12 @@ class CartService {
   }
   static async syncPrices(userId, userType = "retail") {
     // Update cart with current prices - important when prices change between add-to-cart and checkout
-    await Cart.syncPrices(userId);
+    let wsPct = 0;
+    if (userType === 'wholesale') {
+      const setting = await StoreSetting.get('wholesale_discount_pct');
+      wsPct = setting ? parseFloat(setting.value) || 0 : 0;
+    }
+    await Cart.syncPrices(userId, userType, wsPct);
     return this.getCart(userId, "en", userType);
   }
   static async validateForCheckout(userId, userType = "retail") {
@@ -136,7 +153,12 @@ class CartService {
     // Alert customer if prices changed since they added items
     const priceChanges = cart.items.filter((item) => item.price_changed);
     if (priceChanges.length > 0) {
-      await Cart.syncPrices(userId);
+      let wsPct = 0;
+      if (userType === 'wholesale') {
+        const setting = await StoreSetting.get('wholesale_discount_pct');
+        wsPct = setting ? parseFloat(setting.value) || 0 : 0;
+      }
+      await Cart.syncPrices(userId, userType, wsPct);
       return {
         valid: true,
         warning:
@@ -153,7 +175,12 @@ class CartService {
     if (!Array.isArray(items) || items.length === 0) {
       throw ApiError.badRequest("Items array is required");
     }
-    await Cart.replaceAll(userId, items);
+    let wsPct = 0;
+    if (userType === 'wholesale') {
+      const setting = await StoreSetting.get('wholesale_discount_pct');
+      wsPct = setting ? parseFloat(setting.value) || 0 : 0;
+    }
+    await Cart.replaceAll(userId, items, userType, wsPct);
     return this.getCart(userId, "en", userType);
   }
 }

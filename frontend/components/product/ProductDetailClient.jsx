@@ -22,6 +22,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { usePromotions } from "@/context/PromotionContext";
+import secureStorage from "@/lib/secureStorage";
 import ProductCard from "@/components/category/ProductCard";
 import ProductImages from "./ProductImages";
 import WishlistButton from "./WishlistButton";
@@ -164,9 +166,23 @@ export default function ProductDetailClient({
 }) {
   const { lang } = useLanguage();
   const { items, addItem, updateQty, openCart, totalCount } = useCart();
+  const { wholesaleDiscountPct } = usePromotions();
   const sentinelRef = useRef(null);
   const router = useRouter();
   const [descExpanded, setDescExpanded] = useState(false);
+  const [isWholesale, setIsWholesale] = useState(false);
+
+  useEffect(() => {
+    const userRaw = secureStorage.getItem("user");
+    if (userRaw) {
+      try {
+        const u = JSON.parse(userRaw);
+        setIsWholesale(u.user_type === "wholesale" || u.role === "wholesale_customer");
+      } catch {
+        setIsWholesale(false);
+      }
+    }
+  }, []);
 
   const [localProduct, setLocalProduct] = useState(product);
   const [localVariants, setLocalVariants] = useState(initialVariants);
@@ -319,8 +335,20 @@ export default function ProductDetailClient({
   /* -- Derived state (must come BEFORE effects that use `selected`) -- */
   const selected =
     localVariants.find((v) => v.id === selectedId) || localProduct;
-  const price = parseFloat(selected.price || 0);
-  const mrp = parseFloat(selected.mrp || price);
+  const retailPrice = parseFloat(selected.price || 0);
+  const mrp = parseFloat(selected.mrp || retailPrice);
+
+  // Wholesale price resolution: per-product wholesale_price, then store-wide fallback
+  const rawWsPrice = selected.wholesale_price ? parseFloat(selected.wholesale_price) : null;
+  const fallbackWsPrice =
+    isWholesale && !rawWsPrice && wholesaleDiscountPct > 0
+      ? parseFloat((retailPrice * (1 - wholesaleDiscountPct / 100)).toFixed(2))
+      : null;
+  const resolvedWsPrice = rawWsPrice || fallbackWsPrice;
+  const price = isWholesale && resolvedWsPrice ? resolvedWsPrice : retailPrice;
+  const showWsRate = isWholesale && resolvedWsPrice && resolvedWsPrice < retailPrice;
+  const wsSavingsPct = showWsRate ? Math.round(((retailPrice - resolvedWsPrice) / retailPrice) * 100) : 0;
+
   const hasDiscount = mrp > price;
   const discountPct = hasDiscount ? Math.round(((mrp - price) / mrp) * 100) : 0;
   const savings = hasDiscount ? (mrp - price).toFixed(2) : 0;
@@ -547,7 +575,17 @@ export default function ProductDetailClient({
                 <span className="text-[28px] md:text-3xl font-bold md:font-extrabold text-gray-900">
                   ₹{Math.round(price)}
                 </span>
-                {hasDiscount && (
+                {showWsRate && (
+                  <>
+                    <span className="text-base md:text-lg text-gray-400 line-through">
+                      ₹{Math.round(retailPrice)}
+                    </span>
+                    <span className="bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded-md">
+                      WS -{wsSavingsPct}%
+                    </span>
+                  </>
+                )}
+                {!showWsRate && hasDiscount && (
                   <>
                     <span className="text-base md:text-lg text-gray-400 line-through">
                       ₹{Math.round(mrp)}
@@ -558,7 +596,12 @@ export default function ProductDetailClient({
                   </>
                 )}
               </div>
-              {hasDiscount && (
+              {showWsRate && mrp > price && (
+                <p className="text-sm font-medium text-purple-600 -mt-2">
+                  Wholesale price - You save ₹{Math.round(mrp - price)} from MRP
+                </p>
+              )}
+              {!showWsRate && hasDiscount && (
                 <p className="text-sm font-medium text-[#16A34A] -mt-2">
                   You save ₹{Math.round(savings)}
                 </p>
@@ -604,8 +647,14 @@ export default function ProductDetailClient({
                     {localVariants.map((v) => {
                       const oos = (v.stock_quantity ?? 0) <= 0;
                       const isActive = v.id === selectedId;
-                      const vPrice = parseFloat(v.price || 0);
-                      const vMrp = parseFloat(v.mrp || vPrice);
+                      const vRetail = parseFloat(v.price || 0);
+                      const vWs = v.wholesale_price ? parseFloat(v.wholesale_price) : null;
+                      const vFallbackWs = isWholesale && !vWs && wholesaleDiscountPct > 0
+                        ? parseFloat((vRetail * (1 - wholesaleDiscountPct / 100)).toFixed(2))
+                        : null;
+                      const vResolved = vWs || vFallbackWs;
+                      const vPrice = isWholesale && vResolved ? vResolved : vRetail;
+                      const vMrp = parseFloat(v.mrp || vRetail);
                       return (
                         <button
                           key={v.id}
@@ -626,7 +675,7 @@ export default function ProductDetailClient({
                             {variantLabel(v)}
                           </span>
                           <span
-                            className={`text-xs font-bold mt-0.5 ${isActive ? "text-blue-700" : "text-gray-600"}`}
+                            className={`text-xs font-bold mt-0.5 ${isActive ? "text-blue-700" : oos ? "text-gray-300 line-through" : "text-gray-600"}`}
                           >
                             ₹{vPrice.toFixed(0)}
                           </span>
@@ -827,7 +876,7 @@ export default function ProductDetailClient({
         )}
 
         {/* -- Sticky cart bar -- */}
-        <StickyCartBar product={selected} sentinelRef={sentinelRef} />
+        <StickyCartBar product={selected} sentinelRef={sentinelRef} effectivePrice={price} />
       </div>
     </>
   );

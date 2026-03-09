@@ -1,11 +1,13 @@
 "use client";
 import secureStorage from "@/lib/secureStorage";
+import api from "@/lib/api";
 import {
   createContext,
   useContext,
   useState,
   useEffect,
   useCallback,
+  useRef,
 } from "react";
 import cartService from "@/services/cartService";
 // Store cart locally so users don't lose items if they close browser or logout
@@ -44,6 +46,28 @@ function isLoggedIn() {
 export function CartProvider({ children }) {
   const [items, setItems] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+
+  // Wholesale pricing: detect user type and fetch store-wide discount fallback
+  const wsInfoRef = useRef({ isWholesale: false, discountPct: 0 });
+  useEffect(() => {
+    const userRaw = typeof window !== "undefined" ? secureStorage.getItem("user") : null;
+    if (userRaw) {
+      try {
+        const u = JSON.parse(userRaw);
+        const isWs = u.user_type === "wholesale" || u.role === "wholesale_customer";
+        wsInfoRef.current.isWholesale = isWs;
+        if (isWs) {
+          api.get("/settings/public").then((res) => {
+            if (res.data?.wholesale_discount_pct) {
+              wsInfoRef.current.discountPct = parseFloat(res.data.wholesale_discount_pct) || 0;
+            }
+          }).catch(() => {});
+        }
+      } catch {
+        wsInfoRef.current = { isWholesale: false, discountPct: 0 };
+      }
+    }
+  }, []);
   // Load cart from localStorage on mount - works offline
   useEffect(() => {
     setItems(load());
@@ -66,6 +90,17 @@ export function CartProvider({ children }) {
   }, []);
   const addItem = useCallback(
     async (product, qty = 1) => {
+      // Resolve effective price: wholesale price for wholesale users, retail price otherwise
+      const { isWholesale, discountPct } = wsInfoRef.current;
+      let effectivePrice = parseFloat(product.price);
+      if (isWholesale) {
+        if (product.wholesale_price) {
+          effectivePrice = parseFloat(product.wholesale_price);
+        } else if (discountPct > 0) {
+          effectivePrice = parseFloat((effectivePrice * (1 - discountPct / 100)).toFixed(2));
+        }
+      }
+
       setItems((prev) => {
         const existing = prev.find((i) => i.id === product.id);
         // Enforce business rules: max quantity and stock limits
@@ -76,7 +111,7 @@ export function CartProvider({ children }) {
         if (existing) {
           const newQty = Math.min(existing.quantity + qty, maxQty, stock);
           return prev.map((i) =>
-            i.id === product.id ? { ...i, quantity: newQty } : i,
+            i.id === product.id ? { ...i, quantity: newQty, price: effectivePrice } : i,
           );
         }
         return [
@@ -84,7 +119,7 @@ export function CartProvider({ children }) {
           {
             id: product.id,
             name: product.name,
-            price: parseFloat(product.price),
+            price: effectivePrice,
             mrp: parseFloat(product.mrp || product.price),
             image_url: product.image_url || null,
             unit_pack_size: product.unit_pack_size || null,

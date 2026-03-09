@@ -30,6 +30,7 @@ const authenticate = async (req, res, next) => {
       role: user[0].role_name,
       roleId: user[0].role_id,
       userType: user[0].user_type,
+      user_type: user[0].user_type,
     };
     next();
   } catch (error) {
@@ -70,6 +71,7 @@ const optionalAuth = async (req, res, next) => {
         role: user[0].role_name,
         roleId: user[0].role_id,
         userType: user[0].user_type,
+        user_type: user[0].user_type,
       };
     }
     next();

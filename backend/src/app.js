@@ -46,11 +46,16 @@ app.use(helmet({
   xssFilter: securityConfig.securityHeaders.xssFilter,
 }));
 app.use(cors({
-  origin: config.cors.origin,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    if (config.cors.origins.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS policy: origin '${origin}' is not allowed`));
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept-Language', 'X-Requested-With'],
   credentials: true,
-  maxAge: 86400, 
+  maxAge: 86400,
 }));
 
 // Compression middleware - gzip responses for faster transfer

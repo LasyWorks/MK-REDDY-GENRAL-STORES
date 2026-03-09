@@ -7,7 +7,7 @@ const {
   optionalAuth,
 } = require("../middlewares/auth");
 const { cacheMiddleware } = require("../middlewares/cache");
-const { uploadExcel } = require("../middlewares/upload");
+const { uploadExcel, uploadImage } = require("../middlewares/upload");
 const {
   validateCreateProduct,
   validateUpdateProduct,
@@ -75,10 +75,14 @@ router.get(
 // ── Admin-only mutation routes ─────────────────────────────────────────────
 router.use(authenticate);
 router.use(authorize("admin"));
+// Bulk/special routes must come BEFORE /:id to avoid param shadowing
+router.get("/gst-summary", productController.getGSTSummary);
+router.put("/bulk-gst", productController.bulkUpdateGSTByCategory);
 router.post("/", validateCreateProduct, productController.createProduct);
 router.put("/:id", validateUpdateProduct, productController.updateProduct);
 router.delete("/:id", productController.deleteProduct);
 router.put("/:id/stock", validateStockUpdate, productController.updateStock);
 router.put("/:id/toggle-active", productController.toggleActive);
 router.post("/bulk-upload", uploadExcel, productController.bulkUpload);
+router.post("/upload-image", uploadImage, productController.uploadProductImage);
 module.exports = router;

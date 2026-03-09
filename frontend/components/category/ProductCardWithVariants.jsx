@@ -268,7 +268,7 @@ function BottomSheet({ open, onClose, product, variants, productPromoMap }) {
 // ─── Main card ────────────────────────────────────────────────────────────────
 function ProductCardWithVariants({ variants }) {
   const { items, addItem, updateQty } = useCart();
-  const { productPromoMap } = usePromotions();
+  const { productPromoMap, wholesaleDiscountPct } = usePromotions();
   const [showSheet, setShowSheet] = useState(false);
   const [adding, setAdding] = useState(false);
   const [bounce, setBounce] = useState(false);
@@ -316,6 +316,22 @@ function ProductCardWithVariants({ variants }) {
     badgePct: cardBadgePct,
     flatAmt: cardFlatAmt,
   } = calcPromoPrice(defaultVariant || {}, promo);
+
+  // Resolve wholesale effective price: per-variant price, or fallback discount.
+  const variantWsPrice = defaultVariant?.wholesale_price
+    ? parseFloat(defaultVariant.wholesale_price)
+    : null;
+  const fallbackWsPrice =
+    isWholesale && !variantWsPrice && wholesaleDiscountPct > 0
+      ? parseFloat((displayPrice * (1 - wholesaleDiscountPct / 100)).toFixed(2))
+      : null;
+  const resolvedWsPrice = variantWsPrice || fallbackWsPrice;
+  const effectiveDisplayPrice =
+    isWholesale && resolvedWsPrice ? resolvedWsPrice : displayPrice;
+  const effectiveStrikePrice =
+    isWholesale && resolvedWsPrice && resolvedWsPrice < displayPrice
+      ? displayPrice
+      : cardStrikePrice;
 
   const isOutOfStock = (defaultVariant?.stock_quantity ?? 0) <= 0;
   const cartItem = items.find((i) => i.id === defaultVariant?.id);
@@ -442,16 +458,16 @@ function ProductCardWithVariants({ variants }) {
           <div className="mt-3 md:mt-1.5 flex flex-col md:flex-row md:items-center md:justify-between md:gap-2">
             <div className="flex items-baseline gap-1.5">
               <span className="text-[18px] md:text-[14px] font-bold text-gray-900 leading-tight">
-                ₹{Math.round(displayPrice)}
+                ₹{Math.round(effectiveDisplayPrice)}
                 {displayVariants.length > 1 && (
                   <span className="text-[11px] md:text-[10px] text-gray-400 font-normal ml-0.5">
                     onwards
                   </span>
                 )}
               </span>
-              {cardStrikePrice != null && cardStrikePrice > displayPrice && (
+              {effectiveStrikePrice != null && effectiveStrikePrice > effectiveDisplayPrice && (
                 <span className="text-[11px] md:text-[10px] text-gray-400 line-through leading-none">
-                  ₹{Math.round(cardStrikePrice)}
+                  ₹{Math.round(effectiveStrikePrice)}
                 </span>
               )}
             </div>
