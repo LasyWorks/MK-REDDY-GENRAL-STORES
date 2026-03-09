@@ -21,15 +21,16 @@ const getMyOrders = asyncHandler(async (req, res) => {
 });
 const getAllOrders = asyncHandler(async (req, res) => {
   const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
-  const { status, user_id, start_date, end_date } = req.query;
+  const { status, user_id, start_date, end_date, date_from, date_to, search } = req.query;
   const lang = req.language || 'en';
   const result = await OrderService.getAllOrders({
     page,
     limit,
     status,
     userId: user_id,
-    startDate: start_date,
-    endDate: end_date,
+    startDate: start_date || date_from,
+    endDate: end_date || date_to,
+    search,
     lang,
   });
   ApiResponse.paginated(res, result.orders, {
@@ -84,4 +85,4 @@ module.exports = {
   updateOrderStatus,
   cancelOrder,
   getStatistics,
-};
+};

@@ -133,17 +133,17 @@ const commonRules = {
       .withMessage(`${field} must be a positive integer`),
   stock: (field = "stock_quantity") =>
     body(field)
-      .isInt({ min: 0 })
-      .withMessage(`${field} must be a non-negative integer`),
+      .isFloat({ min: 0 })
+      .withMessage(`${field} must be a non-negative number`),
   gstPercentage: (field = "gst_percentage") =>
     body(field)
       .isFloat({ min: 0, max: 28 })
       .withMessage(`${field} must be between 0 and 28`),
   unitType: (field = "unit_type") =>
     body(field)
-      .isIn(["kg", "piece", "case", "litre", "gram", "pack"])
+      .isIn(["kg", "piece", "case", "litre", "gram", "pack", "loose"])
       .withMessage(
-        `${field} must be one of: kg, piece, case, litre, gram, pack`,
+        `${field} must be one of: kg, piece, case, litre, gram, pack, loose`,
       ),
 };
 const userValidation = {
@@ -235,10 +235,11 @@ const productValidation = {
     commonRules.string("name_en", 2, 200),
     commonRules.nameTelugu("name_te"),
     commonRules.bodyUuid("category_id"),
-    commonRules.unitType("unit_type").optional(),
+    body("unit_type").optional({ nullable: true }).trim().isLength({ max: 50 }).withMessage("unit_type must not exceed 50 characters"),
     commonRules.price("price"),
     commonRules.gstPercentage("gst_percentage").optional(),
     commonRules.stock("stock_quantity").optional(),
+    body("low_stock_threshold").optional().isInt({ min: 0 }).withMessage("low_stock_threshold must be a non-negative integer"),
     body("description_en").optional().trim().isLength({ max: 1000 }),
     body("description_te").optional().trim().isLength({ max: 1000 }),
     body("sku").optional().trim().isLength({ max: 50 }),
@@ -249,10 +250,11 @@ const productValidation = {
     commonRules.string("name_en", 2, 200).optional(),
     commonRules.nameTelugu("name_te"),
     commonRules.bodyUuid("category_id").optional(),
-    commonRules.unitType("unit_type").optional(),
+    body("unit_type").optional({ nullable: true }).trim().isLength({ max: 50 }).withMessage("unit_type must not exceed 50 characters"),
     commonRules.price("price").optional(),
     commonRules.gstPercentage("gst_percentage").optional(),
     commonRules.stock("stock_quantity").optional(),
+    body("low_stock_threshold").optional().isInt({ min: 0 }).withMessage("low_stock_threshold must be a non-negative integer"),
     body("description_en").optional().trim().isLength({ max: 1000 }),
     body("description_te").optional().trim().isLength({ max: 1000 }),
     body("is_active").optional().isBoolean(),

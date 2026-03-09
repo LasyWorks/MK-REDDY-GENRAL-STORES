@@ -209,6 +209,13 @@ const downloadAllProducts = asyncHandler(async (req, res) => {
     sortOrder: "ASC",
   });
 
+  // Optional: filter to specific IDs when ?ids=uuid1,uuid2,... is provided
+  const idsParam = req.query.ids;
+  const filterIds = idsParam ? new Set(idsParam.split(",").map((s) => s.trim()).filter(Boolean)) : null;
+  if (filterIds && filterIds.size > 0) {
+    result.products = result.products.filter((p) => filterIds.has(String(p.id)));
+  }
+
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "MK Reddy General Stores";
   const ws = workbook.addWorksheet("Products");
@@ -217,6 +224,7 @@ const downloadAllProducts = asyncHandler(async (req, res) => {
     { header: "name_en", key: "name_en", width: 35 },
     { header: "unit_pack_size", key: "unit_pack_size", width: 14 },
     { header: "stock_quantity", key: "stock_quantity", width: 14 },
+    { header: "low_stock_threshold", key: "low_stock_threshold", width: 20 },
     { header: "price", key: "price", width: 10 },
     { header: "mrp", key: "mrp", width: 10 },
     { header: "wholesale_price", key: "wholesale_price", width: 16 },
@@ -238,6 +246,7 @@ const downloadAllProducts = asyncHandler(async (req, res) => {
       name_en: p.name_en || p.name || "",
       unit_pack_size: p.unit_pack_size || "",
       stock_quantity: p.stock_quantity,
+      low_stock_threshold: p.low_stock_threshold ?? 10,
       price: p.price,
       mrp: p.mrp != null ? p.mrp : "",
       wholesale_price: p.wholesale_price != null ? p.wholesale_price : "",

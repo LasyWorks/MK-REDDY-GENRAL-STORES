@@ -40,6 +40,25 @@ const formatPhone = (phone) => {
   }
   return sanitized;
 };
+/**
+ * Parse a variant label such as "250 g", "500 g", "1 kg", or "1.5 kg" to kilograms.
+ * Returns null when the label is not a parseable weight string.
+ *
+ * parseVariantToKg("250 g")  => 0.25
+ * parseVariantToKg("1 kg")   => 1
+ * parseVariantToKg("1.5 kg") => 1.5
+ * parseVariantToKg("Pack of 4") => null
+ */
+const parseVariantToKg = (variantStr) => {
+  if (!variantStr) return null;
+  const lower = variantStr.toLowerCase().trim();
+  const m = lower.match(/^([\d.]+)\s*(kg|g|gm|gram|grams|kilo|kilogram|kilograms)$/);
+  if (!m) return null;
+  const val = parseFloat(m[1]);
+  const unit = m[2];
+  if (unit === 'kg' || unit === 'kilo' || unit === 'kilogram' || unit === 'kilograms') return val;
+  return val / 1000;
+};
 const calculateGST = (amount, gstPercentage) => {
   const gstAmount = (amount * gstPercentage) / 100;
   // Split GST equally between CGST and SGST (Indian tax structure)
@@ -137,6 +156,7 @@ module.exports = {
   generateUUID,
   sanitizePhone,
   formatPhone,
+  parseVariantToKg,
   calculateGST,
   getPaginationParams,
   escapeHtml,

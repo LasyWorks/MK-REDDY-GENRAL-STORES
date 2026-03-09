@@ -105,8 +105,12 @@ class ApiClient {
           }
         }
 
-        const errorMessage =
+        let errorMessage =
           data.message || `${response.status} ${response.statusText}`;
+        if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+          const details = data.errors.map(e => `${e.field}: ${e.message}`).join(", ");
+          errorMessage = `${errorMessage} (${details})`;
+        }
         // Only log server-side errors (5xx); 4xx are expected business cases handled by callers
         if (response.status >= 500) {
           console.error(

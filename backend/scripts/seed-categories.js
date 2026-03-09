@@ -29,17 +29,18 @@ const pool = new Pool({
 // `defaultUnit` is stored alongside the name (Telugu translation is auto-set).
 const CATEGORIES = [
   {
-    name: "Cooking Essentials",
-    icon: "🍚",
+    name: "Bulk & Loose Items",
+    icon: "⚖️",
     order: 1,
     subs: [
-      { name: "Rice & Cereals",                 order: 1 },
-      { name: "Atta, Flour & Sooji",             order: 2 },
-      { name: "Dal & Pulses",                    order: 3 },
-      { name: "Cooking Oil & Ghee",              order: 4 },
-      { name: "Salt, Sugar & Jaggery",           order: 5 },
-      { name: "Spices & Masala",                 order: 6 },
-      { name: "Tamarind, Sauces & Condiments",   order: 7 },
+      { name: "Rice & Cereals",       order: 1 },
+      { name: "Wheat, Atta & Sooji",  order: 2 },
+      { name: "Dal & Pulses",         order: 3 },
+      { name: "Cooking Oil & Ghee",   order: 4 },
+      { name: "Sugar, Salt & Jaggery", order: 5 },
+      { name: "Spices & Masala",      order: 6 },
+      { name: "Dry Fruits & Nuts",    order: 7 },
+      { name: "Tamarind & Condiments", order: 8 },
     ],
   },
   {
@@ -142,14 +143,15 @@ const CATEGORIES = [
 
 // Simple Telugu name mapping (phonetic transliterations for common category names)
 const TELUGU_NAMES = {
-  "Cooking Essentials":                  "వంట అవసరాలు",
+  "Bulk & Loose Items":                  "బల్క్ & లూజ్ వస్తువులు",
   "Rice & Cereals":                      "బియ్యం & ధాన్యాలు",
-  "Atta, Flour & Sooji":                 "అట్ట, పిండి & సూజి",
+  "Wheat, Atta & Sooji":                 "గోధుమ, అట్ట & సూజి",
   "Dal & Pulses":                        "పప్పులు & కాయగూరలు",
   "Cooking Oil & Ghee":                  "వంట నూనె & నెయ్యి",
-  "Salt, Sugar & Jaggery":              "ఉప్పు, పంచదార & బెల్లం",
+  "Sugar, Salt & Jaggery":              "పంచదార, ఉప్పు & బెల్లం",
   "Spices & Masala":                     "సుగంధ ద్రవ్యాలు & మసాలా",
-  "Tamarind, Sauces & Condiments":       "చింతపండు, సాస్ & మసాలాలు",
+  "Dry Fruits & Nuts":                   "డ్రై ఫ్రూట్స్ & నట్స్",
+  "Tamarind & Condiments":               "చింతపండు & మసాలాలు",
   "Beverages":                           "పానీయాలు",
   "Tea & Coffee":                        "టీ & కాఫీ",
   "Cold Drinks & Aerated Beverages":     "కోల్డ్ డ్రింక్స్",

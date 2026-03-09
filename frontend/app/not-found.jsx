@@ -12,7 +12,7 @@ export default function NotFound() {
     { label: "Fresh Vegetables", href: "/categories/vegetables", Icon: SparklesIcon },
     { label: "Dairy & Eggs", href: "/categories/dairy", Icon: Home },
     { label: "Snacks & Drinks", href: "/categories/snacks", Icon: ShoppingCart },
-    { label: "Cooking Essentials", href: "/categories/cooking", Icon: TagIcon },
+    { label: "Bulk & Loose Items", href: "/categories/bulk", Icon: TagIcon },
   ];
   return (
     <main className="min-h-[80vh] bg-gradient-to-b from-blue-50/40 to-white flex flex-col items-center justify-center px-4 py-20 text-center">

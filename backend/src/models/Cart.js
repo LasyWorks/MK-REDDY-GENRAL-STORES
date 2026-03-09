@@ -5,6 +5,22 @@ const {
   modify,
   withTransaction,
 } = require("../config/database");
+const { parseVariantToKg } = require('../utils/helpers');
+
+/**
+ * Format a decimal kg quantity into a human-readable string for loose items.
+ * formatLooseQty(50)    => "50 kg"
+ * formatLooseQty(0.5)   => "500 g"
+ * formatLooseQty(1.25)  => "1.25 kg"
+ */
+function formatLooseQty(kg) {
+  if (kg < 1) {
+    return `${Math.round(kg * 1000)} g`;
+  }
+  const rounded = parseFloat(kg.toFixed(3));
+  return `${rounded} kg`;
+}
+
 class Cart {
   static async getOrCreate(userId) {
     let cart = await queryOne("SELECT * FROM carts WHERE user_id = $1", [
@@ -30,7 +46,7 @@ class Cart {
       `SELECT ci.*,
               COALESCE(pt_req.name, pt_en.name)  AS product_name,
               pt_en.name AS product_name_en,
-              p.unit_type, p.price AS current_price,
+              p.unit_type, p.variant, p.unit_pack_size, p.parent_product_id, p.price AS current_price,
               p.stock_quantity, p.gst_percentage, p.is_active, p.image_url,
               COALESCE(ct_req.name, ct_en.name)  AS category_name
        FROM cart_items ci
@@ -99,6 +115,8 @@ class Cart {
         product_name_en: item.product_name_en || item.product_name,
         category_name: item.category_name,
         unit_type: item.unit_type,
+        variant: item.variant,
+        parent_product_id: item.parent_product_id,
         quantity: item.quantity,
         unit_price: parseFloat(item.unit_price),
         current_price: parseFloat(item.current_price),
@@ -192,7 +210,7 @@ class Cart {
     ]);
     if (!cart) return { valid: true, issues: [] };
     const items = await query(
-      `SELECT ci.*, p.stock_quantity, p.is_active,
+      `SELECT ci.*, p.stock_quantity, p.is_active, p.unit_type, p.variant, p.parent_product_id,
               COALESCE(pt.name, 'Unknown') AS product_name
        FROM cart_items ci
        JOIN products p ON ci.product_id = p.id
@@ -201,6 +219,39 @@ class Cart {
       [cart.id],
     );
     const issues = [];
+    // Group loose items by shared stock pool root product
+    const loosePoolMap = {};
+    for (const item of items) {
+      if (item.unit_type === 'loose') {
+        const rootId = item.parent_product_id || item.product_id;
+        const kgPerUnit = parseVariantToKg(item.variant);
+        if (kgPerUnit !== null) {
+          if (!loosePoolMap[rootId]) loosePoolMap[rootId] = { items: [], totalKg: 0 };
+          loosePoolMap[rootId].items.push(item);
+          loosePoolMap[rootId].totalKg += kgPerUnit * parseFloat(item.quantity);
+        }
+      }
+    }
+    // Validate each shared pool against the root product stock
+    for (const [rootId, pool] of Object.entries(loosePoolMap)) {
+      const rootRow = await queryOne('SELECT stock_quantity FROM products WHERE id = $1', [rootId]);
+      const rootStock = rootRow ? parseFloat(rootRow.stock_quantity) : 0;
+      if (pool.totalKg > rootStock) {
+        const availableDisplay = rootStock < 1
+          ? `${Math.round(rootStock * 1000)} g`
+          : `${rootStock.toFixed(3)} kg`;
+        for (const poolItem of pool.items) {
+          issues.push({
+            product_id: poolItem.product_id,
+            product_name: poolItem.product_name,
+            issue: `Only ${availableDisplay} available (shared across all sizes)`,
+            type: 'insufficient_stock',
+            available: rootStock,
+          });
+        }
+      }
+    }
+    // Validate non-loose items individually
     for (const item of items) {
       if (!item.is_active) {
         issues.push({
@@ -209,13 +260,13 @@ class Cart {
           issue: "Product is no longer available",
           type: "unavailable",
         });
-      } else if (item.stock_quantity < item.quantity) {
+      } else if (item.unit_type !== 'loose' && parseFloat(item.stock_quantity) < parseFloat(item.quantity)) {
         issues.push({
           product_id: item.product_id,
           product_name: item.product_name,
           issue: `Only ${item.stock_quantity} in stock`,
           type: "insufficient_stock",
-          available: item.stock_quantity,
+          available: parseFloat(item.stock_quantity),
         });
       }
     }
@@ -243,6 +294,26 @@ class Cart {
         );
       }
     });
+  }
+  static async getLooseReservedKgExcluding(userId, rootId, excludeProductId) {
+    const cart = await queryOne('SELECT id FROM carts WHERE user_id = $1', [userId]);
+    if (!cart) return 0;
+    const rows = await query(
+      `SELECT ci.quantity, p.variant
+       FROM cart_items ci
+       JOIN products p ON ci.product_id = p.id
+       WHERE ci.cart_id = $1
+         AND p.unit_type = 'loose'
+         AND (p.id = $2 OR p.parent_product_id = $2)
+         AND ci.product_id != $3`,
+      [cart.id, rootId, excludeProductId],
+    );
+    let totalKg = 0;
+    for (const row of rows) {
+      const kg = parseVariantToKg(row.variant);
+      if (kg !== null) totalKg += kg * parseFloat(row.quantity);
+    }
+    return totalKg;
   }
 }
 module.exports = Cart;

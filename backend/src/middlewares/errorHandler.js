@@ -67,6 +67,7 @@ const errorHandler = (err, req, res, next) => {
     userId: req.user?.id,
     statusCode: error.statusCode,
     message: error.message,
+    ...(error.errors && { validationErrors: error.errors }),
   };
   // 500+ errors are server issues (log with stack), 400s are client mistakes (warn only)
   if (error.statusCode >= 500) {

@@ -1,6 +1,7 @@
 const { Cart, Product } = require("../models");
 const StoreSetting = require("../models/StoreSetting");
 const ApiError = require("../utils/ApiError");
+const { parseVariantToKg } = require("../utils/helpers");
 class CartService {
   static async getCart(userId, lang = "en", userType = "retail") {
     const gstConfig = await StoreSetting.getGstConfig();
@@ -11,23 +12,46 @@ class CartService {
     if (!product) {
       throw ApiError.notFound("Product not found");
     }
-    // Don't let customers add discontinued or hidden products to cart
     if (!product.is_active) {
       throw ApiError.badRequest("Product is not available");
     }
-    // Check if item already in cart to calculate total requested quantity
-    const existingItem = await Cart.getItem(userId, productId);
-    const totalQuantity = (existingItem?.quantity || 0) + quantity;
-    // Prevent overselling - ensure we have enough physical inventory
-    if (product.stock_quantity < totalQuantity) {
-      throw ApiError.badRequest(
-        `Insufficient stock. Only ${product.stock_quantity} available.`,
-      );
+    if (product.unit_type === 'loose') {
+      const kgPerUnit = parseVariantToKg(product.variant);
+      if (kgPerUnit !== null) {
+        const rootId = product.parent_product_id || product.id;
+        const rootProduct = product.parent_product_id
+          ? await Product.findById(rootId)
+          : product;
+        const existingItem = await Cart.getItem(userId, productId);
+        const existingQty = parseFloat(existingItem?.quantity || 0);
+        const newTotalKg = (existingQty + quantity) * kgPerUnit;
+        const otherReservedKg = await Cart.getLooseReservedKgExcluding(userId, rootId, productId);
+        const availableKg = parseFloat(rootProduct.stock_quantity) - otherReservedKg;
+        if (newTotalKg > availableKg) {
+          const availStr = availableKg <= 0
+            ? 'none'
+            : availableKg < 1
+              ? `${Math.round(availableKg * 1000)} g`
+              : `${availableKg.toFixed(3)} kg`;
+          throw ApiError.badRequest(`Insufficient stock. Only ${availStr} available.`);
+        }
+      } else {
+        const existingItem = await Cart.getItem(userId, productId);
+        const totalQuantity = (existingItem?.quantity || 0) + quantity;
+        if (product.stock_quantity < totalQuantity) {
+          throw ApiError.badRequest(`Insufficient stock. Only ${product.stock_quantity} available.`);
+        }
+      }
+    } else {
+      const existingItem = await Cart.getItem(userId, productId);
+      const totalQuantity = (existingItem?.quantity || 0) + quantity;
+      if (product.stock_quantity < totalQuantity) {
+        throw ApiError.badRequest(`Insufficient stock. Only ${product.stock_quantity} available.`);
+      }
     }
-    // Some products have bulk limits (e.g., promotional items limited to 5 per customer)
     if (
       product.max_order_quantity &&
-      totalQuantity > product.max_order_quantity
+      quantity > product.max_order_quantity
     ) {
       throw ApiError.badRequest(
         `Maximum order quantity is ${product.max_order_quantity}`,
@@ -37,7 +61,6 @@ class CartService {
     return this.getCart(userId, "en", userType);
   }
   static async updateItem(userId, productId, quantity, userType = "retail") {
-    // Treat zero or negative quantity as removal to keep cart clean
     if (quantity <= 0) {
       return this.removeItem(userId, productId, userType);
     }
@@ -45,10 +68,33 @@ class CartService {
     if (!product) {
       throw ApiError.notFound("Product not found");
     }
-    if (product.stock_quantity < quantity) {
-      throw ApiError.badRequest(
-        `Insufficient stock. Only ${product.stock_quantity} available.`,
-      );
+    if (product.unit_type === 'loose') {
+      const kgPerUnit = parseVariantToKg(product.variant);
+      if (kgPerUnit !== null) {
+        const rootId = product.parent_product_id || product.id;
+        const rootProduct = product.parent_product_id
+          ? await Product.findById(rootId)
+          : product;
+        const requestedKg = quantity * kgPerUnit;
+        const otherReservedKg = await Cart.getLooseReservedKgExcluding(userId, rootId, productId);
+        const availableKg = parseFloat(rootProduct.stock_quantity) - otherReservedKg;
+        if (requestedKg > availableKg) {
+          const availStr = availableKg <= 0
+            ? 'none'
+            : availableKg < 1
+              ? `${Math.round(availableKg * 1000)} g`
+              : `${availableKg.toFixed(3)} kg`;
+          throw ApiError.badRequest(`Insufficient stock. Only ${availStr} available.`);
+        }
+      } else {
+        if (product.stock_quantity < quantity) {
+          throw ApiError.badRequest(`Insufficient stock. Only ${product.stock_quantity} available.`);
+        }
+      }
+    } else {
+      if (product.stock_quantity < quantity) {
+        throw ApiError.badRequest(`Insufficient stock. Only ${product.stock_quantity} available.`);
+      }
     }
     if (product.max_order_quantity && quantity > product.max_order_quantity) {
       throw ApiError.badRequest(

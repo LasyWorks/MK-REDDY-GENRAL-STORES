@@ -136,7 +136,10 @@ class EmailService {
 
     const itemsHtml = invoice.items.map((item, idx) => `
       <tr>
-        <td style="padding:11px 14px;border-bottom:1px solid #f1f5f9;background:${idx % 2 === 0 ? '#f8fafc' : '#ffffff'};font-weight:500;color:#1e293b;">${item.product_name}</td>
+        <td style="padding:11px 14px;border-bottom:1px solid #f1f5f9;background:${idx % 2 === 0 ? '#f8fafc' : '#ffffff'};">
+          <span style="font-weight:500;color:#1e293b;display:block;">${item.product_name}</span>
+          ${item.variant ? `<span style="display:inline-block;margin-top:3px;padding:1px 7px;background:#e0e7ff;color:#3730a3;font-size:11px;font-weight:600;border-radius:4px;">${item.variant}</span>` : ''}
+        </td>
         <td style="padding:11px 14px;border-bottom:1px solid #f1f5f9;background:${idx % 2 === 0 ? '#f8fafc' : '#ffffff'};text-align:center;color:#374151;">${item.quantity} ${item.unit_type}</td>
         <td style="padding:11px 14px;border-bottom:1px solid #f1f5f9;background:${idx % 2 === 0 ? '#f8fafc' : '#ffffff'};text-align:right;color:#374151;font-variant-numeric:tabular-nums;">&#8377;${parseFloat(item.unit_price).toFixed(2)}</td>
         <td style="padding:11px 14px;border-bottom:1px solid #f1f5f9;background:${idx % 2 === 0 ? '#f8fafc' : '#ffffff'};text-align:right;font-weight:600;color:#14532d;font-variant-numeric:tabular-nums;">&#8377;${parseFloat(item.total).toFixed(2)}</td>
@@ -216,6 +219,20 @@ class EmailService {
   async sendOrderReadyNotification(order, user) {
     if (!user.email) return { success: false, reason: 'No email' };
 
+    // Fetch full invoice with items so we can list them in the email
+    const invoice = await Invoice.getFullInvoice(order.id).catch(() => null);
+    const readyItemsHtml = invoice && invoice.items && invoice.items.length > 0
+      ? invoice.items.map((item, idx) => `
+      <tr>
+        <td style="padding:11px 14px;border-bottom:1px solid #f1f5f9;background:${idx % 2 === 0 ? '#f8fafc' : '#ffffff'};">
+          <span style="font-weight:500;color:#1e293b;display:block;">${item.product_name}</span>
+          ${item.variant ? `<span style="display:inline-block;margin-top:3px;padding:1px 7px;background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:600;border-radius:4px;">${item.variant}</span>` : ''}
+        </td>
+        <td style="padding:11px 14px;border-bottom:1px solid #f1f5f9;background:${idx % 2 === 0 ? '#f8fafc' : '#ffffff'};text-align:center;color:#374151;">x${item.quantity}</td>
+        <td style="padding:11px 14px;border-bottom:1px solid #f1f5f9;background:${idx % 2 === 0 ? '#f8fafc' : '#ffffff'};text-align:right;font-weight:600;color:#14532d;font-variant-numeric:tabular-nums;">&#8377;${parseFloat(item.total).toFixed(2)}</td>
+      </tr>`).join('')
+      : `<tr><td colspan="3" style="padding:14px;text-align:center;color:#94a3b8;font-size:13px;">See order confirmation for item details</td></tr>`;
+
     const html = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Order Ready</title><style>${BASE_STYLES}</style></head>
@@ -235,6 +252,16 @@ class EmailService {
         <div class="meta-cell"><div class="meta-label">Order Total</div><div class="meta-value">&#8377;${parseFloat(order.total_amount||0).toFixed(2)}</div></div>
       </div>
     </div>
+    <div class="em-divider"></div>
+    <div class="section-heading">Your Items</div>
+    <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;font-size:13px;">
+      <thead><tr>
+        <th style="background:#0d1b3e;color:#c8b88a;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.8px;padding:11px 14px;text-align:left;">Product</th>
+        <th style="background:#0d1b3e;color:#c8b88a;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.8px;padding:11px 14px;text-align:center;">Qty</th>
+        <th style="background:#0d1b3e;color:#c8b88a;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.8px;padding:11px 14px;text-align:right;">Amount</th>
+      </tr></thead>
+      <tbody>${readyItemsHtml}</tbody>
+    </table>
     <div class="em-divider"></div>
     <div class="info-box blue" style="background:#eff6ff;border:1px solid #bfdbfe;">
       <div class="info-box-title" style="color:#1d4ed8;">Pickup Details</div>

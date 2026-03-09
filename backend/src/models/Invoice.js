@@ -59,6 +59,7 @@ class Invoice {
     if (!invoice) return null;
     const items = await query(
       `SELECT oi.*, p.image_url,
+              COALESCE(oi.product_variant, p.variant, p.unit_pack_size) AS variant,
               COALESCE(pt_req.name, oi.product_name_en) AS product_name
        FROM order_items oi
        LEFT JOIN products p ON oi.product_id = p.id
@@ -73,6 +74,7 @@ class Invoice {
       order_date: invoice.order_date,
       items: items.map(item => ({
         product_name: item.product_name,
+        variant: item.variant || null,
         quantity: item.quantity, unit_type: item.unit_type,
         unit_price: parseFloat(item.unit_price),
         gst_percentage: parseFloat(item.gst_percentage),

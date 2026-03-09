@@ -202,7 +202,9 @@ class ProductService {
     };
   }
   static async bulkUpload(filePath, adminId) {
-    // Read Excel file
+    const { query: dbQuery } = require("../config/database");
+
+    // 1. Read Excel file (sync in-memory, no per-row I/O)
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(filePath);
     const worksheet = workbook.worksheets[0];
@@ -210,21 +212,34 @@ class ProductService {
 
     const headers = [];
     const data = [];
-    worksheet.getRow(1).eachCell((cell, col) => {
-      headers[col] = cell.value;
-    });
+    worksheet.getRow(1).eachCell((cell, col) => { headers[col] = cell.value; });
     worksheet.eachRow((row, rowNumber) => {
       if (rowNumber === 1) return;
       const rowData = {};
-      row.eachCell((cell, col) => {
-        const h = headers[col];
-        if (h) rowData[h] = cell.value;
-      });
+      row.eachCell((cell, col) => { const h = headers[col]; if (h) rowData[h] = cell.value; });
       if (Object.keys(rowData).length > 0) data.push(rowData);
     });
 
     if (data.length === 0) throw ApiError.badRequest("Excel file is empty");
 
+    // 2. Load ALL products into memory in ONE query — build lookup maps
+    const allRows = await dbQuery(
+      `SELECT p.id, p.unit_pack_size, pt.name AS name_en
+       FROM products p
+       JOIN product_translations pt ON pt.product_id = p.id AND pt.lang_code = 'en'`,
+    );
+    // Map: "lower(name)::lower(pack)" -> id  and  "lower(name)" -> id (fallback)
+    const byNamePack = new Map();
+    const byName = new Map();
+    for (const r of allRows) {
+      const n = (r.name_en || "").toLowerCase().trim();
+      const pk = (r.unit_pack_size || "").toLowerCase().trim();
+      const key = pk ? `${n}::${pk}` : n;
+      if (pk) byNamePack.set(`${n}::${pk}`, r.id);
+      if (!byName.has(n)) byName.set(n, r.id);
+    }
+
+    // 3. Validate rows and build update queue — all in memory, zero DB calls
     const updateQueue = [];
     const errors = [];
 
@@ -232,15 +247,15 @@ class ProductService {
       const row = data[i];
       const rowIndex = i + 2;
       try {
-        // Match product: by name_en + unit_pack_size (case-insensitive)
         const nameRaw = row.name_en ? String(row.name_en).trim() : null;
-        const packRaw = row.unit_pack_size
-          ? String(row.unit_pack_size).trim()
-          : null;
+        const packRaw = row.unit_pack_size ? String(row.unit_pack_size).trim() : null;
         if (!nameRaw) throw new Error("name_en is required");
 
-        const existing = await Product.findByNameAndPack(nameRaw, packRaw);
-        if (!existing) {
+        const nKey = nameRaw.toLowerCase();
+        const pKey = packRaw ? packRaw.toLowerCase() : "";
+        const productId = (pKey && byNamePack.get(`${nKey}::${pKey}`)) || byName.get(nKey) || null;
+
+        if (!productId) {
           throw new Error(
             `Product "${nameRaw}"${packRaw ? ` (${packRaw})` : ""} not found — use Add Product to create new products`,
           );
@@ -248,7 +263,7 @@ class ProductService {
 
         const updates = {};
         if (row.stock_quantity !== undefined && row.stock_quantity !== "") {
-          const qty = parseInt(row.stock_quantity);
+          const qty = parseFloat(row.stock_quantity);
           if (!isNaN(qty) && qty >= 0) updates.stock_quantity = qty;
         }
         if (row.price !== undefined && row.price !== "") {
@@ -263,20 +278,15 @@ class ProductService {
           const wp = parseFloat(row.wholesale_price);
           if (!isNaN(wp) && wp > 0) updates.wholesale_price = wp;
         }
+        if (row.low_stock_threshold !== undefined && row.low_stock_threshold !== "") {
+          const lst = parseInt(row.low_stock_threshold);
+          if (!isNaN(lst) && lst >= 0) updates.low_stock_threshold = lst;
+        }
 
         if (Object.keys(updates).length === 0) {
-          errors.push({
-            row: rowIndex,
-            name: nameRaw,
-            error: "No updatable fields found in this row",
-          });
+          errors.push({ row: rowIndex, name: nameRaw, error: "No updatable fields found in this row" });
         } else {
-          updateQueue.push({
-            _rowIndex: rowIndex,
-            id: existing.id,
-            name: nameRaw,
-            updates,
-          });
+          updateQueue.push({ _rowIndex: rowIndex, id: productId, name: nameRaw, updates });
         }
       } catch (error) {
         errors.push({ row: rowIndex, name: row.name_en, error: error.message });
@@ -285,25 +295,23 @@ class ProductService {
 
     if (updateQueue.length === 0) {
       fs.unlinkSync(filePath);
-      throw ApiError.badRequest(
-        "No products could be matched for update",
-        errors,
-      );
+      throw ApiError.badRequest("No products could be matched for update", errors);
     }
 
+    // 4. Run all updates concurrently (capped at 10 parallel connections)
     let updatedCount = 0;
     const updateErrors = [];
-    for (const upd of updateQueue) {
-      try {
-        await Product.update(upd.id, upd.updates);
-        updatedCount++;
-      } catch (err) {
-        updateErrors.push({
-          row: upd._rowIndex,
-          name: upd.name,
-          error: err.message,
-        });
-      }
+    const CONCURRENCY = 10;
+    for (let i = 0; i < updateQueue.length; i += CONCURRENCY) {
+      const batch = updateQueue.slice(i, i + CONCURRENCY);
+      const results = await Promise.allSettled(batch.map((upd) => Product.update(upd.id, upd.updates)));
+      results.forEach((result, idx) => {
+        if (result.status === "fulfilled") {
+          updatedCount++;
+        } else {
+          updateErrors.push({ row: batch[idx]._rowIndex, name: batch[idx].name, error: result.reason?.message || "Update failed" });
+        }
+      });
     }
 
     fs.unlinkSync(filePath);
@@ -311,11 +319,7 @@ class ProductService {
       adminId,
       action: "BULK_STOCK_UPDATE",
       entityType: "product",
-      newValue: {
-        total: data.length,
-        updated: updatedCount,
-        failed: errors.length + updateErrors.length,
-      },
+      newValue: { total: data.length, updated: updatedCount, failed: errors.length + updateErrors.length },
     });
     return {
       message: "Stock update completed",

@@ -1,9 +1,9 @@
 const { query, queryOne, insert, modify, withTransaction } = require('../config/database');
-const { generateOrderNumber } = require('../utils/helpers');
+const { generateOrderNumber, parseVariantToKg } = require('../utils/helpers');
 class Order {
   static async findById(id, lang = 'en') {
     const order = await queryOne(
-      `SELECT o.*, u.name AS customer_name, u.phone AS customer_phone, u.user_type
+      `SELECT o.*, u.name AS customer_name, u.phone AS customer_phone, u.email AS customer_email, u.user_type
        FROM orders o JOIN users u ON o.user_id = u.id WHERE o.id = $1`,
       [id]
     );
@@ -12,7 +12,7 @@ class Order {
   }
   static async findByOrderNumber(orderNumber, lang = 'en') {
     const order = await queryOne(
-      `SELECT o.*, u.name AS customer_name, u.phone AS customer_phone, u.user_type
+      `SELECT o.*, u.name AS customer_name, u.phone AS customer_phone, u.email AS customer_email, u.user_type
        FROM orders o JOIN users u ON o.user_id = u.id WHERE o.order_number = $1`,
       [orderNumber]
     );
@@ -22,6 +22,7 @@ class Order {
   static async getOrderItems(orderId, lang = 'en') {
     const items = await query(
       `SELECT oi.*, p.image_url,
+              COALESCE(oi.product_variant, p.variant, p.unit_pack_size) AS variant,
               COALESCE(pt_req.name, oi.product_name_en) AS product_name
        FROM order_items oi
        LEFT JOIN products p ON oi.product_id = p.id
@@ -32,6 +33,7 @@ class Order {
     return items.map(i => ({
       id: i.id, product_id: i.product_id,
       product_name: i.product_name, product_name_en: i.product_name_en,
+      variant: i.variant || null,
       quantity: i.quantity, unit_type: i.unit_type,
       unit_price: parseFloat(i.unit_price), gst_percentage: parseFloat(i.gst_percentage),
       gst_amount: parseFloat(i.gst_amount), subtotal: parseFloat(i.subtotal), total: parseFloat(i.total),
@@ -68,22 +70,25 @@ class Order {
     };
   }
   static async findAll(options = {}) {
-    const { page = 1, limit = 10, status = null, userId = null, startDate = null, endDate = null } = options;
+    const { page = 1, limit = 10, status = null, userId = null, startDate = null, endDate = null, search = null } = options;
     const offset = (page - 1) * limit;
     const conds = ['1=1']; const params = []; let idx = 1;
     if (status)    { conds.push(`o.status = $${idx++}`);             params.push(status); }
     if (userId)    { conds.push(`o.user_id = $${idx++}`);            params.push(userId); }
     if (startDate) { conds.push(`o.created_at::date >= $${idx++}`);  params.push(startDate); }
     if (endDate)   { conds.push(`o.created_at::date <= $${idx++}`);  params.push(endDate); }
+    if (search)    { conds.push(`(u.name ILIKE $${idx} OR u.phone LIKE $${idx} OR o.order_number ILIKE $${idx})`); params.push(`%${search}%`); idx++; }
     const where = conds.join(' AND ');
-    const countRow = await queryOne(`SELECT COUNT(*) AS total FROM orders o WHERE ${where}`, params);
+    const countRow = await queryOne(`SELECT COUNT(*) AS total FROM orders o JOIN users u ON o.user_id = u.id WHERE ${where}`, params);
     const rows = await query(
-      `SELECT o.*, u.name AS customer_name, u.phone AS customer_phone, u.user_type
+      `SELECT o.*, u.name AS customer_name, u.phone AS customer_phone, u.email AS customer_email, u.user_type,
+              (SELECT COUNT(*) FROM order_items WHERE order_id = o.id) AS item_count,
+              ARRAY(SELECT oi.product_name_en FROM order_items oi WHERE oi.order_id = o.id LIMIT 3) AS item_names
        FROM orders o JOIN users u ON o.user_id = u.id
        WHERE ${where} ORDER BY o.created_at DESC LIMIT $${idx++} OFFSET $${idx++}`,
       [...params, limit, offset]
     );
-    return { orders: rows.map(r => this.formatOrder(r)), total: parseInt(countRow.total, 10) };
+    return { orders: rows.map(r => ({ ...this.formatOrder(r), item_count: parseInt(r.item_count || 0, 10), item_names: r.item_names || [] })), total: parseInt(countRow.total, 10) };
   }
   static async createFromCart(userId, cart, notes = null, promo = {}) {
     const { promotionId = null, promotionDiscount = 0, promotionTitle = null, freeProductId = null } = promo;
@@ -98,19 +103,38 @@ class Order {
       const orderId = oRes.rows[0].id;
       for (const item of cart.items) {
         const nameEn = item.product_name_en || item.product_name;
+        const variantLabel = item.variant || item.unit_pack_size || null;
         await client.query(
-          `INSERT INTO order_items (order_id, product_id, product_name_en, quantity, unit_type, unit_price, gst_percentage, gst_amount, subtotal, total)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-          [orderId, item.product_id, nameEn, item.quantity, item.unit_type, item.unit_price, item.gst_percentage, item.item_gst, item.item_total, item.item_grand_total]
+          `INSERT INTO order_items (order_id, product_id, product_name_en, product_variant, quantity, unit_type, unit_price, gst_percentage, gst_amount, subtotal, total)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+          [orderId, item.product_id, nameEn, variantLabel, item.quantity, item.unit_type, item.unit_price, item.gst_percentage, item.item_gst, item.item_total, item.item_grand_total]
         );
         // Critical: Decrement stock atomically within transaction to prevent overselling
-        const stockRes = await client.query(
-          'UPDATE products SET stock_quantity = stock_quantity - $1 WHERE id = $2 AND stock_quantity >= $1',
-          [item.quantity, item.product_id]
-        );
+        let stockRes;
+        if (item.unit_type === 'loose') {
+          const kgPerUnit = parseVariantToKg(item.variant);
+          if (kgPerUnit !== null) {
+            const rootId = item.parent_product_id || item.product_id;
+            const kgToDeduct = kgPerUnit * parseFloat(item.quantity);
+            stockRes = await client.query(
+              'UPDATE products SET stock_quantity = stock_quantity - $1 WHERE id = $2 AND stock_quantity >= $1',
+              [kgToDeduct, rootId]
+            );
+          } else {
+            stockRes = await client.query(
+              'UPDATE products SET stock_quantity = stock_quantity - $1 WHERE id = $2 AND stock_quantity >= $1',
+              [item.quantity, item.product_id]
+            );
+          }
+        } else {
+          stockRes = await client.query(
+            'UPDATE products SET stock_quantity = stock_quantity - $1 WHERE id = $2 AND stock_quantity >= $1',
+            [item.quantity, item.product_id]
+          );
+        }
         // Fail entire order if any item has insufficient stock (race condition protection)
         if (stockRes.rowCount === 0) {
-          throw new Error(`Insufficient stock for "${item.product_name_en || item.product_name}". Only limited quantity available — please update your cart.`);
+          throw new Error(`Insufficient stock for "${item.product_name_en || item.product_name}". Please update your cart.`);
         }
       }
       // Insert free product as ₹0 order item when a free_item threshold promo was applied
@@ -125,8 +149,8 @@ class Order {
         if (fpRes.rows.length > 0) {
           const fp = fpRes.rows[0];
           await client.query(
-            `INSERT INTO order_items (order_id, product_id, product_name_en, quantity, unit_type, unit_price, gst_percentage, gst_amount, subtotal, total)
-             VALUES ($1,$2,$3,1,$4,0,0,0,0,0)`,
+            `INSERT INTO order_items (order_id, product_id, product_name_en, product_variant, quantity, unit_type, unit_price, gst_percentage, gst_amount, subtotal, total)
+             VALUES ($1,$2,$3,NULL,1,$4,0,0,0,0,0)`,
             [orderId, freeProductId, fp.name_en, fp.unit_type || 'pcs']
           );
           // Do NOT decrement stock — free items are handled manually by the store
@@ -156,15 +180,36 @@ class Order {
       );
       const promotionId = orderRow.rows[0]?.promotion_id || null;
       const items = await client.query(
-        'SELECT product_id, quantity FROM order_items WHERE order_id = $1',
+        `SELECT oi.product_id, oi.quantity, oi.unit_type,
+                p.variant, p.parent_product_id
+         FROM order_items oi
+         LEFT JOIN products p ON p.id = oi.product_id
+         WHERE oi.order_id = $1`,
         [id]
       );
       // 2. Restore stock
       for (const item of items.rows) {
-        await client.query(
-          'UPDATE products SET stock_quantity = stock_quantity + $1 WHERE id = $2',
-          [item.quantity, item.product_id]
-        );
+        if (item.unit_type === 'loose') {
+          const kgPerUnit = parseVariantToKg(item.variant);
+          if (kgPerUnit !== null) {
+            const rootId = item.parent_product_id || item.product_id;
+            const kgToRestore = kgPerUnit * parseFloat(item.quantity);
+            await client.query(
+              'UPDATE products SET stock_quantity = stock_quantity + $1 WHERE id = $2',
+              [kgToRestore, rootId]
+            );
+          } else {
+            await client.query(
+              'UPDATE products SET stock_quantity = stock_quantity + $1 WHERE id = $2',
+              [item.quantity, item.product_id]
+            );
+          }
+        } else {
+          await client.query(
+            'UPDATE products SET stock_quantity = stock_quantity + $1 WHERE id = $2',
+            [item.quantity, item.product_id]
+          );
+        }
       }
       // 3. Unclaim deal slots so they become available again
       if (promotionId) {
@@ -248,7 +293,7 @@ class Order {
     return {
       id: order.id, order_number: order.order_number,
       user_id: order.user_id, customer_name: order.customer_name,
-      customer_phone: order.customer_phone, user_type: order.user_type,
+      customer_phone: order.customer_phone, customer_email: order.customer_email || null, user_type: order.user_type,
       status: order.status,
       subtotal: parseFloat(order.subtotal), total_gst: parseFloat(order.total_gst),
       total_amount: parseFloat(order.total_amount),

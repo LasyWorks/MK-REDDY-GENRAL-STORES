@@ -237,9 +237,11 @@ class Product {
       discount,
       margin,
       stock_quantity,
+      low_stock_threshold,
       min_order_quantity,
       max_order_quantity,
       image_url,
+      image_urls,
       is_active,
       is_featured,
       parent_product_id,
@@ -248,9 +250,9 @@ class Product {
       `INSERT INTO products
          (category_id, sku, brand, variant, unit_type, unit_pack_size, hsn_code,
           mrp, purchase_price, price, wholesale_price, gst_percentage, discount, margin,
-          stock_quantity, min_order_quantity, max_order_quantity, image_url, is_active, is_featured,
+          stock_quantity, low_stock_threshold, min_order_quantity, max_order_quantity, image_url, image_urls, is_active, is_featured,
           parent_product_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
        RETURNING id`,
       [
         category_id,
@@ -268,9 +270,11 @@ class Product {
         discount || null,
         margin || null,
         stock_quantity ?? 100,
+        low_stock_threshold ?? 10,
         min_order_quantity || 1,
         max_order_quantity || null,
         image_url || null,
+        image_urls || null,
         is_active !== false,
         is_featured || false,
         parent_product_id || null,
@@ -312,6 +316,7 @@ class Product {
       "discount",
       "margin",
       "stock_quantity",
+      "low_stock_threshold",
       "min_order_quantity",
       "max_order_quantity",
       "image_url",
