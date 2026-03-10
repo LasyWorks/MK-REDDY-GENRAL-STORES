@@ -435,6 +435,60 @@ const bulkUpdateGSTByCategory = asyncHandler(async (req, res) => {
   ApiResponse.success(res, { updated }, `GST updated to ${rate}% for ${updated} products`);
 });
 
+// GET /products/popular — top products by order frequency (public, no auth)
+const getPopularProducts = asyncHandler(async (req, res) => {
+  const lang = req.language || "en";
+  const limit = Math.min(parseInt(req.query.limit) || 20, 40);
+  const days = Math.min(parseInt(req.query.days) || 90, 365);
+
+  const cutoff = new Date(Date.now() - days * 86400000).toISOString().split("T")[0];
+
+  const rows = await query(
+    `SELECT
+       p.id, p.sku, p.image_url, p.price, p.mrp, p.wholesale_price,
+       p.stock_quantity, p.unit_pack_size, p.is_active, p.is_featured,
+       p.gst_percentage, p.created_at, p.category_id,
+       COALESCE(pt.name, pt_en.name, p.sku) AS name,
+       COALESCE(pt.description, pt_en.description) AS description,
+       SUM(oi.quantity) AS total_quantity,
+       COUNT(DISTINCT oi.order_id) AS order_count
+     FROM order_items oi
+     JOIN products p ON oi.product_id = p.id
+     LEFT JOIN product_translations pt ON p.id = pt.product_id AND pt.lang_code = $1
+     LEFT JOIN product_translations pt_en ON p.id = pt_en.product_id AND pt_en.lang_code = 'en'
+     JOIN orders o ON oi.order_id = o.id
+     WHERE o.status = 'picked_up'
+       AND o.created_at >= $2::date
+       AND p.is_active = true
+     GROUP BY p.id, pt.name, pt.description, pt_en.name, pt_en.description
+     ORDER BY total_quantity DESC, order_count DESC
+     LIMIT $3`,
+    [lang, cutoff, limit],
+  );
+
+  // If not enough order data, supplement with featured/active products
+  if (rows.length < 8) {
+    const { products: extra } = await ProductService.getAll({
+      isActive: true,
+      isFeatured: true,
+      limit: limit - rows.length,
+      page: 1,
+      lang,
+      inStock: true,
+    });
+    const seen = new Set(rows.map((r) => r.id));
+    for (const p of extra) {
+      if (!seen.has(p.id)) rows.push(p);
+    }
+  }
+
+  ApiResponse.paginated(res, rows.slice(0, limit), {
+    page: 1,
+    limit,
+    totalItems: rows.length,
+  });
+});
+
 module.exports = {
   getAllProducts: getProducts,
   getProductById: getProduct,
@@ -453,6 +507,7 @@ module.exports = {
   getProductCount,
   getFrequentlyBoughtTogether,
   getDailyFeatured,
+  getPopularProducts,
   getGSTSummary,
   bulkUpdateGSTByCategory,
 };

@@ -60,6 +60,12 @@ router.get(
   productController.getDailyFeatured,
 );
 router.get(
+  "/popular",
+  optionalAuth,
+  cacheMiddleware("products", 1800),
+  productController.getPopularProducts,
+);
+router.get(
   "/:id/frequently-bought-together",
   optionalAuth,
   cacheMiddleware("products", 300),
