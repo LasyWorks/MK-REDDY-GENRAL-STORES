@@ -91,9 +91,7 @@ class Invoice {
       [paymentMethod, id]
     );
   }
-  static async markSmsSent(id) {
-    return modify('UPDATE invoices SET sms_sent = TRUE WHERE id = $1', [id]);
-  }
+
   static async updateEmailStatus(id, sent) {
     if (sent) {
       return modify(
@@ -167,7 +165,6 @@ class Invoice {
       payment_method: invoice.payment_method,
       email_sent:   invoice.email_sent,
       email_sent_at: invoice.email_sent_at,
-      sms_sent:     invoice.sms_sent,
       created_at:   invoice.created_at,
     };
   }

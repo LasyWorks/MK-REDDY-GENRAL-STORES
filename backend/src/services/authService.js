@@ -221,29 +221,7 @@ class AuthService {
     };
   }
 
-  static async sendOTP(phone, purpose = "login") {
-    // Check if user is trying to request OTPs too quickly (potential abuse)
-    const recentCount = await OTP.countRecent(phone, OTP_RESEND_COOLDOWN_SECS);
-    if (recentCount > 0) {
-      throw ApiError.tooManyRequests(
-        `Please wait ${OTP_RESEND_COOLDOWN_SECS} seconds before requesting a new OTP.`,
-      );
-    }
-    const otp = generateOTP(6);
-    // Never store plain OTP - hash it to protect users if database is compromised
-    const hashedOTP = hashOTP(otp);
-    await OTP.create(phone, hashedOTP, purpose, config.otp.expiryMinutes);
-    const smsResult = await SmsService.sendOtp(phone, otp);
-    if (config.env !== "development" && !smsResult.success) {
-      logger.warn(`OTP SMS delivery failure for ${phone}: ${smsResult.error}`);
-    }
-    return {
-      message: "OTP sent successfully",
-      expiresIn: config.otp.expiryMinutes * 60,
-      // Only reveal OTP in development for testing - never in production for security
-      ...(config.env === "development" && { otp }),
-    };
-  }
+
   static async sendOTPByEmail(email) {
     if (!email || !email.includes("@")) {
       throw ApiError.badRequest("Valid email address is required");
@@ -644,22 +622,7 @@ class AuthService {
       ...tokens,
     };
   }
-  static async adminLogin(email, phone) {
-    const user = await User.findByEmail(email);
-    if (!user) {
-      throw ApiError.unauthorized("Invalid credentials");
-    }
-    if (user.phone !== phone) {
-      throw ApiError.unauthorized("Invalid credentials");
-    }
-    if (user.role_name !== "admin") {
-      throw ApiError.forbidden("Access denied");
-    }
-    if (!user.is_active) {
-      throw ApiError.forbidden("Account is inactive");
-    }
-    return this.sendOTP(phone, "login");
-  }
+
   static async verifyAdminOTP(email, phone, otp) {
     const user = await User.findByEmail(email);
     if (!user || user.phone !== phone || user.role_name !== "admin") {

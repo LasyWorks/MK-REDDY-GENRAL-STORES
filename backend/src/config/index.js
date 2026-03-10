@@ -1,10 +1,9 @@
 require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
 const config = {
   env: process.env.NODE_ENV || 'development',
-  port: parseInt(process.env.PORT, 10) || 5001,
+  port: process.env.PORT,
   apiVersion: process.env.API_VERSION || 'v1',
   database: {
-    // ── PostgreSQL / Supabase ─────────────────────────────────────────────
     host:            process.env.DB_HOST     || 'localhost',
     port:            parseInt(process.env.DB_PORT, 10) || 5432,
     user:            process.env.DB_USER     || 'postgres',
@@ -14,12 +13,6 @@ const config = {
     ssl: process.env.DB_SSL === 'true'
       ? { rejectUnauthorized: false }
       : false,
-    // ── MySQL (used when DB_TYPE=mysql) ───────────────────────────────────
-    mysqlHost:     process.env.MYSQL_HOST     || 'localhost',
-    mysqlPort:     parseInt(process.env.MYSQL_PORT, 10) || 3306,
-    mysqlUser:     process.env.MYSQL_USER     || 'root',
-    mysqlPassword: process.env.MYSQL_PASSWORD || '',
-    mysqlName:     process.env.MYSQL_NAME     || 'mk_kirana_stores',
   },
   jwt: {
     secret: process.env.JWT_SECRET,
@@ -66,23 +59,14 @@ const config = {
     cookingOils: 5,
     default: 18,
   },
-  fast2sms: {
-    apiKey:    process.env.FAST2SMS_API_KEY    || '',
-    senderId:  process.env.FAST2SMS_SENDER_ID  || '',
-    route:     process.env.FAST2SMS_ROUTE      || 'dlt',
-    messageId: process.env.FAST2SMS_MESSAGE_ID || '',
-  },
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID || '',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
   },
   cors: {
-    origins: (() => {
-      const raw = (process.env.CORS_ORIGIN && process.env.CORS_ORIGIN !== '*')
-        ? process.env.CORS_ORIGIN
-        : (process.env.FRONTEND_URL || 'http://localhost:3000');
-      return raw.split(',').map((o) => o.trim()).filter(Boolean);
-    })(),
+    origin: (process.env.CORS_ORIGIN && process.env.CORS_ORIGIN !== '*')
+      ? process.env.CORS_ORIGIN
+      : (process.env.FRONTEND_URL || 'http://localhost:3000'),
     credentials: true,
   },
 };
@@ -95,7 +79,7 @@ if (config.jwt.secret.includes('default') || config.jwt.refreshSecret.includes('
   throw new Error('CRITICAL: Default JWT secrets detected. Generate secure secrets immediately');
 }
 
-if (!config.cors.origins || config.cors.origins.length === 0) {
+if (!config.cors.origin) {
   throw new Error('CRITICAL: CORS_ORIGIN must be explicitly set (use specific domain, not wildcard)');
 }
 

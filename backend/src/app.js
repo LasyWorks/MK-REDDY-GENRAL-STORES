@@ -47,9 +47,8 @@ app.use(helmet({
 }));
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
     if (!origin) return callback(null, true);
-    if (config.cors.origins.includes(origin)) return callback(null, true);
+    if (origin === config.cors.origin) return callback(null, true);
     callback(new Error(`CORS policy: origin '${origin}' is not allowed`));
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],

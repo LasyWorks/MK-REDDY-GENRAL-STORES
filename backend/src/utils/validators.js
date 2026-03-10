@@ -189,11 +189,6 @@ const userValidation = {
   ],
   sendOtp: [commonRules.phone("phone"), validate],
   verifyOtp: [commonRules.phone("phone"), commonRules.otp("otp"), validate],
-  adminLogin: [
-    commonRules.email("email"),
-    commonRules.phone("phone"),
-    validate,
-  ],
   update: [
     commonRules.name("name").optional(),
     body("address")
@@ -332,22 +327,7 @@ const authValidation = {
     body("picture").optional().trim().isURL().withMessage("Picture must be a valid URL"),
     validate,
   ],
-  // Legacy SMS/OTP Validation (kept for reference)
-  sendOTP: [commonRules.phone("phone"), validate],
-  verifyOTP: [commonRules.phone("phone"), commonRules.otp("otp"), validate],
-  register: [
-    body("name")
-      .trim()
-      .isLength({ min: 2, max: 100 })
-      .withMessage("Name must be between 2 and 100 characters"),
-    commonRules.phone("phone"),
-    body("user_type")
-      .optional()
-      .isIn(["retail", "wholesale"])
-      .withMessage("User type must be retail or wholesale"),
-    body("address").optional().trim().isLength({ max: 500 }),
-    validate,
-  ],
+
   
   // Customer Email OTP Validation (New)
   sendEmailOTP: [commonRules.email("email"), validate],
@@ -418,9 +398,6 @@ const adminValidation = {
     validate,
   ],
 };
-const validateSendOTP = authValidation.sendOTP;
-const validateVerifyOTP = authValidation.verifyOTP;
-const validateRegister = authValidation.register;
 const validateSendEmailOTP = authValidation.sendEmailOTP;
 const validateVerifyEmailOTP = authValidation.verifyEmailOTP;
 const validateEmailOTPRegister = authValidation.emailOTPRegister;
@@ -464,9 +441,6 @@ module.exports = {
   authValidation,
   invoiceValidation,
   adminValidation,
-  validateSendOTP,
-  validateVerifyOTP,
-  validateRegister,
   validateSendEmailOTP,
   validateVerifyEmailOTP,
   validateEmailOTPRegister,

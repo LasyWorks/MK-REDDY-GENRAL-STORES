@@ -33,12 +33,7 @@ const completeGoogleRegistration = asyncHandler(async (req, res) => {
   ApiResponse.created(res, result, 'Registration completed successfully');
 });
 
-// Legacy OTP methods - Kept for admin email-based authentication only
-const sendOTP = asyncHandler(async (req, res) => {
-  const { phone } = req.body;
-  const result = await AuthService.sendOTP(phone);
-  ApiResponse.success(res, result, 'OTP sent successfully');
-});
+
 const sendOTPByEmail = asyncHandler(async (req, res) => {
   const { email } = req.body;
   const result = await AuthService.sendOTPByEmail(email);
@@ -88,11 +83,7 @@ const logoutAll = asyncHandler(async (req, res) => {
 const getMe = asyncHandler(async (req, res) => {
   ApiResponse.success(res, req.user, 'User profile retrieved');
 });
-const resendOTP = asyncHandler(async (req, res) => {
-  const { phone } = req.body;
-  const result = await AuthService.sendOTP(phone);
-  ApiResponse.success(res, result, 'OTP resent successfully');
-});
+
 const updateMe = asyncHandler(async (req, res) => {
   const { name, email, address } = req.body;
   const { UserService } = require('../services');
@@ -139,13 +130,11 @@ const completeEmailOTPRegistration = asyncHandler(async (req, res) => {
 module.exports = {
   googleLogin,
   completeGoogleRegistration,
-  sendOTP,
   sendOTPByEmail,
   sendCustomerEmailOTP,
   verifyOTP,
   verifyCustomerEmailOTP,
   completeEmailOTPRegistration,
-  resendOTP,
   register,
   adminLogin,
   adminVerifyOTP,
