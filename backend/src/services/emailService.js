@@ -96,35 +96,37 @@ class EmailService {
 <body><div class="em-outer"><div class="em-wrap">
   <div class="em-accent"></div>
   <div class="em-brand"><h2>${config.store.name}</h2><p>Secure Login Verification</p></div>
-  <div class="em-status" style="background:#eff6ff;border-bottom:1px solid #bfdbfe;">
-    <div class="status-icon" style="width:56px;height:56px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#dbeafe;margin-bottom:14px;">
-      <span style="font-size:26px;color:#1e40af;">&#128274;</span></div>
-    <h1 style="color:#1e3a8a;">Your OTP Code</h1>
-    <p>Hi <strong>${userName}</strong>, use this code to complete your login.</p>
+  <div class="em-status" style="background:#eff6ff;border-bottom:1px solid #bfdbfe;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+    <div class="status-icon" style="width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#dbeafe;margin-bottom:14px;margin-left:auto;margin-right:auto;">
+      <img src="https://cdn-icons-png.flaticon.com/512/3064/3064197.png" alt="Lock Icon" style="width:36px;height:36px;display:block;margin:auto;" />
+    </div>
+    <h1 style="color:#1e3a8a;font-size:22px;font-weight:700;margin-bottom:6px;text-align:center;">Your OTP Code</h1>
+    <p style="text-align:center;">Hi <strong>${userName}</strong>, use this code to complete your login.</p>
   </div>
   <div class="em-body" style="padding-top:24px;text-align:center;">
-    <div style="background:#f8fafc;border:2px solid #0d1b3e;border-radius:12px;padding:24px;margin:20px 0;">
-      <div class="meta-label" style="margin-bottom:8px;">Your OTP Code</div>
-      <div style="font-size:42px;font-weight:700;color:#0d1b3e;letter-spacing:8px;font-family:monospace;">${otp}</div>
+    <div style="background:#fff;border:2px solid #0d1b3e;border-radius:12px;padding:24px;margin:20px auto;max-width:340px;">
+      <div class="meta-label" style="margin-bottom:8px;color:#64748b;font-size:14px;letter-spacing:2px;text-align:center;">YOUR OTP CODE</div>
+      <div style="font-size:42px;font-weight:700;color:#0d1b3e;letter-spacing:8px;font-family:monospace;text-align:center;">${otp}</div>
     </div>
-    <div class="info-box amber" style="background:#fffbeb;border:1px solid #fde68a;text-align:left;">
-      <div class="info-box-title" style="color:#92400e;">Security Information</div>
-      <ul style="font-size:13px;color:#78350f;line-height:1.9;margin:0;padding-left:20px;">
+    <div class="info-box amber" style="background:#fffbeb;border:1px solid #fde68a;text-align:left;padding:16px 20px;border-radius:8px;margin-top:16px;">
+      <div class="info-box-title" style="color:#92400e;font-weight:600;margin-bottom:6px;text-align:center;">SECURITY INFORMATION</div>
+      <ul style="font-size:15px;color:#78350f;line-height:1.9;margin:0 auto;padding-left:20px;max-width:340px;text-align:left;">
         <li>This OTP is valid for <strong>${config.otp.expiryMinutes} minutes</strong></li>
         <li>Do not share this code with anyone</li>
         <li>If you didn't request this, please ignore this email</li>
       </ul>
     </div>
   </div>
-  <div class="em-footer">
-    <div class="em-footer-row">
-      <div><div class="em-footer-brand">${config.store.name}</div>
+  <div class="em-footer" style="background:#0d1b3e;padding:18px 36px;text-align:center;color:#c8972a;font-size:16px;font-weight:600;">
+    <div class="em-footer-row" style="display:flex;justify-content:space-between;align-items:center;">
+      <div><div class="em-footer-brand">MK Reddy General Stores</div>
       ${config.store.gst ? `<div style="color:#64748b;font-size:12px;margin-top:3px;">GSTIN: ${config.store.gst}</div>` : ''}</div>
       <div class="em-footer-contact">${config.store.phone ? `${config.store.phone}<br>` : ''}${config.store.email ? `${config.store.email}` : ''}</div>
     </div>
-    <div class="em-footer-legal">This is an auto-generated email. Please do not reply.<br>&copy; ${new Date().getFullYear()} ${config.store.name}. All rights reserved.</div>
+    <div style="margin-top:8px;color:#64748b;font-size:12px;">This is an auto-generated email. Please do not reply.<br>© 2026 MK Reddy General Stores. All rights reserved.</div>
   </div>
-</div></div></body></html>`;
+  </div></div></body></html>`;
+    // Removed stray HTML tags outside template string
 
     return this.send(email, `Your OTP Code - ${config.store.name}`, html);
   }
@@ -160,8 +162,9 @@ class EmailService {
   <div class="em-accent"></div>
   <div class="em-brand"><h2>${config.store.name}</h2><p>Official Order Confirmation</p></div>
   <div class="em-status" style="background:#f0fdf4;border-bottom:1px solid #bbf7d0;">
-    <div class="status-icon" style="width:56px;height:56px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#dcfce7;margin-bottom:14px;">
-      <span style="font-size:26px;color:#16a34a;">&#10003;</span></div>
+    <div class="status-icon" style="width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#dcfce7;margin-bottom:14px;">
+      <span style="font-size:36px;color:#16a34a;display:block;margin:auto;">&#10003;</span>
+    </div>
     <h1 style="color:#14532d;">Order Confirmed</h1>
     <p>Thank you, <strong>${user.name}</strong>. Your order has been received and is being processed.</p>
   </div>

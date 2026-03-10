@@ -2062,9 +2062,6 @@ function ProductRow({
                 <button onClick={() => { onEdit(p); setMenuOpen(false); }} className="w-full flex items-center gap-2.5 px-3.5 py-2 hover:bg-gray-50 text-gray-700 text-left">
                   <Pencil className="w-4 h-4 text-gray-400" /> Edit
                 </button>
-                <button onClick={() => { onDuplicate(p); setMenuOpen(false); }} className="w-full flex items-center gap-2.5 px-3.5 py-2 hover:bg-gray-50 text-gray-700 text-left">
-                  <DocumentTextIcon className="w-4 h-4 text-gray-400" /> Duplicate
-                </button>
                 <button onClick={() => { onAdjustStock(p); setMenuOpen(false); }} className="w-full flex items-center gap-2.5 px-3.5 py-2 hover:bg-gray-50 text-gray-700 text-left">
                   <Package className="w-4 h-4 text-gray-400" /> Adjust Stock
                 </button>
@@ -5302,6 +5299,11 @@ function PricingTab() {
   const [defaultMarginPct, setDefaultMarginPct] = useState(18);
   const [wholesaleDiscountPct, setWholesaleDiscountPct] = useState(8); // wholesale = retail - X%
 
+  // real-time auto-save refs
+  const debounceTimers = useRef({});
+  const formsRef = useRef({});
+  formsRef.current = forms; // always in sync with latest render
+
   useEffect(() => { loadData(); }, []);
 
   function initForms(prods) {
@@ -5345,6 +5347,9 @@ function PricingTab() {
     setForms((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
     setDirty((prev) => ({ ...prev, [id]: true }));
     setSavedIds((prev) => { const n = { ...prev }; delete n[id]; return n; });
+    // debounced real-time save — fires 800ms after the user stops typing
+    if (debounceTimers.current[id]) clearTimeout(debounceTimers.current[id]);
+    debounceTimers.current[id] = setTimeout(() => saveProduct(id, true), 800);
   }
 
   function stepField(id, field, delta) {
@@ -5355,6 +5360,8 @@ function PricingTab() {
     });
     setDirty((prev) => ({ ...prev, [id]: true }));
     setSavedIds((prev) => { const n = { ...prev }; delete n[id]; return n; });
+    if (debounceTimers.current[id]) clearTimeout(debounceTimers.current[id]);
+    debounceTimers.current[id] = setTimeout(() => saveProduct(id, true), 800);
   }
 
   function applyMarginPreset(id, marginPct) {
@@ -5368,10 +5375,12 @@ function PricingTab() {
     setForms((prev) => ({ ...prev, [id]: { ...prev[id], price: String(rounded) } }));
     setDirty((prev) => ({ ...prev, [id]: true }));
     setSavedIds((prev) => { const n = { ...prev }; delete n[id]; return n; });
+    if (debounceTimers.current[id]) clearTimeout(debounceTimers.current[id]);
+    debounceTimers.current[id] = setTimeout(() => saveProduct(id, true), 800);
   }
 
   async function saveProduct(id, silent = false) {
-    const f = forms[id];
+    const f = formsRef.current[id] || forms[id];
     if (!f) return;
     const price = parseFloat(f.price);
     const cost = f.cost !== "" ? parseFloat(f.cost) : null;
@@ -6105,7 +6114,7 @@ function PricingTab() {
 
                     {/* Footer: save / cancel / saved */}
                     <div className="flex items-center justify-between pt-1">
-                      <p className="text-[11px] text-gray-400">Auto-saves on blur.</p>
+                      <p className="text-[11px] text-gray-400">Auto-saves as you type.</p>
                       <div className="flex items-center gap-2">
                         {isSaved && !isDirty && (
                           <span className="text-[12px] text-green-500 font-medium flex items-center gap-1">
