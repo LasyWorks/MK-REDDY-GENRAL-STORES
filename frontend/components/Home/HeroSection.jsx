@@ -14,6 +14,7 @@ import {
   GiftIcon,
   BellIcon,
   CubeIcon,
+  ArrowRightIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { usePromotions } from "@/context/PromotionContext";
@@ -31,7 +32,7 @@ const slides = [
     headingLine2: "Flat 25% Off",
     headingColor: "text-gray-900",
     desc: "Pesticide-free grains, pulses, and cold-pressed oils for your family.",
-    primaryBtn: { label: "Shop Organic", href: "/category/organic" },
+    primaryBtn: { label: "Shop Organic", href: "/category/organic", Icon: ShoppingBagIcon },
     secondaryBtn: { label: "View Bundles →", href: "/products" },
     accentColor: "#1a4731",
     timerMode: "dhm",
@@ -49,7 +50,7 @@ const slides = [
     headingLine2: "Buy 2 Get 1 Free",
     headingColor: "text-gray-900",
     desc: "Locally sourced, hand-picked seasonal vegetables delivered straight from farms to your door.",
-    primaryBtn: { label: "Shop Vegetables", href: "/category/vegetables" },
+    primaryBtn: { label: "Shop Vegetables", href: "/category/vegetables", Icon: SparklesIcon },
     secondaryBtn: { label: "View All →", href: "/products" },
     accentColor: "#14532d",
     timerMode: "dhm",
@@ -67,7 +68,7 @@ const slides = [
     headingLine2: "Flat 30% Off",
     headingColor: "text-gray-900",
     desc: "Quality dairy products, eggs, and everyday staples at the lowest prices guaranteed.",
-    primaryBtn: { label: "Shop Dairy", href: "/category/dairy" },
+    primaryBtn: { label: "Shop Dairy", href: "/category/dairy", Icon: StarIcon },
     secondaryBtn: { label: "View Offers →", href: "/products" },
     accentColor: "#1e3a8a",
     timerMode: "dhm",
@@ -95,7 +96,7 @@ function buildFestivalSlide(promo) {
     desc:
       promo.description ||
       "Get the best deals on festive essentials this season.",
-    primaryBtn: { label: "Shop Now →", href: "/products" },
+    primaryBtn: { label: "Shop Now", href: "/products", Icon: FireIcon },
     secondaryBtn: { label: "View Offers", href: "/products" },
     accentColor,
     timerEnd: new Date(promo.ends_at).getTime(),
@@ -244,10 +245,12 @@ function StandardSlide({ slide }) {
             <div className="flex items-center gap-4 mt-1">
               <Link
                 href={slide.primaryBtn.href}
-                className="inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-bold text-white shadow-md hover:opacity-90 transition-opacity"
+                className="inline-flex items-center gap-2 justify-center px-6 py-3 rounded-xl text-sm font-bold text-white shadow-md hover:opacity-90 active:scale-95 transition-all"
                 style={{ background: slide.accentColor }}
               >
+                {slide.primaryBtn.Icon && <slide.primaryBtn.Icon className="w-4 h-4 shrink-0" />}
                 {slide.primaryBtn.label}
+                <ArrowRightIcon className="w-3.5 h-3.5 shrink-0 opacity-80" />
               </Link>
               <Link
                 href={slide.secondaryBtn.href}
@@ -295,10 +298,12 @@ function FestivalSlide({ slide }) {
             <div className="flex items-center gap-3 mt-1">
               <Link
                 href={slide.primaryBtn.href}
-                className="inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-bold text-white shadow-md hover:opacity-90 transition-opacity"
+                className="inline-flex items-center gap-2 justify-center px-6 py-3 rounded-xl text-sm font-bold text-white shadow-md hover:opacity-90 active:scale-95 transition-all"
                 style={{ background: slide.accentColor }}
               >
+                <FireIcon className="w-4 h-4 shrink-0" />
                 {slide.primaryBtn.label}
+                <ArrowRightIcon className="w-3.5 h-3.5 shrink-0 opacity-80" />
               </Link>
               <Link
                 href={slide.secondaryBtn.href}
