@@ -29,12 +29,11 @@ const PromotionContext = createContext({
   refresh: () => {},
 });
 export function PromotionProvider({ children }) {
-  const cached = typeof window !== "undefined" ? readCache() : null;
-  const [activePromos, setActivePromos]       = useState(cached?.activePromos || []);
-  const [productPromoMap, setProductPromoMap] = useState(cached?.productPromoMap || {});
-  const [loading, setLoading]                 = useState(!cached);
-  const [wholesaleDiscountPct, setWholesaleDiscountPct] = useState(cached?.wholesaleDiscountPct || 0);
-  const [storeSettings, setStoreSettings] = useState(cached?.storeSettings || { min_order_amount: 100, delivery_charge: 0, handling_charge: 2 });
+  const [activePromos, setActivePromos]       = useState([]);
+  const [productPromoMap, setProductPromoMap] = useState({});
+  const [loading, setLoading]                 = useState(true);
+  const [wholesaleDiscountPct, setWholesaleDiscountPct] = useState(0);
+  const [storeSettings, setStoreSettings] = useState({ min_order_amount: 100, delivery_charge: 0, handling_charge: 2 });
   const refresh = useCallback(async () => {
     try {
       const [promosRes, mapRes, settingsRes] = await Promise.all([
@@ -65,7 +64,16 @@ export function PromotionProvider({ children }) {
     }
   }, []);
   useEffect(() => {
-    refresh();
+    const cached = readCache();
+    if (cached) {
+      setActivePromos(cached.activePromos || []);
+      setProductPromoMap(cached.productPromoMap || {});
+      setWholesaleDiscountPct(cached.wholesaleDiscountPct || 0);
+      setStoreSettings(cached.storeSettings || { min_order_amount: 100, delivery_charge: 0, handling_charge: 2 });
+      setLoading(false);
+    } else {
+      refresh();
+    }
     const interval = setInterval(refresh, 300_000);
     return () => clearInterval(interval);
   }, [refresh]);

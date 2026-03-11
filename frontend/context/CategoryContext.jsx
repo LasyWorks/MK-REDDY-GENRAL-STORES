@@ -28,9 +28,8 @@ const CategoryContext = createContext({
 });
 
 export function CategoryProvider({ children }) {
-  const cached = typeof window !== "undefined" ? readCache() : null;
-  const [categories, setCategories] = useState(cached || []);
-  const [loading, setLoading] = useState(!cached);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     try {
@@ -46,7 +45,13 @@ export function CategoryProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    refresh();
+    const cached = readCache();
+    if (cached) {
+      setCategories(cached);
+      setLoading(false);
+    } else {
+      refresh();
+    }
   }, [refresh]);
 
   return (
