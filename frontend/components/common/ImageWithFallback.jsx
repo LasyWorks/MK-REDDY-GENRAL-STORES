@@ -20,7 +20,7 @@ function colorFromString(str = "") {
   }
   return palette[Math.abs(hash) % palette.length];
 }
-function ImageWithFallback({ src, alt = "", className = "", size = "md" }) {
+function ImageWithFallback({ src, alt = "", className = "", size = "md", priority = false }) {
   const [failed, setFailed] = useState(false);
   const fontSizeMap = { sm: "text-sm", md: "text-lg", lg: "text-2xl" };
   const fontSize = fontSizeMap[size] || "text-lg";
@@ -47,9 +47,10 @@ function ImageWithFallback({ src, alt = "", className = "", size = "md" }) {
       src={proxyImg(src)}
       alt={alt}
       className={className}
-      loading="lazy"
+      loading={priority ? "eager" : "lazy"}
+      fetchPriority={priority ? "high" : "auto"}
       onError={() => setFailed(true)}
     />
   );
 }
-export default memo(ImageWithFallback);
+export default memo(ImageWithFallback);

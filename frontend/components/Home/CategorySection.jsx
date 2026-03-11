@@ -201,6 +201,7 @@ export default function CategorySection() {
                           alt={category.name}
                           className="w-10 h-10 object-contain rounded-xl"
                           size="sm"
+                          priority
                         />
                       ) : (
                         emoji
@@ -288,6 +289,7 @@ export default function CategorySection() {
                         alt={category.name}
                         className="w-full h-full object-cover"
                         size="lg"
+                        priority
                       />
                     </div>
                     {}
