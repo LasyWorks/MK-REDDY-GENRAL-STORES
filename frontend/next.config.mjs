@@ -5,13 +5,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Disable Next.js telemetry (stops the "host not in insights whitelist" console noise)
-  // You can also add NEXT_TELEMETRY_DISABLED=1 to .env.local
+  compress: true,
+  productionBrowserSourceMaps: false,
   experimental: {},
   turbopack: {
     root: __dirname,
   },
   images: {
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 3600,
     remotePatterns: [
       // Supabase storage
       { protocol: "https", hostname: "**.supabase.co" },

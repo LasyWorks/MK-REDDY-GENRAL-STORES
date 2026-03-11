@@ -133,7 +133,7 @@ export default function CategorySection() {
       setLoading(true);
       const res = await fetch(
         `${API_URL}/categories?limit=100&is_active=true&lang=${lang}`,
-        { cache: "no-store" },
+        { next: { revalidate: 300 } },
       );
       if (!res.ok) throw new Error("Failed");
       const json = await res.json();
