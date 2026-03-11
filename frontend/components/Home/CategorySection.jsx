@@ -155,6 +155,83 @@ export default function CategorySection() {
   return (
     <>
       {/* ═══════════════════════════════════════════
+          MOBILE: Quick-shop category grid
+      ═══════════════════════════════════════════ */}
+      <section className="md:hidden bg-white pt-3 pb-4">
+        <div className="px-3">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-gray-900">Shop by Category</h2>
+            <Link href="/categories" className="text-xs text-green-600 font-semibold">
+              View all
+            </Link>
+          </div>
+
+          {/* Loading skeleton */}
+          {loading && (
+            <div className="grid grid-cols-4 gap-2">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="flex flex-col items-center gap-1.5">
+                  <div className="w-14 h-14 rounded-2xl bg-gray-100 animate-pulse" />
+                  <div className="h-2.5 w-12 bg-gray-100 animate-pulse rounded" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Category grid */}
+          {!loading && categories.length > 0 && (
+            <div className="grid grid-cols-4 gap-x-2 gap-y-3">
+              {categories.slice(0, 8).map((category) => {
+                const { emoji, bg, fg } = getCategoryStyle(
+                  category.name_en || category.name,
+                );
+                return (
+                  <Link
+                    key={category.id}
+                    href={`/category/${toSlug(category.name_en || category.name)}`}
+                    className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform duration-150"
+                  >
+                    <div
+                      className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm"
+                      style={{ backgroundColor: bg }}
+                    >
+                      {category.image_url ? (
+                        <ImageWithFallback
+                          src={category.image_url}
+                          alt={category.name}
+                          className="w-10 h-10 object-contain rounded-xl"
+                          size="sm"
+                        />
+                      ) : (
+                        emoji
+                      )}
+                    </div>
+                    <span
+                      className="text-[10px] font-semibold text-center leading-tight line-clamp-2 max-w-[58px]"
+                      style={{ color: fg }}
+                    >
+                      {category.name}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+
+          {/* More categories pill */}
+          {!loading && categories.length > 8 && (
+            <Link
+              href="/categories"
+              className="mt-4 flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-sm font-semibold text-gray-600 active:bg-gray-100 transition-colors"
+            >
+              All {categories.length} Categories
+              <span className="text-gray-400">›</span>
+            </Link>
+          )}
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════
           DESKTOP: Original circle layout (unchanged)
       ═══════════════════════════════════════════ */}
       <section className="hidden md:block py-10 bg-white">
