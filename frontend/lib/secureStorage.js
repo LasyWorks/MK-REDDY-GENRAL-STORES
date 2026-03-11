@@ -45,5 +45,31 @@ const secureStorage = {
   clear(...keys) {
     keys.forEach((k) => this.removeItem(k));
   },
+
+  // Session-scoped variants — data clears when the tab is closed
+  session: {
+    setItem(key, value) {
+      if (typeof window === "undefined") return;
+      if (value === undefined || value === null) { this.removeItem(key); return; }
+      const str = typeof value === "string" ? value : JSON.stringify(value);
+      const encrypted = CryptoJS.AES.encrypt(str, getSecret()).toString();
+      sessionStorage.setItem(key, encrypted);
+    },
+    getItem(key) {
+      if (typeof window === "undefined") return null;
+      const raw = sessionStorage.getItem(key);
+      if (!raw) return null;
+      try {
+        const bytes = CryptoJS.AES.decrypt(raw, getSecret());
+        return bytes.toString(CryptoJS.enc.Utf8) || null;
+      } catch {
+        return null;
+      }
+    },
+    removeItem(key) {
+      if (typeof window === "undefined") return;
+      sessionStorage.removeItem(key);
+    },
+  },
 };
 export default secureStorage;

@@ -1,13 +1,14 @@
 "use client";
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import secureStorage from "@/lib/secureStorage";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
 const CACHE_KEY = "mk_promo_cache";
 const CACHE_TTL = 300_000; // 5 minutes
 
 function readCache() {
-  if (typeof sessionStorage === "undefined") return null;
+  if (typeof window === "undefined") return null;
   try {
-    const raw = sessionStorage.getItem(CACHE_KEY);
+    const raw = secureStorage.session.getItem(CACHE_KEY);
     if (!raw) return null;
     const { ts, data } = JSON.parse(raw);
     if (Date.now() - ts < CACHE_TTL) return data;
@@ -16,8 +17,8 @@ function readCache() {
 }
 
 function writeCache(data) {
-  if (typeof sessionStorage === "undefined") return;
-  try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data })); } catch {}
+  if (typeof window === "undefined") return;
+  try { secureStorage.session.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data })); } catch {}
 }
 const PromotionContext = createContext({
   activePromos: [],          
