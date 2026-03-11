@@ -53,7 +53,9 @@ export default function ProfilePage() {
 
   const handleLogout = async () => {
     setLoggingOut(true);
-    await authService.logout();
+    try {
+      await authService.logout();
+    } catch {}
     router.replace("/");
   };
 

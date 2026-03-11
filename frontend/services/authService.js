@@ -33,17 +33,16 @@ class AuthService {
     return response;
   }
   async logout() {
-    try {
-      await api.post("/auth/logout");
-    } finally {
-      secureStorage.removeItem("token");
-      secureStorage.removeItem("refreshToken");
-      secureStorage.removeItem("user");
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("mk-reddy-cart");
-        window.dispatchEvent(new Event("authChange"));
-      }
+    // Clear local state immediately so the user is logged out right away.
+    // Fire the backend call in the background to invalidate the refresh token.
+    secureStorage.removeItem("token");
+    secureStorage.removeItem("refreshToken");
+    secureStorage.removeItem("user");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("mk-reddy-cart");
+      window.dispatchEvent(new Event("authChange"));
     }
+    api.post("/auth/logout").catch(() => {});
   }
   getCurrentUser() {
     const userStr = secureStorage.getItem("user");
