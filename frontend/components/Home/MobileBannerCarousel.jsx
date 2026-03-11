@@ -13,7 +13,7 @@ const BANNERS = [
     subline: "Buy 2 Get 1 Free",
     desc: "Hand-picked, locally sourced vegetables delivered fresh.",
     cta: "Shop Now",
-    ctaHref: "/category/vegetables",
+    ctaHref: "/categories",
     emoji: "🥦",
   },
   {
@@ -26,7 +26,7 @@ const BANNERS = [
     subline: "Flat 25% Off",
     desc: "Pesticide-free grains, pulses & cold-pressed oils.",
     cta: "Shop Organic",
-    ctaHref: "/category/organic",
+    ctaHref: "/categories",
     emoji: "🌾",
   },
   {
@@ -39,7 +39,7 @@ const BANNERS = [
     subline: "Flat 30% Off",
     desc: "Quality dairy products at the lowest prices guaranteed.",
     cta: "Shop Dairy",
-    ctaHref: "/category/dairy",
+    ctaHref: "/categories",
     emoji: "🥛",
   },
   {
@@ -52,7 +52,7 @@ const BANNERS = [
     subline: "Up to 40% Off",
     desc: "Your favourite munchies and drinks at unbeatable prices.",
     cta: "Explore Now",
-    ctaHref: "/category/snacks",
+    ctaHref: "/categories",
     emoji: "🍿",
   },
 ];

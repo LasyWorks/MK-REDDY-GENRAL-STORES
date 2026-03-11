@@ -27,6 +27,10 @@ export const metadata = {
     "Shop for groceries, vegetables, fruits and more at MK Reddy General Store",
 };
 
+export const viewport = {
+  viewportFit: "cover",
+};
+
 export default function RootLayout({ children }) {
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 

@@ -55,11 +55,12 @@ export default function MobileBottomNav() {
   return (
     <>
       {/* Spacer so content doesn't hide behind nav */}
-      <div className="h-16 md:hidden print:hidden" aria-hidden="true" />
+      <div className="h-16 md:hidden print:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} aria-hidden="true" />
 
       {/* Bottom navigation bar */}
       <nav
         className="md:hidden print:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 rounded-t-2xl shadow-[0_-2px_16px_rgba(0,0,0,0.08)]"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         aria-label="Mobile navigation"
       >
         <div className="flex items-center justify-around h-16 px-2">

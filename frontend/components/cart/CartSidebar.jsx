@@ -80,10 +80,10 @@ export default function CartSidebar() {
     <>
       <div
         ref={overlayRef}
-        className="fixed inset-0 bg-black/40 z-40 backdrop-blur-[1px]"
+        className="fixed inset-0 bg-black/40 z-[55] backdrop-blur-[1px]"
         onClick={closeCart}
       />
-      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-gray-50 z-50 flex flex-col shadow-2xl animate-slide-in-right">
+      <div className="fixed right-0 top-0 h-[100dvh] w-full max-w-md bg-gray-50 z-[60] flex flex-col shadow-2xl animate-slide-in-right">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3.5 bg-white border-b border-gray-200">
           <div className="flex items-center gap-3">
@@ -108,7 +108,7 @@ export default function CartSidebar() {
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto pb-2">
           {items.length === 0 ? (
             !loggedIn ? (
               <div className="flex flex-col items-center justify-center h-full text-center py-16 px-4">
@@ -168,14 +168,6 @@ export default function CartSidebar() {
                   </p>
                 </div>
               </div>
-
-              {/* Min order warning */}
-              {belowMin && (
-                <div className="mx-3 mt-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 text-xs text-amber-700 font-medium flex items-center gap-2">
-                  <CurrencyRupeeIcon className="w-4 h-4 flex-shrink-0 text-amber-500" />
-                  Add ₹{amountNeeded.toFixed(0)} more to place order (min ₹{minOrderAmount})
-                </div>
-              )}
 
               {/* Cart items */}
               <div className="bg-white mx-3 mt-3 rounded-xl border border-gray-100 divide-y divide-gray-50">
@@ -262,42 +254,51 @@ export default function CartSidebar() {
           )}
         </div>
 
-        {/* Sticky bottom bar */}
+        {/* Sticky checkout bar */}
         {items.length > 0 && (
-          <div className="bg-green-600 shadow-[0_-4px_12px_rgba(0,0,0,0.1)]">
-            {belowMin ? (
-              <div className="px-5 py-4 flex items-center justify-between">
-                <div>
-                  <p className="text-white font-bold text-base">
-                    ₹{grandTotal.toFixed(0)}
-                  </p>
-                  <p className="text-green-100 text-[11px]">TOTAL</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-green-100 text-xs font-medium">
-                    Add ₹{amountNeeded.toFixed(0)} more
-                  </p>
-                  <p className="text-green-200 text-[10px]">
-                    Min order ₹{minOrderAmount}
-                  </p>
-                </div>
+          <div
+            className="bg-white border-t border-gray-100 rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.10)] px-4 pt-4 pb-4"
+            style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
+          >
+            {/* Grand total row */}
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-[11px] text-gray-400 uppercase tracking-wider font-medium">Grand Total</p>
+                <p className="text-xl font-extrabold text-gray-900">₹{grandTotal.toFixed(2)}</p>
               </div>
+              {hasSavings && (
+                <div className="flex items-center gap-1 bg-green-50 text-green-700 text-xs font-semibold px-3 py-1.5 rounded-full border border-green-100">
+                  <TagIcon className="w-3.5 h-3.5" />
+                  Save ₹{totalSavings.toFixed(0)}
+                </div>
+              )}
+            </div>
+
+            {/* Min-order notice */}
+            {belowMin && (
+              <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-3 text-xs text-amber-700 font-medium">
+                <CurrencyRupeeIcon className="w-4 h-4 flex-shrink-0 text-amber-500" />
+                Add ₹{amountNeeded.toFixed(0)} more to place order (min ₹{minOrderAmount})
+              </div>
+            )}
+
+            {/* CTA button */}
+            {belowMin ? (
+              <button
+                disabled
+                className="w-full flex items-center justify-center gap-2 bg-gray-200 text-gray-400 font-bold text-base rounded-xl py-3.5 cursor-not-allowed select-none"
+              >
+                Proceed to Checkout
+                <ChevronRightIcon className="w-5 h-5" />
+              </button>
             ) : (
               <Link
                 href={loggedIn ? "/checkout" : loginHref}
                 onClick={closeCart}
-                className="flex items-center justify-between px-5 py-4 w-full"
+                className="w-full flex items-center justify-center gap-2 bg-green-600 active:bg-green-700 text-white font-bold text-base rounded-xl py-3.5 transition-colors shadow-sm select-none"
               >
-                <div>
-                  <p className="text-white font-bold text-base">
-                    ₹{grandTotal.toFixed(0)}
-                  </p>
-                  <p className="text-green-100 text-[11px]">TOTAL</p>
-                </div>
-                <div className="flex items-center gap-1 text-white font-bold text-sm">
-                  {loggedIn ? "Proceed to Checkout" : "Login to Proceed"}
-                  <ChevronRightIcon className="w-4 h-4" />
-                </div>
+                {loggedIn ? "Proceed to Checkout" : "Login to Proceed"}
+                <ChevronRightIcon className="w-5 h-5" />
               </Link>
             )}
           </div>
