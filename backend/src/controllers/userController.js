@@ -104,14 +104,6 @@ const updateCustomerType = asyncHandler(async (req, res) => {
   );
   ApiResponse.success(res, user, "Customer type updated successfully");
 });
-const makeAdmin = asyncHandler(async (req, res) => {
-  const user = await UserService.makeAdmin(req.params.id, req.user);
-  ApiResponse.success(res, user, "User promoted to admin successfully");
-});
-const removeAdmin = asyncHandler(async (req, res) => {
-  const user = await UserService.removeAdmin(req.params.id, req.user);
-  ApiResponse.success(res, user, "Admin role removed successfully");
-});
 const getUserOrders = asyncHandler(async (req, res) => {
   const { OrderService } = require("../services");
   const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
@@ -139,8 +131,6 @@ module.exports = {
   activateUser,
   deactivateUser,
   updateCustomerType,
-  makeAdmin,
-  removeAdmin,
   getUserOrders,
   getCustomerCount,
 };
