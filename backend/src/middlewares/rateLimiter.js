@@ -6,7 +6,7 @@ const isDev = process.env.NODE_ENV === 'development';
 
 const apiLimiter = rateLimit({
   windowMs: config.rateLimit.windowMs, 
-  max: isDev ? 5000 : config.rateLimit.maxRequests, 
+  max: config.rateLimit.maxRequests, 
   message: {
     success: false,
     status: 'fail',
