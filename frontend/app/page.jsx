@@ -23,6 +23,14 @@ const NewArrivals = dynamic(() => import("@/components/Home/NewArrivals"), {
   ssr: true,
 });
 
+const RecentlyUpdated = dynamic(
+  () => import("@/components/Home/RecentlyUpdated"),
+  {
+    loading: () => <div className="h-96 bg-gray-50 animate-pulse rounded-lg" />,
+    ssr: true,
+  },
+);
+
 const FeaturedProducts = dynamic(
   () => import("@/components/Home/FeaturedProducts"),
   {
@@ -68,6 +76,15 @@ export default function Home() {
         rootMargin="100px"
       >
         <HotDeals />
+      </LazySection>
+
+      <LazySection
+        fallback={
+          <div className="h-96 bg-gray-100 animate-pulse rounded-lg mx-4" />
+        }
+        rootMargin="100px"
+      >
+        <RecentlyUpdated />
       </LazySection>
 
       <LazySection

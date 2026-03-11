@@ -185,6 +185,7 @@ class Product {
       name: "pt_en.name",
       price: "p.price",
       created_at: "p.created_at",
+      updated_at: "p.updated_at",
       stock_quantity: "p.stock_quantity",
       discount: "(p.mrp - p.price)",
       avg_rating: "p.created_at" /* fallback until ratings table exists */,

@@ -25,6 +25,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { usePromotions } from "@/context/PromotionContext";
 import secureStorage from "@/lib/secureStorage";
 import ProductCard from "@/components/category/ProductCard";
+import CountdownTimer from "@/components/common/CountdownTimer";
 import ProductImages from "./ProductImages";
 import WishlistButton from "./WishlistButton";
 import StickyCartBar from "./StickyCartBar";
@@ -166,7 +167,7 @@ export default function ProductDetailClient({
 }) {
   const { lang } = useLanguage();
   const { items, addItem, updateQty, openCart, totalCount } = useCart();
-  const { wholesaleDiscountPct } = usePromotions();
+  const { wholesaleDiscountPct, productPromoMap } = usePromotions();
   const sentinelRef = useRef(null);
   const router = useRouter();
   const [descExpanded, setDescExpanded] = useState(false);
@@ -360,6 +361,12 @@ export default function ProductDetailClient({
   const reviewCount = parseInt(
     selected.review_count || selected.ratings_count || 0,
   );
+  const promo = productPromoMap?.[selected.id] || null;
+  const promoDiscountAmt = promo && promo.discount_type === "percentage" && promo.discount_value
+    ? parseFloat(((price * parseFloat(promo.discount_value)) / 100).toFixed(2))
+    : promo && promo.discount_type === "flat" && promo.discount_value
+      ? Math.min(parseFloat(promo.discount_value), price)
+      : 0;
 
   /* -- Gallery images -- */
   const imagesForVariant = (v) =>
@@ -571,41 +578,106 @@ export default function ProductDetailClient({
               {rating > 0 && <StarRow value={rating} count={reviewCount} />}
 
               {/* Price */}
-              <div className="flex items-center flex-wrap gap-3">
-                <span className="text-[28px] md:text-3xl font-bold md:font-extrabold text-gray-900">
-                  ₹{Math.round(price)}
-                </span>
-                {showWsRate && (
-                  <>
-                    <span className="text-base md:text-lg text-gray-400 line-through">
-                      ₹{Math.round(retailPrice)}
-                    </span>
-                    <span className="bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded-md">
-                      WS -{wsSavingsPct}%
-                    </span>
-                  </>
-                )}
-                {!showWsRate && hasDiscount && (
-                  <>
-                    <span className="text-base md:text-lg text-gray-400 line-through">
-                      ₹{Math.round(mrp)}
-                    </span>
-                    <span className="bg-[#FF4D4F] text-white text-xs font-bold px-2 py-1 rounded-md">
-                      {discountPct}% OFF
-                    </span>
-                  </>
-                )}
-              </div>
-              {showWsRate && mrp > price && (
-                <p className="text-sm font-medium text-purple-600 -mt-2">
-                  Wholesale price - You save ₹{Math.round(mrp - price)} from MRP
-                </p>
-              )}
-              {!showWsRate && hasDiscount && (
-                <p className="text-sm font-medium text-[#16A34A] -mt-2">
-                  You save ₹{Math.round(savings)}
-                </p>
-              )}
+              {(() => {
+                const promoPrice = promo && !isOutOfStock && promoDiscountAmt > 0 ? price - promoDiscountAmt : null;
+                const baseMrp = showWsRate ? Math.round(retailPrice) : Math.round(mrp);
+                const totalSave = promoPrice != null ? baseMrp - promoPrice : Math.round(savings);
+                return (
+                  <div className="flex flex-col gap-1.5">
+                    {/* MRP row - always show when there is a discount */}
+                    {!showWsRate && hasDiscount && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">MRP</span>
+                        <span className="text-lg font-semibold text-red-400 line-through decoration-red-400 decoration-2">
+                          ₹{Math.round(mrp)}
+                        </span>
+                        <span className="bg-[#FF4D4F] text-white text-xs font-bold px-2 py-0.5 rounded-md">
+                          {discountPct}% OFF
+                        </span>
+                      </div>
+                    )}
+                    {showWsRate && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">MRP</span>
+                        <span className="text-lg font-semibold text-red-400 line-through decoration-red-400 decoration-2">
+                          ₹{Math.round(retailPrice)}
+                        </span>
+                        <span className="bg-purple-600 text-white text-xs font-bold px-2 py-0.5 rounded-md">
+                          WS -{wsSavingsPct}%
+                        </span>
+                      </div>
+                    )}
+                    {/* Selling price row: struck through when promo is active */}
+                    {promoPrice != null ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl font-semibold text-gray-400 line-through decoration-gray-400 decoration-2">
+                          ₹{Math.round(price)}
+                        </span>
+                        <span
+                          className="text-white text-xs font-bold px-2 py-0.5 rounded-md"
+                          style={{ backgroundColor: promo.theme_color || "#FF6B00" }}
+                        >
+                          {promo.badge_text || "OFFER"}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center flex-wrap gap-3">
+                        <span className="text-[32px] md:text-4xl font-extrabold text-gray-900">
+                          ₹{Math.round(price)}
+                        </span>
+                      </div>
+                    )}
+                    {/* Promo price — the big number */}
+                    {promoPrice != null && (
+                      <div className="flex items-center flex-wrap gap-3">
+                        <span className="text-[32px] md:text-4xl font-extrabold text-gray-900">
+                          ₹{Math.round(promoPrice)}
+                        </span>
+                      </div>
+                    )}
+                    {/* Savings callout */}
+                    {(hasDiscount || promoPrice != null) && !showWsRate && (
+                      <div className="inline-flex items-center gap-1.5 bg-green-50 border border-green-200 rounded-lg px-3 py-1.5 w-fit">
+                        <span className="text-green-700 text-sm font-bold">You save ₹{totalSave}!</span>
+                      </div>
+                    )}
+                    {showWsRate && mrp > price && (
+                      <div className="inline-flex items-center gap-1.5 bg-purple-50 border border-purple-200 rounded-lg px-3 py-1.5 w-fit">
+                        <span className="text-purple-700 text-sm font-bold">Wholesale price - You save ₹{Math.round(mrp - price)} from MRP</span>
+                      </div>
+                    )}
+                    {/* Promotion info block */}
+                    {promo && !isOutOfStock && (
+                      <div
+                        className="flex flex-col gap-1 p-3 rounded-xl border"
+                        style={{
+                          backgroundColor: (promo.theme_color || "#FF6B00") + "10",
+                          borderColor: (promo.theme_color || "#FF6B00") + "30",
+                        }}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-[13px] font-bold" style={{ color: promo.theme_color || "#FF6B00" }}>
+                            {promo.title}
+                          </p>
+                          {promo.ends_at && (
+                            <CountdownTimer endsAt={promo.ends_at} compact themeColor={promo.theme_color} />
+                          )}
+                        </div>
+                        {promoDiscountAmt > 0 && (
+                          <p className="text-[12px] text-gray-600">
+                            {promo.discount_type === "percentage"
+                              ? `${parseFloat(promo.discount_value)}% off − save ₹${promoDiscountAmt.toFixed(0)} at checkout`
+                              : `Flat ₹${promoDiscountAmt.toFixed(0)} off at checkout`}
+                          </p>
+                        )}
+                        {promo.banner_text && (
+                          <p className="text-[11px] text-gray-500 italic">{promo.banner_text}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Stock */}
               <div
@@ -655,6 +727,13 @@ export default function ProductDetailClient({
                       const vResolved = vWs || vFallbackWs;
                       const vPrice = isWholesale && vResolved ? vResolved : vRetail;
                       const vMrp = parseFloat(v.mrp || vRetail);
+                      const vPromo = productPromoMap?.[v.id] || null;
+                      const vPromoAmt = vPromo && vPromo.discount_type === "percentage" && vPromo.discount_value
+                        ? parseFloat(((vPrice * parseFloat(vPromo.discount_value)) / 100).toFixed(2))
+                        : vPromo && vPromo.discount_type === "flat" && vPromo.discount_value
+                          ? Math.min(parseFloat(vPromo.discount_value), vPrice)
+                          : 0;
+                      const vPromoPrice = vPromoAmt > 0 && !oos ? vPrice - vPromoAmt : null;
                       return (
                         <button
                           key={v.id}
@@ -674,15 +753,31 @@ export default function ProductDetailClient({
                           >
                             {variantLabel(v)}
                           </span>
-                          <span
-                            className={`text-xs font-bold mt-0.5 ${isActive ? "text-blue-700" : oos ? "text-gray-300 line-through" : "text-gray-600"}`}
-                          >
-                            ₹{vPrice.toFixed(0)}
-                          </span>
-                          {vMrp > vPrice && !oos && (
-                            <span className="text-[10px] text-gray-400 line-through">
-                              ₹{vMrp.toFixed(0)}
-                            </span>
+                          {/* Show promo price as main, strike through selling price */}
+                          {vPromoPrice != null ? (
+                            <>
+                              <span className="text-xs font-bold mt-0.5 text-gray-400 line-through">
+                                ₹{vPrice.toFixed(0)}
+                              </span>
+                              <span
+                                className={`text-xs font-bold ${isActive ? "text-blue-700" : "text-gray-800"}`}
+                              >
+                                ₹{vPromoPrice.toFixed(0)}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <span
+                                className={`text-xs font-bold mt-0.5 ${isActive ? "text-blue-700" : oos ? "text-gray-300 line-through" : "text-gray-600"}`}
+                              >
+                                ₹{vPrice.toFixed(0)}
+                              </span>
+                              {vMrp > vPrice && !oos && (
+                                <span className="text-[10px] text-gray-400 line-through">
+                                  ₹{vMrp.toFixed(0)}
+                                </span>
+                              )}
+                            </>
                           )}
                           {oos && (
                             <span className="absolute -top-1.5 -right-1.5 bg-red-400 text-white text-[8px] font-bold px-1 rounded-full">

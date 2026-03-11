@@ -20,6 +20,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/context/CartContext";
+import { usePromotions } from "@/context/PromotionContext";
 import secureStorage from "@/lib/secureStorage";
 import proxyImg from "@/lib/imgProxy";
 import api from "@/lib/api";
@@ -65,13 +66,73 @@ export default function CartSidebar() {
     };
   }, [isCartOpen]);
 
+  const { productPromoMap, activePromos } = usePromotions();
+
   const totalMRP = items.reduce((s, i) => s + i.mrp * i.quantity, 0);
   const totalSavings = totalMRP - totalPrice;
   const hasSavings = totalSavings > 0.01;
   const deliveryCharge = storeSettings.delivery_charge;
   const handlingCharge = storeSettings.handling_charge;
   const minOrderAmount = storeSettings.min_order_amount;
-  const grandTotal = totalPrice + deliveryCharge + handlingCharge;
+
+  // Calculate promotion discount (mirrors checkout page logic)
+  let promoDiscount = 0;
+  let promoLabel = null;
+  (() => {
+    if (!productPromoMap || !Object.keys(productPromoMap).length) return;
+    const promoTotals = {};
+    for (const item of items) {
+      const p = productPromoMap[item.id];
+      if (!p) continue;
+      const key = p.promotion_id;
+      if (!promoTotals[key]) {
+        promoTotals[key] = {
+          title: p.title,
+          discount_type: p.discount_type,
+          discount_value: parseFloat(p.discount_value),
+          qualifyingTotal: 0,
+          productCount: 0,
+        };
+      }
+      promoTotals[key].qualifyingTotal += item.price * item.quantity;
+      promoTotals[key].productCount += 1;
+    }
+    for (const info of Object.values(promoTotals)) {
+      if (info.discount_type === "threshold") continue;
+      let d = 0;
+      if (info.discount_type === "flat") {
+        d = Math.min(info.discount_value * info.productCount, info.qualifyingTotal);
+      } else {
+        d = parseFloat(((info.qualifyingTotal * info.discount_value) / 100).toFixed(2));
+        d = Math.min(d, info.qualifyingTotal);
+      }
+      if (d > promoDiscount) {
+        promoDiscount = parseFloat(d.toFixed(2));
+        promoLabel = info.title;
+      }
+    }
+    if (activePromos?.length) {
+      for (const promo of activePromos) {
+        if (promo.discount_type !== "threshold") continue;
+        const minAmt = parseFloat(promo.min_order_amount || 0);
+        if (minAmt <= 0 || totalPrice < minAmt) continue;
+        let d = 0;
+        if (promo.reward_type === "cash_off") {
+          d = Math.min(parseFloat(promo.discount_value || 0), totalPrice);
+        } else if (promo.reward_type === "percentage") {
+          d = parseFloat(((totalPrice * parseFloat(promo.discount_value || 0)) / 100).toFixed(2));
+          d = Math.min(d, totalPrice);
+        }
+        if (d > promoDiscount) {
+          promoDiscount = parseFloat(d.toFixed(2));
+          promoLabel = promo.title;
+        }
+      }
+    }
+  })();
+
+  const grandTotal = Math.max(totalPrice - promoDiscount + deliveryCharge + handlingCharge, 0);
+  const totalAllSavings = totalSavings + promoDiscount;
   const belowMin = items.length > 0 && minOrderAmount > 0 && totalPrice < minOrderAmount;
   const amountNeeded = minOrderAmount - totalPrice;
 
@@ -199,6 +260,15 @@ export default function CartSidebar() {
                       ₹{totalPrice.toFixed(2)}
                     </span>
                   </div>
+                  {promoDiscount > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span className="flex items-center gap-1">
+                        <TagIcon className="w-3.5 h-3.5" />
+                        {promoLabel || "Promo discount"}
+                      </span>
+                      <span className="font-semibold">−₹{promoDiscount.toFixed(2)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-gray-600">
                     <span className="flex items-center gap-1">
                       <TruckIcon className="w-3.5 h-3.5" />
@@ -233,10 +303,10 @@ export default function CartSidebar() {
               </div>
 
               {/* Savings badge */}
-              {hasSavings && (
+              {(hasSavings || promoDiscount > 0) && (
                 <div className="mx-3 mb-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 text-xs text-blue-700 font-medium text-center flex items-center justify-center gap-1.5">
                   <TagIcon className="w-4 h-4 shrink-0" />
-                  You save ₹{totalSavings.toFixed(0)} on this order!
+                  You save ₹{totalAllSavings.toFixed(0)} on this order!
                 </div>
               )}
 
@@ -266,10 +336,10 @@ export default function CartSidebar() {
                 <p className="text-[11px] text-gray-400 uppercase tracking-wider font-medium">Grand Total</p>
                 <p className="text-xl font-extrabold text-gray-900">₹{grandTotal.toFixed(2)}</p>
               </div>
-              {hasSavings && (
+              {(hasSavings || promoDiscount > 0) && (
                 <div className="flex items-center gap-1 bg-green-50 text-green-700 text-xs font-semibold px-3 py-1.5 rounded-full border border-green-100">
                   <TagIcon className="w-3.5 h-3.5" />
-                  Save ₹{totalSavings.toFixed(0)}
+                  Save ₹{totalAllSavings.toFixed(0)}
                 </div>
               )}
             </div>

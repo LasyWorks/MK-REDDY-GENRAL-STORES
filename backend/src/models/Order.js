@@ -21,7 +21,7 @@ class Order {
   }
   static async getOrderItems(orderId, lang = 'en') {
     const items = await query(
-      `SELECT oi.*, p.image_url,
+      `SELECT oi.*, p.image_url, p.mrp AS product_mrp,
               COALESCE(oi.product_variant, p.variant, p.unit_pack_size) AS variant,
               COALESCE(pt_req.name, oi.product_name_en) AS product_name
        FROM order_items oi
@@ -38,6 +38,7 @@ class Order {
       unit_price: parseFloat(i.unit_price), gst_percentage: parseFloat(i.gst_percentage),
       gst_amount: parseFloat(i.gst_amount), subtotal: parseFloat(i.subtotal), total: parseFloat(i.total),
       image_url: i.image_url || null,
+      mrp: i.product_mrp ? parseFloat(i.product_mrp) : null,
     }));
   }
   static async findByUser(userId, options = {}) {

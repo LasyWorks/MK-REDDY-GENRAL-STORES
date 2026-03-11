@@ -2840,6 +2840,7 @@ function ProductsTab() {
 }
 function OrdersTab() {
   const { toast } = useDialog();
+  const { productPromoMap } = usePromotions();
   const [orders, setOrders] = useState([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -3333,10 +3334,37 @@ function OrdersTab() {
                                 </span>
                               )}
                             </div>
-                            <div className="text-right shrink-0 ml-4">
-                              <p className="text-sm font-bold text-gray-900">&#8377;{parseFloat(item.total || item.total_price || 0).toFixed(0)}</p>
-                              <p className="text-xs text-gray-400">x{item.quantity}</p>
-                            </div>
+                            {(() => {
+                              const iPromo = productPromoMap?.[item.product_id];
+                              const iPromoAmt = iPromo?.discount_value
+                                ? iPromo.discount_type === "percentage"
+                                  ? parseFloat(((parseFloat(item.unit_price || 0) * parseFloat(iPromo.discount_value)) / 100).toFixed(2))
+                                  : Math.min(parseFloat(iPromo.discount_value), parseFloat(item.unit_price || 0))
+                                : 0;
+                              const iPromoPrice = iPromoAmt > 0 ? parseFloat(item.unit_price || 0) - iPromoAmt : null;
+                              return (
+                                <div className="text-right shrink-0 ml-4">
+                                  {item.mrp && item.mrp > (item.unit_price || 0) && (
+                                    <p className="text-[10px] text-red-400 line-through leading-none">
+                                      MRP &#8377;{parseFloat(item.mrp).toFixed(0)}
+                                    </p>
+                                  )}
+                                  {iPromoPrice != null ? (
+                                    <p className="text-sm font-bold text-gray-900">
+                                      <span className="line-through text-gray-400 font-normal text-xs mr-1">&#8377;{parseFloat(item.unit_price || 0).toFixed(0)}</span>
+                                      &#8377;{iPromoPrice.toFixed(0)}
+                                      <span className="text-xs font-normal text-gray-500 ml-1">&#215;{item.quantity}</span>
+                                    </p>
+                                  ) : (
+                                    <p className="text-sm font-bold text-gray-900">
+                                      &#8377;{parseFloat(item.unit_price || 0).toFixed(0)}
+                                      <span className="text-xs font-normal text-gray-500 ml-1">&#215;{item.quantity}</span>
+                                    </p>
+                                  )}
+                                  <p className="text-xs text-gray-400">Total &#8377;{parseFloat(item.total || item.total_price || 0).toFixed(0)}</p>
+                                </div>
+                              );
+                            })()}
                           </div>
                         ))
                       ) : (
@@ -4301,7 +4329,6 @@ function PromotionModal({ promo, onClose, onSaved }) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [activeSection, setActiveSection] = useState(null);
   const [startImmediately, setStartImmediately] = useState(!promo?.starts_at);
-  const [applyToAll, setApplyToAll] = useState(!(promo?.product_ids?.length > 0));
   const toLocal = (iso) => {
     if (!iso) return "";
     const d = new Date(iso);
@@ -4885,35 +4912,13 @@ function PromotionModal({ promo, onClose, onSaved }) {
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <label className="text-[12px] font-semibold text-[#374151]">Apply To</label>
-                      {!applyToAll && !loadingProducts && !suggestingProducts && selectedProducts.length > 0 && (
+                      {!loadingProducts && !suggestingProducts && selectedProducts.length > 0 && (
                         <span className="text-[11px] text-[#047857] font-medium">{selectedProducts.length} selected</span>
                       )}
                       {suggestingProducts && <span className="text-[11px] text-gray-400 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> suggesting...</span>}
                     </div>
-                    <div className="flex gap-2 mb-3">
-                      <button
-                        type="button"
-                        onClick={() => { setApplyToAll(true); setSelectedProducts([]); setProductSearch(""); setSearchResults([]); }}
-                        className={`flex-1 py-2 rounded-xl text-[13px] font-medium border transition-all ${
-                          applyToAll ? "bg-[#047857] text-white border-[#047857]" : "border-[#E5E7EB] text-[#374151] bg-white hover:border-[#047857]"
-                        }`}
-                      >
-                        All Products
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setApplyToAll(false)}
-                        className={`flex-1 py-2 rounded-xl text-[13px] font-medium border transition-all ${
-                          !applyToAll ? "bg-[#047857] text-white border-[#047857]" : "border-[#E5E7EB] text-[#374151] bg-white hover:border-[#047857]"
-                        }`}
-                      >
-                        Selected Products
-                      </button>
-                    </div>
-                  </div>
-                  {/* Product search - only when Selected Products */}
-                  {!applyToAll && (
-                    <div>
+                  {/* Product search */}
+                  <div>
                       <label className="block text-[12px] font-semibold text-[#374151] mb-1.5">Search Products</label>
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -4968,7 +4973,7 @@ function PromotionModal({ promo, onClose, onSaved }) {
                         <p className="text-[12px] text-gray-400 mt-2">No products selected yet.</p>
                       )}
                     </div>
-                  )}
+                  </div>
                 </div>
               )}
             </div>

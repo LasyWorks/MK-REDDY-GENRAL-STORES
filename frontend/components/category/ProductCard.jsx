@@ -80,6 +80,14 @@ function ProductCard({ product }) {
   const showWsRate = isWholesale && resolvedWsPrice && resolvedWsPrice < price;
   const wsSavingsPct = showWsRate ? Math.round(((price - resolvedWsPrice) / price) * 100) : 0;
 
+  // Promotion price: the price the customer actually pays after promo discount
+  const promoDiscAmt = promo && !isOutOfStock && promo.discount_value
+    ? promo.discount_type === "percentage"
+      ? parseFloat(((price * parseFloat(promo.discount_value)) / 100).toFixed(2))
+      : Math.min(parseFloat(promo.discount_value), price)
+    : 0;
+  const promoPrice = promoDiscAmt > 0 ? price - promoDiscAmt : null;
+
   const handleAdd = async (e) => {
     e.preventDefault();
     if (isOutOfStock) return;
@@ -305,15 +313,29 @@ function ProductCard({ product }) {
         <div className="flex-1" />
 
         <div className="mt-3 md:mt-1.5 flex flex-col md:flex-row md:items-center md:justify-between md:gap-2">
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-[18px] md:text-[14px] font-bold text-gray-900 leading-tight">
-              &#x20b9;{Math.round(price)}
-            </span>
+          <div className="flex flex-col gap-0">
+            {/* MRP strikethrough */}
             {hasDiscount && (
-              <span className="text-[11px] md:text-[10px] text-gray-400 line-through leading-none">
-                &#x20b9;{Math.round(mrp)}
+              <span className="text-[10px] md:text-[9px] text-red-400 line-through leading-none">
+                MRP &#x20b9;{Math.round(mrp)}
               </span>
             )}
+            <div className="flex items-baseline gap-1.5">
+              {promoPrice != null ? (
+                <>
+                  <span className="text-[13px] md:text-[11px] text-gray-400 line-through leading-tight">
+                    &#x20b9;{Math.round(price)}
+                  </span>
+                  <span className="text-[18px] md:text-[14px] font-bold text-gray-900 leading-tight">
+                    &#x20b9;{Math.round(promoPrice)}
+                  </span>
+                </>
+              ) : (
+                <span className="text-[18px] md:text-[14px] font-bold text-gray-900 leading-tight">
+                  &#x20b9;{Math.round(price)}
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="mt-2 md:mt-0 md:shrink-0">

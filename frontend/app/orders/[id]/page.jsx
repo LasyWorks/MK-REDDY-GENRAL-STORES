@@ -20,6 +20,7 @@ import {
 } from "@heroicons/react/24/outline";
 import orderService from "@/services/orderService";
 import proxyImg from "@/lib/imgProxy";
+import { usePromotions } from "@/context/PromotionContext";
 const STATUS_STEPS = [
   { key: "pending", label: "Order Placed", icon: Clock },
   { key: "confirmed", label: "Confirmed", icon: CheckCircle2 },
@@ -52,6 +53,7 @@ export default function OrderDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const { confirm, toast } = useDialog();
+  const { productPromoMap } = usePromotions();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -273,20 +275,45 @@ export default function OrderDetailPage() {
                         {item.unit_type} · Qty {item.quantity}
                       </p>
                     </div>
-                    <div className="text-right shrink-0">
-                      {isFree ? (
-                        <p className="text-sm font-bold text-green-600">₹0.00</p>
-                      ) : (
-                        <>
-                          <p className="text-sm font-bold text-gray-900">
-                            ₹{parseFloat(item.total).toFixed(2)}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            ₹{parseFloat(item.unit_price).toFixed(2)} each
-                          </p>
-                        </>
-                      )}
-                    </div>
+                    {(() => {
+                      const iPromo = productPromoMap?.[item.product_id];
+                      const iPromoAmt = iPromo?.discount_value
+                        ? iPromo.discount_type === "percentage"
+                          ? parseFloat(((item.unit_price * parseFloat(iPromo.discount_value)) / 100).toFixed(2))
+                          : Math.min(parseFloat(iPromo.discount_value), item.unit_price)
+                        : 0;
+                      const iPromoPrice = iPromoAmt > 0 ? item.unit_price - iPromoAmt : null;
+                      return (
+                        <div className="text-right shrink-0">
+                          {isFree ? (
+                            <p className="text-sm font-bold text-green-600">&#x20b9;0.00</p>
+                          ) : (
+                            <div className="flex flex-col items-end gap-0.5">
+                              {item.mrp && item.mrp > item.unit_price && (
+                                <span className="text-[10px] text-red-400 line-through leading-none">
+                                  MRP &#x20b9;{parseFloat(item.mrp).toFixed(0)}
+                                </span>
+                              )}
+                              {iPromoPrice != null ? (
+                                <p className="text-sm font-bold text-gray-900">
+                                  <span className="line-through text-gray-400 font-normal text-xs mr-1">&#x20b9;{parseFloat(item.unit_price).toFixed(0)}</span>
+                                  &#x20b9;{iPromoPrice.toFixed(0)}
+                                  <span className="text-xs font-normal text-gray-500 ml-1">&#215;{item.quantity}</span>
+                                </p>
+                              ) : (
+                                <p className="text-sm font-bold text-gray-900">
+                                  &#x20b9;{parseFloat(item.unit_price).toFixed(0)}
+                                  <span className="text-xs font-normal text-gray-500 ml-1">&#215;{item.quantity}</span>
+                                </p>
+                              )}
+                              <p className="text-xs text-gray-400">
+                                Total &#x20b9;{parseFloat(item.total).toFixed(0)}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}

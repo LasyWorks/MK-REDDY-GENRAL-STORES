@@ -316,6 +316,15 @@ export default function CheckoutPage() {
                     )}
                   </div>
                   {}
+                  {(() => {
+                    const iPromo = productPromoMap?.[item.id];
+                    const iPromoAmt = iPromo && iPromo.discount_value
+                      ? iPromo.discount_type === "percentage"
+                        ? parseFloat(((item.price * parseFloat(iPromo.discount_value)) / 100).toFixed(2))
+                        : Math.min(parseFloat(iPromo.discount_value), item.price)
+                      : 0;
+                    const iPromoPrice = iPromoAmt > 0 ? item.price - iPromoAmt : null;
+                    return (
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 line-clamp-2 leading-snug">
                       {item.name}
@@ -326,14 +335,26 @@ export default function CheckoutPage() {
                       </p>
                     )}
                     <div className="flex items-center justify-between mt-1.5">
-                      <span className="text-xs text-gray-500">
-                        ₹{item.price.toFixed(0)} × {item.quantity}
-                      </span>
+                      {iPromoPrice != null ? (
+                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                          <span className="line-through text-gray-400">&#x20b9;{item.price.toFixed(0)}</span>
+                          <span className="font-semibold text-gray-700">&#x20b9;{iPromoPrice.toFixed(0)}</span>
+                          <span> &times; {item.quantity}</span>
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-500">
+                          &#x20b9;{item.price.toFixed(0)} &times; {item.quantity}
+                        </span>
+                      )}
                       <span className="text-sm font-bold text-gray-900">
-                        ₹{(item.price * item.quantity).toFixed(2)}
+                        &#x20b9;{iPromoPrice != null
+                          ? (iPromoPrice * item.quantity).toFixed(2)
+                          : (item.price * item.quantity).toFixed(2)}
                       </span>
                     </div>
                   </div>
+                    );
+                  })()}
                 </div>
               ))}
             </div>
