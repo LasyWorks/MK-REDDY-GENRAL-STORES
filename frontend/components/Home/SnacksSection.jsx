@@ -10,7 +10,7 @@ import {
 import ProductCard from "@/components/category/ProductCard";
 import ProductCardWithVariants from "@/components/category/ProductCardWithVariants";
 import { groupProductsByVariant } from "@/lib/productGrouping";
-import categoryService from "@/services/categoryService";
+import { useCategories } from "@/context/CategoryContext";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
@@ -52,6 +52,7 @@ function isSnack(product) {
 
 export default function SnacksSection() {
   const { lang } = useLanguage();
+  const { categories: allCats } = useCategories();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef(null);
@@ -61,9 +62,7 @@ export default function SnacksSection() {
       try {
         setLoading(true);
 
-        // Step 1: find the Snacks & Chocolates parent category by English name (stable across languages)
-        const catRes = await categoryService.getAll({ limit: 200 });
-        const allCats = catRes.data || [];
+        // Step 1: find the Snacks & Chocolates parent category from context (no extra fetch)
         const snackCat = allCats.find((c) =>
           /snack|chocolate/i.test(c.name_en || c.name || ""),
         );
@@ -104,7 +103,7 @@ export default function SnacksSection() {
         setLoading(false);
       }
     })();
-  }, [lang]);
+  }, [lang, allCats]);
 
   const productGroups = useMemo(
     () => groupProductsByVariant(products),

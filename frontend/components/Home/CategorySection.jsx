@@ -1,11 +1,10 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import ImageWithFallback from "../common/ImageWithFallback";
 import { useLanguage } from "@/context/LanguageContext";
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
+import { useCategories } from "@/context/CategoryContext";
 
 const toSlug = (name) =>
   name
@@ -125,33 +124,9 @@ function getCategoryStyle(name = "") {
 export default function CategorySection() {
   const { lang } = useLanguage();
   const pathname = usePathname();
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const fetchCategories = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await fetch(
-        `${API_URL}/categories?limit=100&is_active=true&lang=${lang}`,
-        { next: { revalidate: 300 } },
-      );
-      if (!res.ok) throw new Error("Failed");
-      const json = await res.json();
-      const all = json.data || [];
-      // Only show parent categories that have at least 1 product
-      setCategories(
-        all.filter((c) => !c.parent_id && parseInt(c.product_count || 0) > 0),
-      );
-      setError(null);
-    } catch {
-      setError("Failed to load categories");
-    } finally {
-      setLoading(false);
-    }
-  }, [lang]);
-  useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
+  const { categories: allCats, loading, error: catError } = useCategories();
+  const error = catError || null;
+  const categories = allCats.filter((c) => !c.parent_id && parseInt(c.product_count || 0) > 0);
   return (
     <>
       {/* ═══════════════════════════════════════════

@@ -5,9 +5,9 @@ import {
   ChevronRightIcon as ChevronRight,
   ChevronDownIcon as ChevronDown,
 } from "@heroicons/react/24/outline";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import categoryService from "../../services/categoryService";
+import { useCategories } from "@/context/CategoryContext";
 
 const toSlug = (name) =>
   name
@@ -19,8 +19,7 @@ export default function CategoryNav() {
   const scrollContainerRef = useRef(null);
   const itemRefs = useRef({});
   const closeTimer = useRef(null);
-  const [allCategories, setAllCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { categories: allCategories, loading } = useCategories();
   const [openMenu, setOpenMenu] = useState(null);
   const [dropdownLeft, setDropdownLeft] = useState(0);
   const pathname = usePathname();
@@ -36,20 +35,6 @@ export default function CategoryNav() {
     }
     return acc;
   }, {});
-
-  useEffect(() => {
-    setLoading(true);
-    (async () => {
-      try {
-        const res = await categoryService.getAll({ limit: 200 });
-        setAllCategories(res.data || []);
-      } catch (e) {
-        console.error("CategoryNav fetch failed:", e);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
 
   const scroll = (dir) => {
     scrollContainerRef.current?.scrollBy({

@@ -10,6 +10,7 @@ import PublicShell from "@/components/layout/PublicShell";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { CartProvider } from "@/context/CartContext";
 import { PromotionProvider } from "@/context/PromotionContext";
+import { CategoryProvider } from "@/context/CategoryContext";
 import GoogleOAuthWrapper from "@/components/common/GoogleOAuthWrapper";
 import { DialogProvider } from "@/context/DialogContext";
 
@@ -40,7 +41,8 @@ export default function RootLayout({ children }) {
           <LanguageProvider>
             <CartProvider>
               <PromotionProvider>
-                <DialogProvider>
+                <CategoryProvider>
+                  <DialogProvider>
                   {/* Public navigation - hidden on admin pages */}
                   <PublicShell>
                     <Navbar />
@@ -53,8 +55,7 @@ export default function RootLayout({ children }) {
                     <Footer />
                     <MobileBottomNav />
                   </PublicShell>
-                </DialogProvider>
-              </PromotionProvider>
+                </DialogProvider>                </CategoryProvider>              </PromotionProvider>
             </CartProvider>
           </LanguageProvider>
         </GoogleOAuthWrapper>

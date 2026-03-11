@@ -22,6 +22,7 @@ class ApiClient {
     };
     this._refreshing = false;
     this._refreshQueue = [];
+    this._inflightGets = new Map();
   }
 
   // Attempt to refresh access token; queue concurrent requests while refreshing
@@ -145,7 +146,12 @@ class ApiClient {
   async get(endpoint, params = {}) {
     const queryString = new URLSearchParams(params).toString();
     const url = queryString ? `${endpoint}?${queryString}` : endpoint;
-    return this.request(url, { method: "GET" });
+    if (this._inflightGets.has(url)) return this._inflightGets.get(url);
+    const promise = this.request(url, { method: "GET" }).finally(() =>
+      this._inflightGets.delete(url),
+    );
+    this._inflightGets.set(url, promise);
+    return promise;
   }
   async post(endpoint, data) {
     return this.request(endpoint, {
