@@ -6,6 +6,7 @@ const PromotionContext = createContext({
   productPromoMap: {},       
   loading: true,
   wholesaleDiscountPct: 0,
+  storeSettings: { min_order_amount: 100, delivery_charge: 0, handling_charge: 2 },
   refresh: () => {},
 });
 export function PromotionProvider({ children }) {
@@ -13,6 +14,7 @@ export function PromotionProvider({ children }) {
   const [productPromoMap, setProductPromoMap] = useState({});
   const [loading, setLoading]                 = useState(true);
   const [wholesaleDiscountPct, setWholesaleDiscountPct] = useState(0);
+  const [storeSettings, setStoreSettings] = useState({ min_order_amount: 100, delivery_charge: 0, handling_charge: 2 });
   const refresh = useCallback(async () => {
     try {
       const [promosRes, mapRes, settingsRes] = await Promise.all([
@@ -22,8 +24,14 @@ export function PromotionProvider({ children }) {
       ]);
       setActivePromos(promosRes.data || []);
       setProductPromoMap(mapRes.data || {});
-      const pct = settingsRes.data?.wholesale_discount_pct;
+      const sd = settingsRes.data || {};
+      const pct = sd.wholesale_discount_pct;
       setWholesaleDiscountPct(pct != null ? parseFloat(pct) : 0);
+      setStoreSettings({
+        min_order_amount: sd.min_order_amount ?? 100,
+        delivery_charge: sd.delivery_charge ?? 0,
+        handling_charge: sd.handling_charge ?? 2,
+      });
     } catch {
       setActivePromos([]);
       setProductPromoMap({});
@@ -33,11 +41,11 @@ export function PromotionProvider({ children }) {
   }, []);
   useEffect(() => {
     refresh();
-    const interval = setInterval(refresh, 60_000);
+    const interval = setInterval(refresh, 300_000); // poll every 5 minutes
     return () => clearInterval(interval);
   }, [refresh]);
   return (
-    <PromotionContext.Provider value={{ activePromos, productPromoMap, loading, wholesaleDiscountPct, refresh }}>
+    <PromotionContext.Provider value={{ activePromos, productPromoMap, loading, wholesaleDiscountPct, storeSettings, refresh }}>
       {children}
     </PromotionContext.Provider>
   );

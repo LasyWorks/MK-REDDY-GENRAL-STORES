@@ -38,11 +38,6 @@ export default function CartSidebar() {
   } = useCart();
   const overlayRef = useRef(null);
   const [loggedIn, setLoggedIn] = useState(false);
-  const [storeSettings, setStoreSettings] = useState({
-    min_order_amount: 100,
-    delivery_charge: 0,
-    handling_charge: 2,
-  });
   const pathname = usePathname();
   const loginHref = `/login?redirect=${encodeURIComponent(pathname || "/")}`;
   useEffect(() => {
@@ -51,13 +46,6 @@ export default function CartSidebar() {
   useEffect(() => {
     if (isCartOpen) {
       document.body.style.overflow = "hidden";
-      // Fetch latest store settings when cart opens
-      api
-        .get("/settings/public")
-        .then((res) => {
-          if (res.data) setStoreSettings(res.data);
-        })
-        .catch(() => {});
     } else {
       document.body.style.overflow = "";
     }
@@ -66,14 +54,12 @@ export default function CartSidebar() {
     };
   }, [isCartOpen]);
 
-  const { productPromoMap, activePromos } = usePromotions();
+  const { productPromoMap, activePromos, storeSettings } = usePromotions();
+  const { min_order_amount: minOrderAmount, delivery_charge: deliveryCharge, handling_charge: handlingCharge } = storeSettings;
 
   const totalMRP = items.reduce((s, i) => s + i.mrp * i.quantity, 0);
   const totalSavings = totalMRP - totalPrice;
   const hasSavings = totalSavings > 0.01;
-  const deliveryCharge = storeSettings.delivery_charge;
-  const handlingCharge = storeSettings.handling_charge;
-  const minOrderAmount = storeSettings.min_order_amount;
 
   // Calculate promotion discount (mirrors checkout page logic)
   let promoDiscount = 0;
