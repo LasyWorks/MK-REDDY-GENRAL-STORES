@@ -21,5 +21,7 @@ router.put("/:id/unblock", userController.unblockUser);
 router.put("/:id/activate", userController.activateUser);
 router.put("/:id/deactivate", userController.deactivateUser);
 router.put("/:id/customer-type", userController.updateCustomerType);
+router.put("/:id/make-admin", userController.makeAdmin);
+router.put("/:id/remove-admin", userController.removeAdmin);
 router.get("/:id/orders", userController.getUserOrders);
 module.exports = router;

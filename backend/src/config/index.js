@@ -47,6 +47,12 @@ const config = {
     phone: process.env.STORE_PHONE || '',
     email: process.env.STORE_EMAIL || '',
   },
+  // Permanent super-admins — these accounts cannot be demoted, deleted, or blocked,
+  // and are the only accounts allowed to promote/demote other admins.
+  superAdminEmails: (process.env.SUPER_ADMIN_EMAILS || '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean),
   limits: {
     maxCustomers: parseInt(process.env.MAX_CUSTOMERS, 10) || 50,
     maxProducts: parseInt(process.env.MAX_PRODUCTS, 10) || 500,

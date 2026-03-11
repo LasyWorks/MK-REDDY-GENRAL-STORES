@@ -7,6 +7,11 @@ const { getRoleIdByUserType } = require("../utils/helpers");
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+function isSuperAdmin(email) {
+  if (!email) return false;
+  return config.superAdminEmails.includes(email.toLowerCase());
+}
+
 class UserService {
   static async getById(id) {
     if (!id || !UUID_RE.test(id)) {
@@ -59,6 +64,9 @@ class UserService {
     }
     if (user.role_name === "admin") {
       throw ApiError.forbidden("Cannot delete admin users");
+    }
+    if (isSuperAdmin(user.email)) {
+      throw ApiError.forbidden("Cannot delete a super admin account");
     }
 
     // Soft delete — mark user as deleted and revoke all sessions
@@ -136,6 +144,9 @@ class UserService {
     if (user.role_name === "admin") {
       throw ApiError.forbidden("Cannot block admin users");
     }
+    if (isSuperAdmin(user.email)) {
+      throw ApiError.forbidden("Cannot block a super admin account");
+    }
     if (user.is_blocked) {
       throw ApiError.badRequest("User is already blocked");
     }
@@ -190,6 +201,9 @@ class UserService {
     }
     if (user.role_name === "admin") {
       throw ApiError.forbidden("Cannot deactivate admin users");
+    }
+    if (isSuperAdmin(user.email)) {
+      throw ApiError.forbidden("Cannot deactivate a super admin account");
     }
     if (!user.is_active) {
       throw ApiError.badRequest("User is already inactive");
@@ -271,6 +285,9 @@ class UserService {
   static async updateCustomerType(id, customerType, adminId) {
     const user = await User.findById(id);
     if (!user) throw ApiError.notFound("User not found");
+    if (isSuperAdmin(user.email)) {
+      throw ApiError.forbidden("Cannot change the type of a super admin account");
+    }
     const validTypes = ["retail", "wholesale"];
     if (!validTypes.includes(customerType)) {
       throw ApiError.badRequest(
@@ -289,6 +306,53 @@ class UserService {
     const updated = await User.findById(id);
     return this.sanitizeUser(updated);
   }
+  static async makeAdmin(targetId, requestingUser) {
+    if (!isSuperAdmin(requestingUser.email)) {
+      throw ApiError.forbidden("Only super admins can promote users to admin");
+    }
+    const user = await User.findById(targetId);
+    if (!user) throw ApiError.notFound("User not found");
+    if (user.user_type === "admin") {
+      throw ApiError.badRequest("User is already an admin");
+    }
+    const adminRoleId = await getRoleIdByUserType("admin");
+    await User.updateUserType(targetId, "admin", adminRoleId);
+    await AdminLog.create({
+      adminId: requestingUser.id,
+      action: "MAKE_ADMIN",
+      entityType: "user",
+      entityId: targetId,
+      newValue: { user_type: "admin" },
+    });
+    const updated = await User.findById(targetId);
+    return this.sanitizeUser(updated);
+  }
+
+  static async removeAdmin(targetId, requestingUser) {
+    if (!isSuperAdmin(requestingUser.email)) {
+      throw ApiError.forbidden("Only super admins can demote admin users");
+    }
+    const user = await User.findById(targetId);
+    if (!user) throw ApiError.notFound("User not found");
+    if (user.user_type !== "admin") {
+      throw ApiError.badRequest("User is not an admin");
+    }
+    if (isSuperAdmin(user.email)) {
+      throw ApiError.forbidden("Cannot demote a super admin account");
+    }
+    const retailRoleId = await getRoleIdByUserType("retail");
+    await User.updateUserType(targetId, "retail", retailRoleId);
+    await AdminLog.create({
+      adminId: requestingUser.id,
+      action: "REMOVE_ADMIN",
+      entityType: "user",
+      entityId: targetId,
+      newValue: { user_type: "retail" },
+    });
+    const updated = await User.findById(targetId);
+    return this.sanitizeUser(updated);
+  }
+
   static sanitizeUser(user) {
     return {
       id: user.id,
