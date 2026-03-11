@@ -23,6 +23,10 @@ export async function GET(request) {
   if (target.protocol !== "https:" && target.protocol !== "http:") {
     return new Response("Only HTTP/HTTPS URLs are allowed", { status: 403 });
   }
+  // Always upgrade to HTTPS to avoid mixed-content issues
+  if (target.protocol === "http:") {
+    target.protocol = "https:";
+  }
   if (BLOCKED_HOSTS.some((re) => re.test(target.hostname))) {
     return new Response("Host not allowed", { status: 403 });
   }
@@ -56,4 +60,4 @@ export async function GET(request) {
     console.error("[img-proxy] fetch failed:", err.message);
     return new Response("Failed to fetch image", { status: 502 });
   }
-}
+}
