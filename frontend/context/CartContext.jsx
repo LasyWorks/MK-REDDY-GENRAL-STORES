@@ -68,10 +68,59 @@ export function CartProvider({ children }) {
       }
     }
   }, []);
-  // Load cart from localStorage on mount - works offline
-  useEffect(() => {
-    setItems(load());
+  // Load cart: on mount and after login, merge server cart with local cart
+  const loadAndMergeCart = useCallback(async () => {
+    const local = load();
+    if (!isLoggedIn()) {
+      setItems(local);
+      return;
+    }
+    try {
+      const res = await cartService.get();
+      const serverItems = (res?.data?.items || []).map((si) => ({
+        id: si.product_id,
+        name: si.product_name || si.product_name_en,
+        price: parseFloat(si.unit_price ?? si.current_price ?? 0),
+        mrp: parseFloat(si.current_price ?? si.unit_price ?? 0),
+        image_url: si.image_url || null,
+        unit_pack_size: si.unit_pack_size || null,
+        brand: si.brand || null,
+        variant: si.variant || null,
+        quantity: si.quantity,
+        stock_quantity: si.stock_quantity ?? 99,
+        max_order_quantity: si.max_order_quantity ?? 99,
+        min_order_quantity: si.min_order_quantity ?? 1,
+      }));
+
+      if (serverItems.length === 0) {
+        // Nothing on server yet — keep local cart as-is
+        setItems(local);
+        return;
+      }
+
+      // Merge: server is source of truth; add any local-only items on top
+      const merged = [...serverItems];
+      local.forEach((localItem) => {
+        const exists = merged.find((s) => s.id === localItem.id);
+        if (!exists) merged.push(localItem);
+      });
+      setItems(merged);
+    } catch {
+      // Server unreachable — fall back to local cart
+      setItems(local);
+    }
   }, []);
+
+  useEffect(() => {
+    loadAndMergeCart();
+  }, [loadAndMergeCart]);
+
+  // Re-sync cart whenever user logs in on this tab
+  useEffect(() => {
+    const handleAuthChange = () => { loadAndMergeCart(); };
+    window.addEventListener("authChange", handleAuthChange);
+    return () => window.removeEventListener("authChange", handleAuthChange);
+  }, [loadAndMergeCart]);
   // Auto-save cart to localStorage whenever it changes
   useEffect(() => {
     save(items);
