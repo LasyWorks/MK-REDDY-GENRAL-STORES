@@ -11,6 +11,7 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { useCart } from "@/context/CartContext";
+import { useLanguage } from "@/context/LanguageContext";
 import authService from "@/services/authService";
 import secureStorage from "@/lib/secureStorage";
 import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
@@ -23,6 +24,7 @@ const SILENCE_STOP_MS = 1800;
 
 export default function MobileHeader() {
   const { totalCount, openCart } = useCart();
+  const { lang, setLang } = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
   // Category detail pages (/categories/[id]) have their own sticky header
@@ -280,8 +282,17 @@ export default function MobileHeader() {
           </button>
         </div>
 
-        {/* Right: Profile + Cart */}
+        {/* Right: Lang toggle + Profile + Cart */}
         <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            onClick={() => setLang(lang === "en" ? "te" : "en")}
+            className="w-9 h-9 flex items-center justify-center rounded-full active:bg-gray-100 transition-colors"
+            aria-label="Switch language"
+          >
+            <span className="text-[11px] font-bold text-gray-600 leading-none">
+              {lang === "en" ? "EN" : "తె"}
+            </span>
+          </button>
           <Link
             href={isLoggedIn ? "/profile" : "/login"}
             className="w-9 h-9 flex items-center justify-center rounded-full active:bg-gray-100 transition-colors"
