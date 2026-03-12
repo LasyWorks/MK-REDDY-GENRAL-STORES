@@ -22,6 +22,19 @@ import cartService from "@/services/cartService";
 import authService from "@/services/authService";
 import proxyImg from "@/lib/imgProxy";
 import api from "@/lib/api";
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function withMinimumDelay(task, minMs) {
+  const startedAt = Date.now();
+  const result = await task();
+  const elapsed = Date.now() - startedAt;
+  if (elapsed < minMs) {
+    await wait(minMs - elapsed);
+  }
+  return result;
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, totalPrice, totalCount, clearCartLocal } = useCart();
@@ -30,8 +43,10 @@ export default function CheckoutPage() {
   const [authChecked, setAuthChecked] = useState(false);
   const [notes, setNotes] = useState("");
   const [placing, setPlacing] = useState(false);
+  const [placingStep, setPlacingStep] = useState(0);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [successVisible, setSuccessVisible] = useState(false);
   const [storeSettings, setStoreSettings] = useState({
     min_order_amount: 0,
     delivery_charge: 0,
@@ -56,6 +71,16 @@ export default function CheckoutPage() {
       router.replace("/");
     }
   }, [authChecked, items.length, success, router]);
+  useEffect(() => {
+    if (!success) {
+      setSuccessVisible(false);
+      return;
+    }
+    const frame = requestAnimationFrame(() => {
+      setSuccessVisible(true);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [success]);
   const totalMRP = items.reduce((s, i) => s + i.mrp * i.quantity, 0);
   const totalSavings = totalMRP - totalPrice;
   const hasSavings = totalSavings > 0.01;
@@ -169,45 +194,194 @@ export default function CheckoutPage() {
   const handlePlaceOrder = async () => {
     setError(null);
     setPlacing(true);
+    setPlacingStep(1);
     try {
       const mapped = items.map((i) => ({
         product_id: i.id,
         quantity: i.quantity,
       }));
-      if (mapped.length > 0) {
-        await cartService.syncAll(mapped);
-      }
-      const res = await orderService.create({
-        notes: notes.trim() || undefined,
-      });
+      await withMinimumDelay(async () => {
+        if (mapped.length > 0) {
+          await cartService.syncAll(mapped);
+        }
+      }, 900);
+
+      setPlacingStep(2);
+      const res = await withMinimumDelay(
+        () => orderService.create({
+          notes: notes.trim() || undefined,
+        }),
+        1200,
+      );
+
+      setPlacingStep(3);
       const order = res.data;
+      await wait(900);
+      setPlacingStep(4);
+      await wait(1200);
+      setSuccessVisible(false);
       setSuccess({ orderId: order.id, orderNumber: order.order_number });
       clearCartLocal();
     } catch (e) {
       setError(e.message || "Failed to place order. Please try again.");
     } finally {
       setPlacing(false);
+      setPlacingStep(0);
     }
   };
+  const PLACING_STEPS = [
+    { label: "Syncing your cart", icon: ShoppingBag },
+    { label: "Placing your order", icon: Package },
+    { label: "Confirming", icon: CheckCircle2 },
+  ];
+
+  if (placing) {
+    const overlayComplete = placingStep > PLACING_STEPS.length;
+    const activeStep = overlayComplete
+      ? PLACING_STEPS[PLACING_STEPS.length - 1]
+      : PLACING_STEPS[Math.max(placingStep - 1, 0)] || PLACING_STEPS[0];
+    const ActiveStepIcon = activeStep.icon;
+    const progressWidth = overlayComplete
+      ? "100%"
+      : `${Math.max((placingStep / PLACING_STEPS.length) * 100, 12)}%`;
+
+    return (
+      <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 max-w-sm w-full text-center">
+          <div className="relative w-16 h-16 mx-auto mb-6">
+            <div className="absolute inset-0 rounded-full border-4 border-gray-100" />
+            {overlayComplete ? (
+              <div className="absolute inset-0 rounded-full border-4 border-green-500" />
+            ) : (
+              <div className="absolute inset-0 rounded-full border-4 border-green-500 border-t-transparent animate-spin" />
+            )}
+            <div className="absolute inset-0 flex items-center justify-center">
+              {overlayComplete ? (
+                <CheckCircle2 className="w-6 h-6 text-green-600" />
+              ) : (
+                <ActiveStepIcon className="w-6 h-6 text-green-600" />
+              )}
+            </div>
+          </div>
+          <h2 className="text-lg font-bold text-gray-900 mb-1">
+            {overlayComplete ? "Order Confirmed" : "Processing Order"}
+          </h2>
+          <p className="text-sm text-gray-500 mb-6">
+            {overlayComplete
+              ? "Everything is ready. Opening your order confirmation."
+              : "Please wait while we place your order"}
+          </p>
+          <div className="mb-5">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+              <div
+                className="h-full rounded-full bg-green-500 transition-all duration-700 ease-out"
+                style={{ width: progressWidth }}
+              />
+            </div>
+          </div>
+          <div className="space-y-3 text-left">
+            {PLACING_STEPS.map((s, i) => {
+              const stepNum = i + 1;
+              const done = placingStep > stepNum;
+              const active = placingStep === stepNum;
+              const Icon = s.icon;
+              return (
+                <div
+                  key={i}
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-300 ${
+                    active
+                      ? "bg-green-50 border border-green-200"
+                      : done
+                      ? "bg-gray-50 border border-gray-100"
+                      : "border border-transparent opacity-40"
+                  }`}
+                >
+                  <div
+                    className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-300 ${
+                      done
+                        ? "bg-green-500"
+                        : active
+                        ? "bg-green-100"
+                        : "bg-gray-100"
+                    }`}
+                  >
+                    {done ? (
+                      <CheckCircle2 className="w-4 h-4 text-white" />
+                    ) : active ? (
+                      <Loader2 className="w-4 h-4 text-green-600 animate-spin" />
+                    ) : (
+                      <Icon className="w-3.5 h-3.5 text-gray-400" />
+                    )}
+                  </div>
+                  <span
+                    className={`text-sm font-medium transition-colors duration-300 ${
+                      done
+                        ? "text-green-700"
+                        : active
+                        ? "text-green-700"
+                        : "text-gray-400"
+                    }`}
+                  >
+                    {s.label}
+                    {done && (
+                      <span className="text-green-500 text-xs ml-1.5">Done</span>
+                    )}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-xs text-gray-400 mt-5">Do not close this page</p>
+        </div>
+      </main>
+    );
+  }
+
   if (success) {
     return (
       <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 max-w-md w-full text-center">
-          <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-5">
+        <div
+          className={`bg-white rounded-2xl shadow-sm border border-gray-100 p-10 max-w-md w-full text-center transition-all duration-500 ease-out ${
+            successVisible
+              ? "opacity-100 translate-y-0 scale-100"
+              : "opacity-0 translate-y-4 scale-95"
+          }`}
+        >
+          <div
+            className={`w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-5 transition-all duration-500 delay-75 ${
+              successVisible ? "opacity-100 scale-100" : "opacity-0 scale-75"
+            }`}
+          >
             <CheckCircle2 className="w-10 h-10 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-1">
+          <h2
+            className={`text-2xl font-bold text-gray-900 mb-1 transition-all duration-500 delay-100 ${
+              successVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
+            }`}
+          >
             Order Placed!
           </h2>
-          <p className="text-gray-500 text-sm mb-1">
+          <p
+            className={`text-gray-500 text-sm mb-1 transition-all duration-500 delay-150 ${
+              successVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
+            }`}
+          >
             Your order has been confirmed.
           </p>
           {success.orderNumber && (
-            <p className="text-xs text-gray-400 mb-6">
+            <p
+              className={`text-xs text-gray-400 mb-6 transition-all duration-500 delay-200 ${
+                successVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
+              }`}
+            >
               Order #{success.orderNumber}
             </p>
           )}
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div
+            className={`flex flex-col sm:flex-row gap-3 transition-all duration-500 delay-300 ${
+              successVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
+            }`}
+          >
             <Link
               href={`/orders/${success.orderId}`}
               className="flex-1 flex items-center justify-center gap-2 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition-colors shadow-sm"
