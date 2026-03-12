@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { userController } = require("../controllers");
+const userController = require("../controllers/userController");
 const { authenticate, authorize, superAdminOnly } = require("../middlewares/auth");
 
 // All routes require auth + admin role + super admin privilege
