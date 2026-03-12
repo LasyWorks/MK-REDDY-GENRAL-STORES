@@ -129,6 +129,7 @@ class AuthService {
         `Linked Google account to existing email user ${existingUserByEmail.id} (${email})`,
       );
       return {
+        isNewUser: false,
         user: this.sanitizeUser(existingUserByEmail),
         ...tokens,
       };
@@ -152,6 +153,7 @@ class AuthService {
           `Linked Google account to phone-only user ${updatedUser.id} (${phone})`,
         );
         return {
+          isNewUser: false,
           user: this.sanitizeUser(updatedUser),
           ...tokens,
         };
@@ -216,6 +218,7 @@ class AuthService {
     logger.info(`New user registered via Google OAuth: ${user.id} (${email})`);
 
     return {
+      isNewUser: true,
       user: this.sanitizeUser(user),
       ...tokens,
     };

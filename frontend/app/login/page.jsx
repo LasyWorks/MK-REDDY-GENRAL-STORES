@@ -155,7 +155,7 @@ function LoginForm() {
         return;
       }
 
-      const { user, accessToken, refreshToken } = data;
+      const { user, accessToken, refreshToken, isNewUser } = data;
       secureStorage.setItem("token", accessToken);
       secureStorage.setItem("refreshToken", refreshToken);
       secureStorage.setItem("user", JSON.stringify(user));
@@ -163,7 +163,7 @@ function LoginForm() {
       // Dispatch auth change event for Navbar to update
       window.dispatchEvent(new Event("authChange"));
 
-      setSuccess("Registration completed successfully! Redirecting...");
+      setSuccess(isNewUser === false ? "Login successful! Redirecting..." : "Registration completed successfully! Redirecting...");
       setStep("complete");
       
       setTimeout(() => router.push(redirectTo), 2000);
