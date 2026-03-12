@@ -1,6 +1,7 @@
 const { Product, Category, AdminLog } = require("../models");
 const config = require("../config");
 const ApiError = require("../utils/ApiError");
+const { generateSku } = require("../utils/helpers");
 const stockAlertService = require('./stockAlertService');
 const { revalidatePages } = require("../utils/revalidate");
 const { invalidateCache } = require("../middlewares/cache");
