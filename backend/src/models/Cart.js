@@ -52,7 +52,7 @@ class Cart {
               COALESCE(ct_req.name, ct_en.name)  AS category_name
        FROM cart_items ci
        JOIN products p ON ci.product_id = p.id
-       JOIN categories c ON p.category_id = c.id
+       LEFT JOIN categories c ON p.category_id = c.id
        LEFT JOIN product_translations  pt_req ON p.id = pt_req.product_id AND pt_req.lang_code = $2
        LEFT JOIN product_translations  pt_en  ON p.id = pt_en.product_id  AND pt_en.lang_code  = 'en'
        LEFT JOIN category_translations ct_req ON c.id = ct_req.category_id AND ct_req.lang_code = $2

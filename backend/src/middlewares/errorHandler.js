@@ -20,6 +20,14 @@ const normalizeError = (err) => {
         return ApiError.conflict('Cannot delete. Resource is referenced by other records.');
       // PostgreSQL errors
       case '22P02': // invalid_text_representation (e.g. invalid UUID format)
+        logger.error('22P02 invalid_text_representation:', {
+          message: err.message,
+          detail: err.detail,
+          where: err.where,
+          table: err.table,
+          column: err.column,
+          routine: err.routine,
+        });
         return ApiError.badRequest('Invalid ID format.');
       case '22003': // numeric_value_out_of_range
         return ApiError.badRequest('Numeric value out of range.');

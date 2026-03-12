@@ -131,6 +131,19 @@ class OrderService {
       // Never fail order creation due to promotion errors - customer experience comes first
       logger.error('Promotion discount calc failed (order will proceed without discount):', err);
     }
+    // Ensure promoId is a valid UUID or null (prevent 22P02 from bad promo data)
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (promoId && !UUID_RE.test(promoId)) {
+      logger.warn('Invalid promotion ID discarded before order creation:', promoId);
+      promoId = null;
+      promoDiscount = 0;
+      promoTitle = null;
+    }
+    if (promoFreeProductId && !UUID_RE.test(promoFreeProductId)) {
+      logger.warn('Invalid free product ID discarded before order creation:', promoFreeProductId);
+      promoFreeProductId = null;
+    }
+
     const { orderId, orderNumber } = await Order.createFromCart(userId, updatedCart, notes, {
       promotionId: promoId, promotionDiscount: promoDiscount, promotionTitle: promoTitle,
       freeProductId: promoFreeProductId,
