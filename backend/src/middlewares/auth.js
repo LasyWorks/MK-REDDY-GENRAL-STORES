@@ -31,6 +31,7 @@ const authenticate = async (req, res, next) => {
       roleId: user[0].role_id,
       userType: user[0].user_type,
       user_type: user[0].user_type,
+      is_super_admin: user[0].is_super_admin === true || user[0].is_super_admin === 1,
     };
     next();
   } catch (error) {
@@ -96,6 +97,16 @@ const authorize = (...allowedRoles) => {
     next();
   };
 };
+// Require the user to be a super admin (can manage other admins)
+const superAdminOnly = (req, res, next) => {
+  if (!req.user) {
+    return next(ApiError.unauthorized('Authentication required'));
+  }
+  if (!req.user.is_super_admin) {
+    return next(ApiError.forbidden('This action requires super admin privileges'));
+  }
+  next();
+};
 // Quick shortcuts for common role checks
 const adminOnly = authorize('admin');
 const customerOnly = authorize('retail_customer', 'wholesale_customer');
@@ -133,6 +144,7 @@ module.exports = {
   optionalAuth,
   authorize,
   adminOnly,
+  superAdminOnly,
   customerOnly,
   verifyRefreshToken,
 };

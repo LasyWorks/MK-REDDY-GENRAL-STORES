@@ -88,7 +88,7 @@ function useAdminGuard() {
       router.replace("/login?redirect=/admin/dashboard");
     }
   }, [router]);
-  return { ready, admin };
+  return { ready, admin, isSuperAdmin: admin?.is_super_admin === true };
 }
 const STATUS_STYLES = {
   pending: "bg-yellow-100 text-yellow-700",
@@ -2226,8 +2226,8 @@ function ProductsTab() {
   }
 
   const load = useCallback(
-    async (q = search) => {
-      setLoading(true);
+    async (q = search, silent = false) => {
+      if (!silent) setLoading(true);
       setError("");
       try {
         const params = { page: 1, limit: 500, ...(q ? { search: q } : {}) };
@@ -2247,7 +2247,7 @@ function ProductsTab() {
       } catch (e) {
         setError(e.message || "Failed to load");
       } finally {
-        setLoading(false);
+        if (!silent) setLoading(false);
       }
     },
     [search, categories.length],
@@ -2267,8 +2267,9 @@ function ProductsTab() {
     setDeleting(id);
     try {
       await api.delete(`/products/${id}`);
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+      setAllProducts((prev) => prev.filter((p) => p.id !== id));
       setSelected((prev) => { const n = new Set(prev); n.delete(id); return n; });
-      load();
     } catch (e) {
       toast(e.message || "Delete failed", "error");
     } finally {
@@ -2283,7 +2284,7 @@ function ProductsTab() {
       setProducts((prev) => prev.map((p) => p.id === updatedProduct.id ? { ...p, ...updatedProduct } : p));
       setAllProducts((prev) => prev.map((p) => p.id === updatedProduct.id ? { ...p, ...updatedProduct } : p));
     } else {
-      load();
+      load(search, true);
     }
   }
 
@@ -2340,6 +2341,8 @@ function ProductsTab() {
       if (bulkAction === "delete") {
         if (!(await confirm(`Delete ${ids.length} product(s)?`, { danger: true, confirmLabel: "Delete All" }))) { setBulkUpdating(false); return; }
         await Promise.all(ids.map((id) => api.delete(`/products/${id}`)));
+        setProducts((prev) => prev.filter((p) => !ids.includes(p.id)));
+        setAllProducts((prev) => prev.filter((p) => !ids.includes(p.id)));
         toast(`${ids.length} product(s) deleted`, "success");
       } else if (bulkAction === "activate") {
         await Promise.all(ids.map((id) => api.put(`/products/${id}`, { is_active: true })));
@@ -2356,7 +2359,7 @@ function ProductsTab() {
       }
       setSelected(new Set());
       setBulkAction("");
-      load();
+      if (bulkAction !== "delete") load();
     } catch (e) {
       toast(e.message || "Bulk action failed", "error");
     } finally {
@@ -7406,6 +7409,205 @@ function StoreSettingsTab() {
   );
 }
 
+function AdminsTab() {
+  const { confirm, toast } = useDialog();
+  const [admins, setAdmins] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [form, setForm] = useState({ name: "", phone: "", email: "", password: "" });
+  const [creating, setCreating] = useState(false);
+  const [formError, setFormError] = useState("");
+
+  async function load() {
+    setLoading(true);
+    try {
+      const res = await api.get("/admin-management");
+      setAdmins(res.data || []);
+    } catch (e) {
+      toast(e.message || "Failed to load admins", "error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function handleDelete(id) {
+    if (!(await confirm("Delete this admin account?", { danger: true, confirmLabel: "Delete" }))) return;
+    setDeleting(id);
+    try {
+      await api.delete(`/admin-management/${id}`);
+      setAdmins((prev) => prev.filter((a) => a.id !== id));
+    } catch (e) {
+      toast(e.message || "Delete failed", "error");
+    } finally {
+      setDeleting(null);
+    }
+  }
+
+  async function handleCreate(e) {
+    e.preventDefault();
+    setFormError("");
+    if (!form.name || !form.phone || !form.password) {
+      setFormError("Name, phone, and password are required.");
+      return;
+    }
+    setCreating(true);
+    try {
+      const res = await api.post("/admin-management", form);
+      setAdmins((prev) => [...prev, res.data]);
+      setShowCreate(false);
+      setForm({ name: "", phone: "", email: "", password: "" });
+      toast("Admin created successfully", "success");
+    } catch (e) {
+      setFormError(e.message || "Failed to create admin");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">Admin Accounts</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Only super admins can create or remove admin accounts.</p>
+        </div>
+        <button
+          onClick={() => { setShowCreate(true); setFormError(""); }}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm"
+        >
+          <Plus className="w-4 h-4" />
+          New Admin
+        </button>
+      </div>
+
+      {showCreate && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+          <h2 className="text-base font-semibold text-gray-900 mb-4">Create Admin Account</h2>
+          <form onSubmit={handleCreate} className="space-y-4">
+            {formError && (
+              <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{formError}</div>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Name</label>
+                <input
+                  type="text" required placeholder="Full name"
+                  value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Phone</label>
+                <input
+                  type="text" required placeholder="Phone number"
+                  value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Email (optional)</label>
+                <input
+                  type="email" placeholder="Email address"
+                  value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Password</label>
+                <input
+                  type="password" required placeholder="Set a strong password"
+                  value={form.password} onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-3 pt-1">
+              <button type="submit" disabled={creating}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition-colors">
+                {creating ? <><Loader2 className="w-4 h-4 animate-spin" />Creating...</> : "Create Admin"}
+              </button>
+              <button type="button" onClick={() => setShowCreate(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
+          </div>
+        ) : admins.length === 0 ? (
+          <div className="py-16 text-center text-gray-400 text-sm">No admin accounts found.</div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Name</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Contact</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Role</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Last Login</th>
+                <th className="px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {admins.map((a) => (
+                <tr key={a.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs shrink-0">
+                        {(a.name || "A")[0].toUpperCase()}
+                      </div>
+                      <span className="font-medium text-gray-900">{a.name || "No name"}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-gray-500">
+                    <div>{a.phone}</div>
+                    {a.email && <div className="text-xs text-gray-400">{a.email}</div>}
+                  </td>
+                  <td className="px-4 py-3">
+                    {a.is_super_admin ? (
+                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700 w-fit">
+                        <ShieldCheck className="w-3 h-3" /> Super Admin
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">Admin</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-400">
+                    {a.last_login_at ? fmtDate(a.last_login_at) : "Never"}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {!a.is_super_admin && (
+                      deleting === a.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-red-500 inline" />
+                      ) : (
+                        <button
+                          onClick={() => handleDelete(a.id)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors ml-auto"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Delete
+                        </button>
+                      )
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
 const SIDEBAR_ITEMS = [
   { id: "overview", label: "Dashboard", icon: LayoutDashboard },
   { id: "products", label: "Products", icon: Package },
@@ -7417,8 +7619,12 @@ const SIDEBAR_ITEMS = [
   { id: "billing", label: "Billing", icon: DocumentTextIcon },
   { id: "settings", label: "Settings", icon: Cog },
 ];
+
+const SUPER_ADMIN_SIDEBAR_ITEMS = [
+  { id: "admins", label: "Admin Accounts", icon: ShieldCheck },
+];
 export default function AdminDashboard() {
-  const { ready, admin } = useAdminGuard();
+  const { ready, admin, isSuperAdmin } = useAdminGuard();
   const router = useRouter();
   const [tab, setTab] = useState(() => {
     if (typeof window !== "undefined") {
@@ -7569,6 +7775,31 @@ export default function AdminDashboard() {
               </button>
             );
           })}
+          {isSuperAdmin && (
+            <>
+              <div className="pt-2 pb-1 px-3">
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Super Admin</p>
+              </div>
+              {SUPER_ADMIN_SIDEBAR_ITEMS.map(({ id, label, icon: Icon }) => {
+                const isActive = tab === id;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => handleTabChange(id)}
+                    className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1
+                      ${isActive
+                        ? "bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-100"
+                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                      }`}
+                  >
+                    {isActive && <span className="absolute left-0 w-[3px] h-6 bg-indigo-600 rounded-r-full" />}
+                    <Icon className={`w-5 h-5 shrink-0 ${isActive ? "text-indigo-600" : "text-gray-400"}`} />
+                    {label}
+                  </button>
+                );
+              })}
+            </>
+          )}
         </nav>
 
         {/* Sidebar Footer */}
@@ -7721,6 +7952,7 @@ export default function AdminDashboard() {
           {tab === "promotions" && <PromotionsTab />}
           {tab === "users" && <UsersTab />}
           {tab === "settings" && <StoreSettingsTab />}
+          {tab === "admins" && isSuperAdmin && <AdminsTab />}
         </main>
       </div>
     </div>

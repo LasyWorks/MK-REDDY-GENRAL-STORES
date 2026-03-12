@@ -145,23 +145,21 @@ class ProductService {
     if (!product) {
       throw ApiError.notFound("Product not found");
     }
-    // Soft delete: keep product in database for order history, just hide from customers
-    await Product.update(id, { is_active: false });
+    await Product.delete(id);
 
     // Invalidate product caches
     invalidateCache("products", `/api/v1/products/${id}`);
     invalidateCache("products", "/api/v1/products");
     invalidateCache("responses", "/api/v1/products");
-    // Flush category cache so the deactivated product doesn't count toward product_count
     invalidateCache("categories");
 
     await AdminLog.create({
       adminId,
-      action: "DEACTIVATE_PRODUCT",
+      action: "DELETE_PRODUCT",
       entityType: "product",
       entityId: id,
-      oldValue: { is_active: product.is_active },
-      newValue: { is_active: false },
+      oldValue: { name: product.name, is_active: product.is_active },
+      newValue: null,
     });
     await revalidatePages({
       tags: [
@@ -172,7 +170,7 @@ class ProductService {
       ],
       paths: [`/categories/${product.category_id}`],
     });
-    return { message: "Product deactivated successfully" };
+    return { message: "Product deleted successfully" };
   }
   static async updateStock(id, quantity, adminId, operation = "add") {
     const product = await Product.findById(id);

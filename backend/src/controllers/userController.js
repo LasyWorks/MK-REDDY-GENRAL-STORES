@@ -117,6 +117,22 @@ const getUserOrders = asyncHandler(async (req, res) => {
     totalItems: result.total,
   });
 });
+
+// Super-admin-only: admin account management
+const listAdmins = asyncHandler(async (req, res) => {
+  const admins = await UserService.listAdmins();
+  ApiResponse.success(res, admins);
+});
+const createAdminUser = asyncHandler(async (req, res) => {
+  const { name, phone, email, password } = req.body;
+  const admin = await UserService.createAdmin({ name, phone, email, password }, req.user.id);
+  ApiResponse.created(res, admin, "Admin created successfully");
+});
+const deleteAdminUser = asyncHandler(async (req, res) => {
+  const result = await UserService.deleteAdmin(req.params.id, req.user.id);
+  ApiResponse.success(res, result);
+});
+
 module.exports = {
   getAllUsers: getUsers,
   getUserById: getUser,
@@ -133,4 +149,7 @@ module.exports = {
   updateCustomerType,
   getUserOrders,
   getCustomerCount,
+  listAdmins,
+  createAdminUser,
+  deleteAdminUser,
 };

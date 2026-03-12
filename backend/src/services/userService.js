@@ -300,11 +300,93 @@ class UserService {
       address: user.address,
       is_active: user.is_active,
       is_blocked: user.is_blocked,
+      is_super_admin: user.is_super_admin === true || user.is_super_admin === 1,
       blocked_reason: user.blocked_reason,
       last_login_at: user.last_login_at,
       deleted_at: user.deleted_at || null,
       created_at: user.created_at,
     };
+  }
+
+  static async listAdmins() {
+    const rows = await pool.query(
+      `SELECT u.id, u.name, u.phone, u.email, u.user_type, u.is_active,
+              u.is_super_admin, u.last_login_at, u.created_at, r.name AS role_name
+       FROM users u
+       JOIN roles r ON u.role_id = r.id
+       WHERE u.user_type = 'admin' AND u.deleted_at IS NULL
+       ORDER BY u.created_at ASC`,
+    );
+    return rows.rows.map((u) => this.sanitizeUser(u));
+  }
+
+  static async createAdmin({ name, phone, email, password }, requesterId) {
+    const bcrypt = require("bcryptjs");
+    const securityConfig = require("../config/security");
+
+    if (!password) throw ApiError.badRequest("Password is required for admin accounts");
+    if (!phone) throw ApiError.badRequest("Phone is required");
+
+    const existingPhone = await User.findByPhone(phone);
+    if (existingPhone) throw ApiError.conflict("Phone number already registered");
+
+    if (email) {
+      const existingEmail = await User.findByEmail(email);
+      if (existingEmail) throw ApiError.conflict("Email already registered");
+    }
+
+    const adminRoleId = await getRoleIdByUserType("admin");
+    const passwordHash = await bcrypt.hash(password, securityConfig.password.bcryptRounds);
+
+    const newId = await User.create({
+      name,
+      phone,
+      email: email || null,
+      user_type: "admin",
+      role_id: adminRoleId,
+      password_hash: passwordHash,
+    });
+
+    await AdminLog.create({
+      adminId: requesterId,
+      action: "CREATE_ADMIN",
+      entityType: "user",
+      entityId: newId,
+      newValue: { name, phone, email, user_type: "admin" },
+    });
+
+    const fullUser = await User.findById(newId);
+    return this.sanitizeUser(fullUser);
+  }
+
+  static async deleteAdmin(id, requesterId) {
+    const user = await User.findById(id);
+    if (!user) throw ApiError.notFound("Admin not found");
+    if (user.user_type !== "admin") throw ApiError.badRequest("User is not an admin");
+    if (user.is_super_admin) throw ApiError.forbidden("Super admin accounts cannot be deleted");
+    if (id === requesterId) throw ApiError.forbidden("Cannot delete your own admin account");
+
+    await User.softDelete(id);
+
+    const client = await pool.connect();
+    try {
+      await client.query(
+        `UPDATE refresh_tokens SET revoked = TRUE, revoked_at = NOW() WHERE user_id = $1`,
+        [id],
+      );
+    } finally {
+      client.release();
+    }
+
+    await AdminLog.create({
+      adminId: requesterId,
+      action: "DELETE_ADMIN",
+      entityType: "user",
+      entityId: id,
+      oldValue: { name: user.name, email: user.email },
+    });
+
+    return { message: "Admin deleted successfully" };
   }
 }
 module.exports = UserService;

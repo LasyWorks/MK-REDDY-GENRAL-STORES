@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { userController } = require("../controllers");
-const { authenticate, authorize } = require("../middlewares/auth");
+const { authenticate, authorize, superAdminOnly } = require("../middlewares/auth");
 const {
   validateCreateUser,
   validateUpdateUser,
@@ -11,6 +11,7 @@ router.use(authorize("admin"));
 router.get("/", userController.getAllUsers);
 router.get("/stats", userController.getUserStats);
 router.get("/deleted", userController.getDeletedUsers);
+router.get("/count", userController.getCustomerCount);
 router.get("/:id", userController.getUserById);
 router.post("/", validateCreateUser, userController.createUser);
 router.put("/:id", validateUpdateUser, userController.updateUser);

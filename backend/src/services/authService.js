@@ -748,6 +748,7 @@ class AuthService {
       role: user.role_name,
       address: user.address,
       is_active: user.is_active,
+      is_super_admin: user.is_super_admin === true || user.is_super_admin === 1,
       email_verified: user.email_verified,
       last_login_at: user.last_login_at,
       created_at: user.created_at,
