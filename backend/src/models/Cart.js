@@ -294,11 +294,14 @@ class Cart {
   }
   static async replaceAll(userId, items, userType = 'retail', wholesaleDiscountPct = 0) {
     const cart = await this.getOrCreate(userId);
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     return withTransaction(async (client) => {
       await client.query("DELETE FROM cart_items WHERE cart_id = $1", [
         cart.id,
       ]);
       for (const item of items) {
+        // Skip items with malformed product IDs (e.g. stale localStorage from old app versions)
+        if (!item.product_id || !uuidRegex.test(item.product_id)) continue;
         const product = await client.query(
           "SELECT price, wholesale_price, stock_quantity, is_active FROM products WHERE id = $1",
           [item.product_id],

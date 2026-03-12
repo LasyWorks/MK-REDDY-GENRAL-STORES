@@ -175,12 +175,19 @@ class CartService {
     if (!Array.isArray(items) || items.length === 0) {
       throw ApiError.badRequest("Items array is required");
     }
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const validItems = items.filter(function(item) {
+      return item && item.product_id && uuidRegex.test(item.product_id);
+    });
+    if (validItems.length === 0) {
+      throw ApiError.badRequest("No valid items to sync");
+    }
     let wsPct = 0;
     if (userType === 'wholesale') {
       const setting = await StoreSetting.get('wholesale_discount_pct');
       wsPct = setting ? parseFloat(setting.value) || 0 : 0;
     }
-    await Cart.replaceAll(userId, items, userType, wsPct);
+    await Cart.replaceAll(userId, validItems, userType, wsPct);
     return this.getCart(userId, "en", userType);
   }
 }
