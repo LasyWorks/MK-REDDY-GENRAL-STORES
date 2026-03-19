@@ -4,7 +4,7 @@
   "description": "Production-ready backend for MK Reddy General Stores grocery e-commerce",
   "main": "src/server.js",
   "scripts": {
-    "start": "node --no-experimental-fetch src/server.js",
+    "start": "node src/server.js",
     "start:cluster": "node src/cluster.js",
     "dev": "nodemon src/server.js",
     "dev:cluster": "nodemon src/cluster.js",

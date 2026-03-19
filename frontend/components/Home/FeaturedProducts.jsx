@@ -109,7 +109,7 @@ export default function FeaturedProducts() {
             {productGroups.map((group, idx) => (
               <div
                 key={`${group.name}-${idx}`}
-                className="flex-shrink-0 w-36 sm:w-44 md:w-52 snap-start"
+                className="flex-shrink-0 w-[160px] sm:w-[180px] md:w-[200px] snap-start"
               >
                 {group.variants.length > 1 ? (
                   <ProductCardWithVariants variants={group.variants} />

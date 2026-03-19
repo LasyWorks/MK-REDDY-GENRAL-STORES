@@ -36,7 +36,9 @@ const TAG_CFG = {
 function ProductCard({ product }) {
   const mrp = parseFloat(product.mrp || 0);
   const price = parseFloat(product.price || 0);
-  const wholesalePrice = product.wholesale_price ? parseFloat(product.wholesale_price) : null;
+  const wholesalePrice = product.wholesale_price
+    ? parseFloat(product.wholesale_price)
+    : null;
   const hasDiscount = mrp > price;
   const discountPercent = hasDiscount
     ? Math.round(((mrp - price) / mrp) * 100)
@@ -76,16 +78,22 @@ function ProductCard({ product }) {
       ? parseFloat((price * (1 - wholesaleDiscountPct / 100)).toFixed(2))
       : null;
   const resolvedWsPrice = wholesalePrice || fallbackWsPrice;
-  const effectivePrice = isWholesale && resolvedWsPrice ? resolvedWsPrice : price;
+  const effectivePrice =
+    isWholesale && resolvedWsPrice ? resolvedWsPrice : price;
   const showWsRate = isWholesale && resolvedWsPrice && resolvedWsPrice < price;
-  const wsSavingsPct = showWsRate ? Math.round(((price - resolvedWsPrice) / price) * 100) : 0;
+  const wsSavingsPct = showWsRate
+    ? Math.round(((price - resolvedWsPrice) / price) * 100)
+    : 0;
 
   // Promotion price: the price the customer actually pays after promo discount
-  const promoDiscAmt = promo && !isOutOfStock && promo.discount_value
-    ? promo.discount_type === "percentage"
-      ? parseFloat(((price * parseFloat(promo.discount_value)) / 100).toFixed(2))
-      : Math.min(parseFloat(promo.discount_value), price)
-    : 0;
+  const promoDiscAmt =
+    promo && !isOutOfStock && promo.discount_value
+      ? promo.discount_type === "percentage"
+        ? parseFloat(
+            ((price * parseFloat(promo.discount_value)) / 100).toFixed(2),
+          )
+        : Math.min(parseFloat(promo.discount_value), price)
+      : 0;
   const promoPrice = promoDiscAmt > 0 ? price - promoDiscAmt : null;
 
   const handleAdd = async (e) => {
@@ -108,13 +116,17 @@ function ProductCard({ product }) {
         href={`/products/${product.id}`}
         className={`group relative flex flex-col bg-white rounded-[14px] md:rounded-2xl overflow-hidden
           border shadow-sm active:scale-[0.97] hover:shadow-md transition-all duration-150 ease-out h-full
+          min-h-0 sm:min-h-auto
           ${isOutOfStock ? "opacity-60 border-gray-200" : "border-amber-200 hover:border-amber-300"}`}
       >
         {/* Wholesale stripe */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 to-orange-400 rounded-t-[14px] md:rounded-t-2xl" />
 
         {/* ── Image ── */}
-        <div className="relative w-full bg-amber-50/30" style={{ height: "115px" }}>
+        <div
+          className="relative w-full bg-amber-50/30"
+          style={{ height: "clamp(80px, 30vw, 115px)" }}
+        >
           {/* Wholesale savings badge */}
           {showWsRate && !isOutOfStock && (
             <span className="absolute top-3 left-2 z-10 bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md leading-tight">
@@ -147,17 +159,17 @@ function ProductCard({ product }) {
         </div>
 
         {/* ── Info ── */}
-        <div className="flex flex-col flex-1 px-4 pt-3 pb-3 md:px-2.5 md:pt-2 md:pb-2.5">
+        <div className="flex flex-col flex-1 px-3 pt-2 pb-2 md:px-2.5 md:pt-2 md:pb-2.5 min-h-0 sm:min-h-auto">
           {/* Wholesale badge */}
           <span className="self-start text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 mb-1 uppercase tracking-wide">
             Wholesale
           </span>
 
-          <h3 className="text-[15px] md:text-[13px] font-semibold text-gray-800 leading-snug line-clamp-2 min-h-[2.8rem] md:min-h-[2.4rem]">
+          <h3 className="text-[13px] md:text-[13px] font-semibold text-gray-800 leading-snug line-clamp-1 md:line-clamp-2 min-h-[1.6rem] md:min-h-[2.4rem]">
             {product.name}
           </h3>
 
-          <p className="text-[12px] md:text-[11px] text-gray-400 mt-1 mb-1 line-clamp-1">
+          <p className="text-[11px] md:text-[11px] text-gray-500 mt-0.5 mb-0.5 line-clamp-1">
             {product.unit_pack_size || product.unit_type || "1 unit"}
           </p>
 
@@ -168,7 +180,11 @@ function ProductCard({ product }) {
           )}
 
           {promo?.ends_at && !isOutOfStock && (
-            <CountdownTimer endsAt={promo.ends_at} compact themeColor={promo.theme_color} />
+            <CountdownTimer
+              endsAt={promo.ends_at}
+              compact
+              themeColor={promo.theme_color}
+            />
           )}
 
           <div className="flex-1" />
@@ -176,24 +192,28 @@ function ProductCard({ product }) {
           {/* Price block */}
           <div className="mt-3 md:mt-1.5 flex flex-col md:flex-row md:items-center md:justify-between md:gap-2">
             <div>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-[18px] md:text-[14px] font-bold text-amber-700 leading-tight">
+              <div className="flex items-baseline gap-1.5 flex-wrap">
+                <span className="text-[16px] md:text-[14px] font-bold text-amber-700 leading-tight">
                   &#x20b9;{Math.round(effectivePrice)}
                 </span>
                 {showWsRate && (
                   <span className="text-[11px] md:text-[10px] text-gray-400 line-through leading-none">
-                    &#x20b9;{Math.round(price)}
+                    MRP &#x20b9;{Math.round(price)}
                   </span>
                 )}
               </div>
               {showWsRate && (
-                <p className="text-[9px] text-amber-600 font-semibold">Wholesale rate</p>
+                <p className="text-[9px] text-amber-600 font-semibold">
+                  Wholesale rate
+                </p>
               )}
             </div>
 
             <div className="mt-2 md:mt-0 md:shrink-0">
               {isOutOfStock ? (
-                <span className="text-[11px] text-gray-400 font-medium">N/A</span>
+                <span className="text-[11px] text-gray-400 font-medium">
+                  N/A
+                </span>
               ) : qty === 0 ? (
                 <button
                   onClick={handleAdd}
@@ -206,7 +226,9 @@ function ProductCard({ product }) {
                 >
                   {adding ? (
                     <span className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin block" />
-                  ) : "ADD"}
+                  ) : (
+                    "ADD"
+                  )}
                 </button>
               ) : (
                 <div
@@ -214,17 +236,29 @@ function ProductCard({ product }) {
                   className="flex items-center bg-amber-500 rounded-[12px] md:rounded-full overflow-hidden h-[46px] md:h-[34px] md:w-[80px]"
                 >
                   <button
-                    onClick={(e) => { e.preventDefault(); updateQty(product.id, qty - 1); }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      updateQty(product.id, qty - 1);
+                    }}
                     className="w-12 md:w-9 h-full flex items-center justify-center text-white hover:bg-amber-600 transition-colors font-bold"
                     aria-label="Decrease"
-                  ><Minus className="w-4 h-4 md:w-3 md:h-3" /></button>
-                  <span className="flex-1 text-center text-[15px] md:text-[13px] font-bold text-white select-none">{qty}</span>
+                  >
+                    <Minus className="w-4 h-4 md:w-3 md:h-3" />
+                  </button>
+                  <span className="flex-1 text-center text-[15px] md:text-[13px] font-bold text-white select-none">
+                    {qty}
+                  </span>
                   <button
-                    onClick={(e) => { e.preventDefault(); updateQty(product.id, qty + 1); }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      updateQty(product.id, qty + 1);
+                    }}
                     disabled={qty >= (product.stock_quantity ?? 99)}
                     className="w-12 md:w-9 h-full flex items-center justify-center text-white hover:bg-amber-600 transition-colors disabled:opacity-40 font-bold"
                     aria-label="Increase"
-                  ><Plus className="w-4 h-4 md:w-3 md:h-3" /></button>
+                  >
+                    <Plus className="w-4 h-4 md:w-3 md:h-3" />
+                  </button>
                 </div>
               )}
             </div>
@@ -242,10 +276,14 @@ function ProductCard({ product }) {
         border border-gray-100 shadow-sm
         active:scale-[0.97] hover:shadow-md
         transition-all duration-150 ease-out h-full
+        min-h-0 sm:min-h-auto
         ${isOutOfStock ? "opacity-60" : ""}`}
     >
       {/* ── Image ── */}
-      <div className="relative w-full bg-gray-50" style={{ height: "115px" }}>
+      <div
+        className="relative w-full bg-gray-50"
+        style={{ height: "clamp(80px, 30vw, 115px)" }}
+      >
         {hasDiscount && !isOutOfStock && (
           <span className="absolute top-2 left-2 z-10 bg-[#FF4D4F] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md leading-tight">
             {discountPercent}% OFF
@@ -277,8 +315,8 @@ function ProductCard({ product }) {
       </div>
 
       {/* ── Info ── */}
-      <div className="flex flex-col flex-1 px-4 pt-3 pb-3 md:px-2.5 md:pt-2 md:pb-2.5">
-        <h3 className="text-[15px] md:text-[13px] font-semibold text-gray-800 leading-snug line-clamp-2 min-h-[2.8rem] md:min-h-[2.4rem]">
+      <div className="flex flex-col flex-1 px-3 pt-2 pb-2 md:px-2.5 md:pt-2 md:pb-2.5 min-h-0 sm:min-h-auto">
+        <h3 className="text-[13px] md:text-[13px] font-semibold text-gray-800 leading-snug line-clamp-1 md:line-clamp-2 min-h-[1.6rem] md:min-h-[2.4rem]">
           {product.name}
         </h3>
 
@@ -288,7 +326,10 @@ function ProductCard({ product }) {
           return (
             <div className="flex gap-1 flex-wrap mt-0.5 mb-0.5">
               {tags.map((t) => (
-                <span key={t} className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${TAG_CFG[t].cls}`}>
+                <span
+                  key={t}
+                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${TAG_CFG[t].cls}`}
+                >
                   {TAG_CFG[t].label}
                 </span>
               ))}
@@ -307,35 +348,25 @@ function ProductCard({ product }) {
         )}
 
         {promo?.ends_at && !isOutOfStock && (
-          <CountdownTimer endsAt={promo.ends_at} compact themeColor={promo.theme_color} />
+          <CountdownTimer
+            endsAt={promo.ends_at}
+            compact
+            themeColor={promo.theme_color}
+          />
         )}
 
         <div className="flex-1" />
 
         <div className="mt-3 md:mt-1.5 flex flex-col md:flex-row md:items-center md:justify-between md:gap-2">
-          <div className="flex flex-col gap-0">
-            {/* MRP strikethrough */}
-            {hasDiscount && (
-              <span className="text-[10px] md:text-[9px] text-red-400 line-through leading-none">
-                MRP &#x20b9;{Math.round(mrp)}
+          <div className="flex items-baseline gap-1.5 flex-wrap">
+            <span className="text-[16px] md:text-[14px] font-bold text-gray-900 leading-tight">
+              &#x20b9;{Math.round(promoPrice != null ? promoPrice : price)}
+            </span>
+            {((promoPrice != null && price > promoPrice) || hasDiscount) && (
+              <span className="text-[11px] md:text-[10px] text-gray-400 line-through leading-none">
+                MRP &#x20b9;{Math.round(hasDiscount ? mrp : price)}
               </span>
             )}
-            <div className="flex items-baseline gap-1.5">
-              {promoPrice != null ? (
-                <>
-                  <span className="text-[13px] md:text-[11px] text-gray-400 line-through leading-tight">
-                    &#x20b9;{Math.round(price)}
-                  </span>
-                  <span className="text-[18px] md:text-[14px] font-bold text-gray-900 leading-tight">
-                    &#x20b9;{Math.round(promoPrice)}
-                  </span>
-                </>
-              ) : (
-                <span className="text-[18px] md:text-[14px] font-bold text-gray-900 leading-tight">
-                  &#x20b9;{Math.round(price)}
-                </span>
-              )}
-            </div>
           </div>
 
           <div className="mt-2 md:mt-0 md:shrink-0">
@@ -355,7 +386,9 @@ function ProductCard({ product }) {
               >
                 {adding ? (
                   <span className="w-4 h-4 border-2 border-[#16A34A] border-t-transparent rounded-full animate-spin block" />
-                ) : "ADD"}
+                ) : (
+                  "ADD"
+                )}
               </button>
             ) : (
               <div
@@ -363,18 +396,32 @@ function ProductCard({ product }) {
                 className="flex items-center bg-[#16A34A] rounded-[12px] md:rounded-full overflow-hidden h-[46px] md:h-[34px] md:w-[80px]"
               >
                 <button
-                  onClick={(e) => { e.preventDefault(); updateQty(product.id, qty - 1); }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    updateQty(product.id, qty - 1);
+                  }}
                   className="w-12 md:w-9 h-full flex items-center justify-center text-white hover:bg-green-700 active:bg-green-800 transition-colors font-bold"
                   aria-label="Decrease"
-                ><Minus className="w-4 h-4 md:w-3 md:h-3" /></button>
-                <span className="flex-1 text-center text-[15px] md:text-[13px] font-bold text-white select-none">{qty}</span>
+                >
+                  <Minus className="w-4 h-4 md:w-3 md:h-3" />
+                </button>
+                <span className="flex-1 text-center text-[15px] md:text-[13px] font-bold text-white select-none">
+                  {qty}
+                </span>
                 <button
-                  onClick={(e) => { e.preventDefault(); updateQty(product.id, qty + 1); }}
-                  disabled={atMaxQuantity || qty >= (product.stock_quantity ?? 99)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    updateQty(product.id, qty + 1);
+                  }}
+                  disabled={
+                    atMaxQuantity || qty >= (product.stock_quantity ?? 99)
+                  }
                   className="w-12 md:w-9 h-full flex items-center justify-center text-white hover:bg-green-700 active:bg-green-800 transition-colors disabled:opacity-40 font-bold"
                   aria-label="Increase"
                   title={atMaxQuantity ? `Max ${maxQuantity} per order` : ""}
-                ><Plus className="w-4 h-4 md:w-3 md:h-3" /></button>
+                >
+                  <Plus className="w-4 h-4 md:w-3 md:h-3" />
+                </button>
               </div>
             )}
           </div>

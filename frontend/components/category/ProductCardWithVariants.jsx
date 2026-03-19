@@ -133,15 +133,17 @@ const VariantRow = memo(function VariantRow({ variant, promo }) {
 
       {/* Price + action */}
       <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-        <div className="text-right">
-          <p className="font-bold text-gray-900 text-sm">
-            ₹{Math.round(display)}
-          </p>
-          {strike != null && strike > display && (
-            <p className="text-[11px] text-gray-400 line-through">
-              ₹{Math.round(strike)}
-            </p>
-          )}
+        <div className="flex flex-col items-end">
+          <div className="flex items-baseline gap-1">
+            <span className="font-bold text-gray-900 text-sm">
+              ₹{Math.round(display)}
+            </span>
+            {strike != null && strike > display && (
+              <span className="text-[10px] text-gray-400 line-through">
+                MRP ₹{Math.round(strike)}
+              </span>
+            )}
+          </div>
         </div>
         {outOfStock ? (
           <span className="text-[10px] text-gray-400">N/A</span>
@@ -374,10 +376,14 @@ function ProductCardWithVariants({ variants }) {
         className={`group relative flex flex-col bg-white rounded-[14px] md:rounded-2xl overflow-hidden
           border border-gray-100 shadow-sm hover:shadow-md active:scale-[0.97]
           transition-all duration-150 ease-out h-full
+          min-h-0 sm:min-h-auto
           ${isOutOfStock ? "opacity-60" : ""}`}
       >
-        {/* Image */}
-        <div className="relative w-full bg-gray-50" style={{ height: "115px" }}>
+        {/* Image - Dynamic height on mobile to keep square proportions */}
+        <div
+          className="relative w-full bg-gray-50 flex items-center justify-center overflow-hidden"
+          style={{ height: "clamp(80px, 30vw, 115px)" }}
+        >
           {!isOutOfStock && (cardBadgePct != null || cardFlatAmt != null) && (
             <span className="absolute top-2 left-2 z-10 bg-[#FF4D4F] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md leading-tight">
               {cardFlatAmt != null
@@ -410,8 +416,8 @@ function ProductCardWithVariants({ variants }) {
           </div>
         </div>
         {/* Info */}
-        <div className="flex flex-col flex-1 px-4 pt-3 pb-3 md:px-2.5 md:pt-2 md:pb-2.5">
-          <h3 className="text-[15px] md:text-[13px] font-semibold text-gray-800 leading-snug line-clamp-2 min-h-[2.8rem] md:min-h-[2.4rem]">
+        <div className="flex flex-col flex-1 px-3 pt-2 pb-2 md:px-2.5 md:pt-2 md:pb-2.5 min-h-0 sm:min-h-auto">
+          <h3 className="text-[13px] md:text-[13px] font-semibold text-gray-800 leading-snug line-clamp-1 md:line-clamp-2 min-h-[1.6rem] md:min-h-[2.4rem]">
             {defaultVariant.name}
           </h3>
 
@@ -455,9 +461,9 @@ function ProductCardWithVariants({ variants }) {
             />
           )}
           <div className="flex-1" />
-          <div className="mt-3 md:mt-1.5 flex flex-col md:flex-row md:items-center md:justify-between md:gap-2">
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-[18px] md:text-[14px] font-bold text-gray-900 leading-tight">
+          <div className="mt-2 md:mt-1.5 flex flex-col md:flex-row md:items-center md:justify-between md:gap-2">
+            <div className="flex items-baseline gap-1.5 flex-wrap">
+              <span className="text-[16px] md:text-[14px] font-bold text-gray-900 leading-tight">
                 ₹{Math.round(effectiveDisplayPrice)}
                 {displayVariants.length > 1 && (
                   <span className="text-[11px] md:text-[10px] text-gray-400 font-normal ml-0.5">
@@ -465,11 +471,12 @@ function ProductCardWithVariants({ variants }) {
                   </span>
                 )}
               </span>
-              {effectiveStrikePrice != null && effectiveStrikePrice > effectiveDisplayPrice && (
-                <span className="text-[11px] md:text-[10px] text-gray-400 line-through leading-none">
-                  ₹{Math.round(effectiveStrikePrice)}
-                </span>
-              )}
+              {effectiveStrikePrice != null &&
+                effectiveStrikePrice > effectiveDisplayPrice && (
+                  <span className="text-[11px] md:text-[10px] text-gray-400 line-through leading-none">
+                    MRP ₹{Math.round(effectiveStrikePrice)}
+                  </span>
+                )}
             </div>
             <div className="mt-2 md:mt-0 md:shrink-0">
               {isOutOfStock ? (
