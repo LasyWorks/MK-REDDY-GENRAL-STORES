@@ -12,7 +12,7 @@ import {
   CheckCircleIcon as CheckCircle2,
   ArrowPathIcon as Loader2,
   ExclamationCircleIcon as AlertCircle,
-  ArrowRightOnRectangleIcon as LogIn,
+  ArrowRightStartOnRectangleIcon as LogIn,
   ShoppingCartIcon,
 } from "@heroicons/react/24/outline";
 import { useCart } from "@/context/CartContext";

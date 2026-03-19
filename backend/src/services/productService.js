@@ -145,7 +145,16 @@ class ProductService {
     if (!product) {
       throw ApiError.notFound("Product not found");
     }
-    await Product.delete(id);
+    try {
+      await Product.delete(id);
+    } catch (error) {
+      if (error?.code === "23503") {
+        throw ApiError.conflict(
+          "This product is referenced by existing records (orders/cart). Deactivate it instead of deleting.",
+        );
+      }
+      throw error;
+    }
 
     // Invalidate product caches
     invalidateCache("products", `/api/v1/products/${id}`);

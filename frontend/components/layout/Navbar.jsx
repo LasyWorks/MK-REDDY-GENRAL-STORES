@@ -6,7 +6,7 @@ import {
   UserIcon as User,
   ShoppingCartIcon as ShoppingCart,
   GlobeAltIcon as Globe,
-  ArrowRightOnRectangleIcon as LogIn,
+  ArrowRightStartOnRectangleIcon as LogIn,
 } from "@heroicons/react/24/outline";
 import Searchbar from "../common/Searchbar";
 import { useState, useEffect, useRef } from "react";

@@ -6,7 +6,7 @@ import {
   PlusIcon as Plus,
   MinusIcon as Minus,
   ShoppingBagIcon as ShoppingBag,
-  ArrowRightOnRectangleIcon as LogIn,
+  ArrowRightStartOnRectangleIcon as LogIn,
   TagIcon,
   ShoppingCartIcon,
   ChevronRightIcon,

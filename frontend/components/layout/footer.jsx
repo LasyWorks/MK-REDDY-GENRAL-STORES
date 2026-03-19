@@ -6,12 +6,10 @@ import {
   ClockIcon as Clock,
   ShoppingBagIcon as ShoppingBag,
   ShieldCheckIcon as Shield,
-  TruckIcon as Truck,
   ArrowPathIcon as RotateCcw,
 } from "@heroicons/react/24/outline";
 
 const USP = [
-  { icon: Truck, label: "Home Delivery", sub: "Delivered to your doorstep" },
   { icon: Shield, label: "100% Genuine", sub: "Verified products only" },
   {
     icon: RotateCcw,
@@ -104,10 +102,8 @@ export default function Footer() {
               </h3>
               <ul className="space-y-2.5 mb-6">
                 {[
-                  { label: "Privacy Policy", href: "#" },
-                  { label: "Terms & Conditions", href: "#" },
-                  { label: "Refund Policy", href: "#" },
-                  { label: "Shipping Policy", href: "#" },
+                  { label: "Privacy Policy", href: "/privacy" },
+                  { label: "Terms & Conditions", href: "/terms" },
                 ].map((item) => (
                   <li key={item.label}>
                     <Link

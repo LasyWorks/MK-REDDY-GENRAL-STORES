@@ -8,7 +8,7 @@ import {
   CubeIcon as Package,
   ShoppingCartIcon as ShoppingCart,
   UsersIcon as Users,
-  ArrowLeftOnRectangleIcon as LogOut,
+  ArrowLeftStartOnRectangleIcon as LogOut,
   ArrowTrendingUpIcon as TrendingUp,
   ExclamationTriangleIcon as AlertTriangle,
   MagnifyingGlassIcon as Search,
@@ -1951,7 +1951,11 @@ function ProductRow({
   return (
     <>
       <tr
-        className={`hover:bg-gray-50/80 transition-colors group ${isInactive ? "opacity-60" : ""}`}
+        className={`transition-colors group ${
+          isInactive
+            ? "bg-gray-100/80 hover:bg-gray-200/70"
+            : "hover:bg-gray-50/80"
+        }`}
         style={{ height: 72 }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -1971,11 +1975,21 @@ function ProductRow({
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <p className="font-semibold text-gray-900 text-[14px] leading-tight line-clamp-1">{p.name}</p>
+                <p
+                  className={`font-semibold text-[14px] leading-tight line-clamp-1 ${
+                    isInactive ? "text-gray-700" : "text-gray-900"
+                  }`}
+                >
+                  {p.name}
+                </p>
                 {p.is_featured && <StarIcon className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400 shrink-0" />}
                 {p.unit_type === "loose" && <span className="bg-orange-100 text-orange-700 text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0">Loose</span>}
               </div>
-              <div className="flex items-center gap-1.5 mt-0.5 text-[12px] text-gray-400 leading-tight">
+              <div
+                className={`flex items-center gap-1.5 mt-0.5 text-[12px] leading-tight ${
+                  isInactive ? "text-gray-500" : "text-gray-400"
+                }`}
+              >
                 {p.sku && <span>SKU: {p.sku}</span>}
                 {p.sku && p.brand && <span>-</span>}
                 {p.brand && <span className="text-gray-500">{p.brand}</span>}
@@ -2032,7 +2046,7 @@ function ProductRow({
           })()}
         </td>
         {/* Actions */}
-        <td className="px-4 py-3">
+        <td className={`px-4 py-3 ${isInactive ? "bg-white" : ""}`}>
           <div className="relative">
             <button
               ref={btnRef}
@@ -2049,7 +2063,11 @@ function ProductRow({
                 }
                 setMenuOpen((o) => !o);
               }}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              className={`p-1.5 rounded-lg transition-colors ${
+                isInactive
+                  ? "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+                  : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+              }`}
             >
               <EllipsisVerticalIcon className="w-5 h-5" />
             </button>
@@ -2271,7 +2289,12 @@ function ProductsTab() {
       setAllProducts((prev) => prev.filter((p) => p.id !== id));
       setSelected((prev) => { const n = new Set(prev); n.delete(id); return n; });
     } catch (e) {
-      toast(e.message || "Delete failed", "error");
+      const msg = e.message || "Delete failed";
+      if (msg.toLowerCase().includes("deactivate it instead of deleting")) {
+        toast("This product is used in existing orders or carts. Please deactivate it instead.", "error");
+      } else {
+        toast(msg, "error");
+      }
     } finally {
       setDeleting(null);
     }
@@ -2880,7 +2903,13 @@ function OrdersTab() {
       if (dt) params.date_to = dt;
       const res = await api.get("/orders", params);
       setOrders(res.data || []);
-      setTotal(res.meta?.totalItems || res.meta?.total || 0);
+      setTotal(
+        res.pagination?.totalItems ||
+          res.pagination?.total ||
+          res.meta?.totalItems ||
+          res.meta?.total ||
+          0,
+      );
       setSelected(new Set());
     } catch (e) {
       setError(e.message || "Failed to load orders");

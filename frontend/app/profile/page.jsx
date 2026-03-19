@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ShoppingBagIcon,
-  ArrowLeftOnRectangleIcon,
+  ArrowLeftStartOnRectangleIcon,
   ChevronRightIcon,
   CubeIcon,
   Squares2X2Icon,
@@ -301,7 +301,7 @@ export default function ProfilePage() {
                        disabled:opacity-50 group"
           >
             <div className="w-11 h-11 rounded-xl bg-red-50 group-hover:bg-red-100 flex items-center justify-center shrink-0 transition-colors">
-              <ArrowLeftOnRectangleIcon className="w-5 h-5 text-red-500" />
+              <ArrowLeftStartOnRectangleIcon className="w-5 h-5 text-red-500" />
             </div>
             <div className="flex-1 text-left">
               <p className="text-sm font-bold text-red-600">
