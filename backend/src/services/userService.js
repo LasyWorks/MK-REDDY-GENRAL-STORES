@@ -8,6 +8,17 @@ const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 class UserService {
+  static async hasIsSuperAdminColumn() {
+    const result = await pool.query(
+      `SELECT 1
+       FROM information_schema.columns
+       WHERE table_name = 'users'
+         AND column_name = 'is_super_admin'
+       LIMIT 1`,
+    );
+    return result.rows.length > 0;
+  }
+
   static async getById(id) {
     if (!id || !UUID_RE.test(id)) {
       throw ApiError.notFound("User not found");
@@ -309,9 +320,13 @@ class UserService {
   }
 
   static async listAdmins() {
+    const hasSuperAdminColumn = await this.hasIsSuperAdminColumn();
+    const superAdminSelect = hasSuperAdminColumn
+      ? "u.is_super_admin"
+      : "FALSE AS is_super_admin";
     const rows = await pool.query(
       `SELECT u.id, u.name, u.phone, u.email, u.user_type, u.is_active,
-              u.is_super_admin, u.last_login_at, u.created_at, r.name AS role_name
+              ${superAdminSelect}, u.last_login_at, u.created_at, r.name AS role_name
        FROM users u
        JOIN roles r ON u.role_id = r.id
        WHERE u.user_type = 'admin' AND u.deleted_at IS NULL
