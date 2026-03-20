@@ -165,7 +165,7 @@ function ProductCard({ product }) {
             Wholesale
           </span>
 
-          <h3 className="text-[13px] md:text-[13px] font-semibold text-gray-800 leading-snug line-clamp-1 md:line-clamp-2 min-h-[1.6rem] md:min-h-[2.4rem]">
+          <h3 className="text-[13px] md:text-[13px] font-semibold text-gray-800 leading-[1.15rem] line-clamp-2 min-h-[2.3rem] break-words">
             {product.name}
           </h3>
 
@@ -316,7 +316,7 @@ function ProductCard({ product }) {
 
       {/* ── Info ── */}
       <div className="flex flex-col flex-1 px-3 pt-2 pb-2 md:px-2.5 md:pt-2 md:pb-2.5 min-h-0 sm:min-h-auto">
-        <h3 className="text-[13px] md:text-[13px] font-semibold text-gray-800 leading-snug line-clamp-1 md:line-clamp-2 min-h-[1.6rem] md:min-h-[2.4rem]">
+        <h3 className="text-[13px] md:text-[13px] font-semibold text-gray-800 leading-[1.15rem] line-clamp-2 min-h-[2.3rem] break-words">
           {product.name}
         </h3>
 
@@ -324,11 +324,11 @@ function ProductCard({ product }) {
           const tags = getProductTags(product);
           if (!tags.length) return null;
           return (
-            <div className="flex gap-1 flex-wrap mt-0.5 mb-0.5">
+            <div className="flex gap-1 flex-wrap items-center mt-1 mb-0.5 min-h-[1.25rem]">
               {tags.map((t) => (
                 <span
                   key={t}
-                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${TAG_CFG[t].cls}`}
+                  className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none ${TAG_CFG[t].cls}`}
                 >
                   {TAG_CFG[t].label}
                 </span>
