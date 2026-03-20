@@ -13,7 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 
 function formatRangeLabel(range) {
-  if (!range?.from) return "Select date range";
+  if (!range?.from) return "All Time";
   if (!range.to) return format(range.from, "MMM d, yyyy");
   return `${format(range.from, "MMM d")} -> ${format(range.to, "MMM d")}`;
 }
@@ -24,7 +24,7 @@ export function DateRangePicker({
   align = "end",
   numberOfMonths = 1,
   className,
-  placeholder = "Select date range",
+  placeholder = "All Time",
 }) {
   const [open, setOpen] = useState(false);
   const [draftRange, setDraftRange] = useState(value);
@@ -39,6 +39,10 @@ export function DateRangePicker({
   };
 
   const applyPreset = (preset) => {
+    if (preset === "allTime") {
+      setDraftRange(undefined);
+      return;
+    }
     if (preset === "today") {
       setDraftRange({ from: startOfDay(today), to: endOfDay(today) });
       return;
@@ -62,7 +66,7 @@ export function DateRangePicker({
   }, [value, open]);
 
   const triggerLabel = useMemo(() => {
-    if (!value?.from) return placeholder;
+    if (!value?.from) return "All Time";
     if (!value?.to) return format(value.from, "MMM d, yyyy");
     return `${format(value.from, "MMM d, yyyy")} - ${format(value.to, "MMM d, yyyy")}`;
   }, [placeholder, value]);
@@ -96,35 +100,42 @@ export function DateRangePicker({
         sideOffset={8}
         className="w-[min(94vw,380px)] rounded-2xl border border-gray-200 bg-white p-0 text-gray-900 shadow-lg"
       >
-        <div className="font-[Inter,var(--font-geist-sans),sans-serif]">
+        <div className="font-[var(--font-geist-sans),system-ui,sans-serif]">
           <div className="border-b border-gray-200 px-5 py-4">
-            <p className="text-base font-semibold tracking-tight text-gray-900">
+            <p className="text-lg font-semibold tracking-tight text-gray-900">
               Select Date Range
             </p>
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-1 text-xs text-gray-600">
               {formatRangeLabel(draftRange)}
             </p>
           </div>
 
-          <div className="flex items-center gap-2 border-b border-gray-200 px-5 py-3">
+          <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 px-5 py-3">
+            <button
+              type="button"
+              onClick={() => applyPreset("allTime")}
+              className="rounded-full border border-gray-300 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-700 transition-all duration-150 hover:scale-[1.02] hover:bg-gray-100 hover:border-gray-400 active:scale-95"
+            >
+              All Time
+            </button>
             <button
               type="button"
               onClick={() => applyPreset("today")}
-              className="rounded-full border border-gray-300 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-100 hover:border-gray-400"
+              className="rounded-full border border-gray-300 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-700 transition-all duration-150 hover:scale-[1.02] hover:bg-gray-100 hover:border-gray-400 active:scale-95"
             >
               Today
             </button>
             <button
               type="button"
               onClick={() => applyPreset("last7")}
-              className="rounded-full border border-gray-300 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-100 hover:border-gray-400"
+              className="rounded-full border border-gray-300 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-700 transition-all duration-150 hover:scale-[1.02] hover:bg-gray-100 hover:border-gray-400 active:scale-95"
             >
               Last 7 Days
             </button>
             <button
               type="button"
               onClick={() => applyPreset("thisMonth")}
-              className="rounded-full border border-gray-300 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-100 hover:border-gray-400"
+              className="rounded-full border border-gray-300 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-700 transition-all duration-150 hover:scale-[1.02] hover:bg-gray-100 hover:border-gray-400 active:scale-95"
             >
               This Month
             </button>
@@ -138,33 +149,7 @@ export function DateRangePicker({
               onSelect={(range) => setDraftRange(normalizeRange(range))}
               defaultMonth={draftRange?.from}
               disabled={{ after: today }}
-              className="premium-range-picker"
-              classNames={{
-                month: "space-y-3",
-                month_caption: "relative mb-3 flex items-center justify-center",
-                caption_label: "text-sm font-semibold text-gray-900",
-                button_previous:
-                  "absolute left-1 h-8 w-8 rounded-lg border border-gray-300 bg-gray-50 text-gray-700 transition hover:bg-gray-100",
-                button_next:
-                  "absolute right-1 h-8 w-8 rounded-lg border border-gray-300 bg-gray-50 text-gray-700 transition hover:bg-gray-100",
-                head_cell:
-                  "w-10 rounded-md text-[11px] font-semibold uppercase tracking-wide text-gray-600",
-                cell: "relative h-10 w-10 p-0 text-center text-sm [&:has(>.rdp-day_range_end)]:rounded-r-lg [&:has(>.rdp-day_range_start)]:rounded-l-lg [&:has(>.rdp-day_range_middle)]:bg-blue-100",
-                day: "h-10 w-10 p-0 text-center",
-                day_button:
-                  "h-10 w-10 rounded-lg border-0 bg-transparent p-0 text-gray-900 transition-all duration-150 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400",
-                day_range_start:
-                  "bg-blue-500 text-white font-semibold hover:bg-blue-600 rounded-l-lg",
-                day_range_end:
-                  "bg-blue-500 text-white font-semibold hover:bg-blue-600 rounded-r-lg",
-                day_selected:
-                  "bg-blue-500 text-white font-semibold hover:bg-blue-600",
-                day_range_middle:
-                  "rounded-none bg-blue-100 text-gray-900 font-medium",
-                day_today: "ring-2 ring-blue-400 font-semibold",
-                day_outside: "text-gray-400",
-                day_disabled: "text-gray-300",
-              }}
+              className="w-full"
             />
           </div>
 

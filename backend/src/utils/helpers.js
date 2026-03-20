@@ -114,17 +114,18 @@ const getLocalizedField = (obj, field, lang = 'en') => {
 // Create a unique product code from brand, name, and variant
 const generateSku = (data = {}, seq) => {
   const parts = [data.brand, data.name_en, data.variant].filter(Boolean);
+  const suffix = seq != null
+    ? String(seq)
+    : crypto.randomInt(10000, 99999).toString();
+  const maxSlugLength = Math.max(1, 50 - suffix.length - 1);
   let slug = parts
     .join('-')
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
-    .substring(0, 45);
-  // Append a short random suffix to guarantee uniqueness
-  const suffix = seq != null
-    ? String(seq)
-    : crypto.randomInt(10000, 99999).toString();
+    .substring(0, maxSlugLength);
+  if (!slug) slug = 'SKU';
   return `${slug}-${suffix}`;
 };
 // Role cache for database lookups

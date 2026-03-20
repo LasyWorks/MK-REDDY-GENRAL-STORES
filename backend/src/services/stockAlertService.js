@@ -11,6 +11,7 @@
 const { AdminNotification, User } = require('../models');
 const emailService = require('./emailService');
 const logger = require('../utils/logger');
+const { query: dbQuery } = require('../config/database');
 
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 
@@ -115,4 +116,44 @@ async function checkAndAlertMany(productIds, findById) {
   }
 }
 
-module.exports = { checkAndAlert, checkAndAlertMany };
+/**
+ * Scan the full catalog and trigger alerts for every active low/out-of-stock product.
+ * Useful for startup backfill and manual admin recheck.
+ */
+async function runFullScan() {
+  try {
+    const rows = await dbQuery(
+      `SELECT p.id, p.sku, p.variant, p.unit_pack_size,
+              p.stock_quantity, p.low_stock_threshold,
+              COALESCE(pt.name, p.sku, 'Unknown') AS name
+       FROM products p
+       LEFT JOIN product_translations pt ON pt.product_id = p.id AND pt.lang_code = 'en'
+       WHERE p.is_active = TRUE
+         AND p.stock_quantity <= COALESCE(p.low_stock_threshold, 10)
+       ORDER BY p.stock_quantity ASC`
+    );
+
+    let alerted = 0;
+    for (const row of rows) {
+      const product = {
+        id: row.id,
+        name: row.name,
+        sku: row.sku,
+        variant: row.variant,
+        unit_pack_size: row.unit_pack_size,
+        stock_quantity: parseFloat(row.stock_quantity ?? 0),
+        low_stock_threshold: parseFloat(row.low_stock_threshold ?? 10),
+      };
+      await checkAndAlert(product);
+      alerted += 1;
+    }
+
+    logger.info(`[stock-alert] full scan complete: evaluated=${rows.length}, alerted=${alerted}`);
+    return { scanned: rows.length, alerted };
+  } catch (err) {
+    logger.error('[stock-alert] runFullScan error:', err);
+    throw err;
+  }
+}
+
+module.exports = { checkAndAlert, checkAndAlertMany, runFullScan };

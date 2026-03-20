@@ -14,6 +14,7 @@ const app = require("./app");
 const config = require("./config");
 const { pool, testConnection } = require("./config/database");
 const logger = require("./utils/logger");
+const stockAlertService = require("./services/stockAlertService");
 
 const PORT = process.env.PORT || config.port || 5001;
 
@@ -29,6 +30,16 @@ async function init() {
 
     const server = app.listen(PORT, () => {
       logger.info(`Server running on port ${PORT} [${config.env}]`);
+
+      // Startup backfill: ensure existing low/out-of-stock items create alerts and emails.
+      stockAlertService
+        .runFullScan()
+        .then((result) => {
+          logger.info(`[stock-alert] startup scan done: scanned=${result.scanned}, alerted=${result.alerted}`);
+        })
+        .catch((err) => {
+          logger.error("[stock-alert] startup scan failed:", err);
+        });
     });
 
     const gracefulShutdown = (signal) => {

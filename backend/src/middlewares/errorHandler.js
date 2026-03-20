@@ -31,6 +31,8 @@ const normalizeError = (err) => {
         return ApiError.badRequest('Invalid ID format.');
       case '22003': // numeric_value_out_of_range
         return ApiError.badRequest('Numeric value out of range.');
+      case '22001': // string_data_right_truncation
+        return ApiError.badRequest('One or more text fields exceed the maximum allowed length.');
       case '23505': // unique_violation
         return ApiError.conflict('Duplicate entry. Resource already exists.');
       case '23503': // foreign_key_violation

@@ -23,6 +23,16 @@ const markAllRead = asyncHandler(async (req, res) => {
 });
 
 /**
+ * POST /api/v1/notifications/scan-stock-alerts
+ * Runs an immediate catalog scan and triggers missing low/out-of-stock alerts.
+ */
+const scanStockAlerts = asyncHandler(async (req, res) => {
+  const stockAlertService = require('../services/stockAlertService');
+  const result = await stockAlertService.runFullScan();
+  ApiResponse.success(res, result, 'Stock alert scan completed');
+});
+
+/**
  * GET /api/v1/notifications/test-email
  * Sends a test stock-alert email immediately to all admin emails.
  * Also returns what email addresses were found in the DB.
@@ -84,4 +94,4 @@ const forceResend = asyncHandler(async (req, res) => {
   ApiResponse.success(res, { triggered: results.length, products: results }, 'Force resend complete');
 });
 
-module.exports = { getNotifications, markRead, markAllRead, testEmail, forceResend };
+module.exports = { getNotifications, markRead, markAllRead, testEmail, forceResend, scanStockAlerts };

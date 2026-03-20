@@ -60,7 +60,7 @@ class EmailService {
     this.transporter = nodemailer.createTransport({
       host: config.email.host,
       port: config.email.port,
-      secure: config.email.secure,
+      secure: config.email.secure || config.email.port === 465,
       auth: {
         user: config.email.user,
         pass: config.email.password,
@@ -70,8 +70,13 @@ class EmailService {
 
   async send(to, subject, html, text = null) {
     try {
+      const fromAddress = config.email.from || (config.email.user ? `"${config.store.name}" <${config.email.user}>` : null);
+      if (!fromAddress) {
+        throw new Error('Email sender not configured: set EMAIL_FROM or SMTP_USER');
+      }
+
       const mailOptions = {
-        from: config.email.from || `"${config.store.name}" <${config.email.user}>`,
+        from: fromAddress,
         to,
         subject,
         html,

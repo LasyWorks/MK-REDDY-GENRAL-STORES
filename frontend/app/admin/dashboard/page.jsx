@@ -7338,102 +7338,6 @@ function StoreSettingsTab() {
         </div>
       </div>
 
-      {/* ── Wholesale & Retail Config ─────────────────────────── */}
-      <div className="bg-white rounded-xl border border-amber-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-5 border-b border-amber-100 bg-amber-50/50">
-          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <Users className="w-5 h-5 text-amber-600" />
-            Wholesale &amp; Retail Config
-          </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Control pricing behaviour and order limits per customer type.
-          </p>
-        </div>
-        <div className="px-6 py-5 grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {/* Retail */}
-          <div className="space-y-4">
-            <p className="text-xs font-bold text-green-700 uppercase tracking-wider flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
-              Retail
-            </p>
-            <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-1">
-                Max Qty per Item
-              </label>
-              <p className="text-xs text-gray-400 mb-2">Maximum quantity a retail customer can add per product per order.</p>
-              <input
-                type="number" min="1" step="1"
-                value={form.retail_max_qty_per_item ?? "10"}
-                onChange={(e) => setForm((p) => ({ ...p, retail_max_qty_per_item: e.target.value }))}
-                className="w-full px-3 py-2.5 border border-green-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400 transition"
-              />
-            </div>
-          </div>
-
-          {/* Wholesale */}
-          <div className="space-y-4">
-            <p className="text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
-              Wholesale
-            </p>
-            <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-1">
-                Min Order Value (&#x20b9;)
-              </label>
-              <p className="text-xs text-gray-400 mb-2">Minimum cart value required for wholesale checkout.</p>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">&#x20b9;</span>
-                <input
-                  type="number" min="0" step="1"
-                  value={form.wholesale_min_order_value ?? "500"}
-                  onChange={(e) => setForm((p) => ({ ...p, wholesale_min_order_value: e.target.value }))}
-                  className="w-full pl-7 pr-4 py-2.5 border border-amber-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-1">
-                Default Wholesale Discount (%)
-              </label>
-              <p className="text-xs text-gray-400 mb-2">Used by the pricing tab to auto-compute wholesale price from retail.</p>
-              <div className="relative">
-                <input
-                  type="number" min="0" max="90" step="0.5"
-                  value={form.wholesale_discount_pct ?? "10"}
-                  onChange={(e) => setForm((p) => ({ ...p, wholesale_discount_pct: e.target.value }))}
-                  className="w-full pr-8 pl-3 py-2.5 border border-amber-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-1">
-                Min Qty per Item
-              </label>
-              <p className="text-xs text-gray-400 mb-2">Minimum quantity per product for wholesale orders (0 = no minimum).</p>
-              <input
-                type="number" min="0" step="1"
-                value={form.wholesale_min_qty_per_item ?? "1"}
-                onChange={(e) => setForm((p) => ({ ...p, wholesale_min_qty_per_item: e.target.value }))}
-                className="w-full px-3 py-2.5 border border-amber-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
-              />
-            </div>
-          </div>
-        </div>
-        <div className="px-6 py-4 bg-amber-50/50 border-t border-amber-100 flex justify-end">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-white font-semibold rounded-lg text-sm transition-colors shadow-sm"
-          >
-            {saving ? (
-              <><Loader2 className="w-4 h-4 animate-spin" />Saving…</>
-            ) : (
-              <><Check className="w-4 h-4" />Save Config</>
-            )}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
@@ -7915,6 +7819,7 @@ export default function AdminDashboard() {
                     ) : (
                       notifications.map((n) => {
                         const isOut = n.type === "out";
+                        const isOrderNotif = ["new_order", "order_status", "order_cancelled"].includes(n.type);
                         const isResolved = !!n.resolved_at;
                         const timeAgo = (() => {
                           const d = new Date(n.created_at);
@@ -7927,13 +7832,19 @@ export default function AdminDashboard() {
                         return (
                           <button
                             key={n.id}
-                            onClick={() => { if (!n.is_read) markNotifRead(n.id); setTab("products"); setNotifOpen(false); }}
+                            onClick={() => {
+                              if (!n.is_read) markNotifRead(n.id);
+                              setTab(isOrderNotif ? "orders" : "products");
+                              setNotifOpen(false);
+                            }}
                             className={`w-full text-left px-4 py-3 flex gap-3 items-start border-b border-gray-50 transition-colors ${n.is_read || isResolved ? "bg-white hover:bg-gray-50" : "bg-amber-50 hover:bg-amber-100"}`}
                           >
-                            <div className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isResolved ? "bg-green-100" : isOut ? "bg-red-100" : "bg-amber-100"}`}>
+                            <div className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isResolved ? "bg-green-100" : isOrderNotif ? "bg-blue-100" : isOut ? "bg-red-100" : "bg-amber-100"}`}>
                               {isResolved
                                 ? <Check className={`w-4 h-4 text-green-600`} />
-                                : isOut
+                                : isOrderNotif
+                                  ? <Bell className="w-4 h-4 text-blue-500" />
+                                  : isOut
                                   ? <X className="w-4 h-4 text-red-500" />
                                   : <AlertTriangle className="w-4 h-4 text-amber-500" />}
                             </div>

@@ -48,6 +48,17 @@ class AdminNotification {
     return rows[0];
   }
 
+  /** Insert a generic order-related notification for the admin bell. */
+  static async createOrderNotification({ type = 'order', title, message }) {
+    return this.create({
+      type,
+      title,
+      message,
+      productId: null,
+      stockAtAlert: null,
+    });
+  }
+
   /** Set email_sent_at = NOW() after email is successfully delivered. */
   static async markEmailSent(id) {
     await modify(`UPDATE admin_notifications SET email_sent_at = NOW() WHERE id = $1`, [id]);

@@ -1,4 +1,4 @@
-const { Order, Cart, User, Invoice, AdminLog, Promotion } = require('../models');
+const { Order, Cart, User, Invoice, AdminLog, Promotion, AdminNotification, Product } = require('../models');
 const ApiError = require('../utils/ApiError');
 const logger = require('../utils/logger');
 const emailService = require('./emailService');
@@ -151,6 +151,13 @@ class OrderService {
     const order = await Order.findById(orderId, lang);
     await Invoice.create(order, user);
 
+    // Create an in-app admin notification for every new order.
+    AdminNotification.createOrderNotification({
+      type: 'new_order',
+      title: `New Order: ${order.order_number}`,
+      message: `${user.name || 'Customer'} placed order ${order.order_number} for Rs.${parseFloat(order.total_amount || 0).toFixed(2)}.`,
+    }).catch((err) => logger.error('[notifications] failed to create new order notification:', err));
+
     // Atomically claim limited deals for each qualifying product.
     // Fire-and-forget: failures must not block the order response.
     if (dealClaimsNeeded.length > 0) {
@@ -163,23 +170,24 @@ class OrderService {
       ).catch(() => {/* already caught per-item above */});
     }
 
-    // Fire-and-forget emails — never block the order response
+    // Check stock thresholds for every product touched by this order.
+    // Keep this independent from email lookup so alerts still work if email lookup fails.
+    const productIds = [...new Set(
+      updatedCart.items.map((i) => i.parent_product_id || i.product_id)
+    )];
+    stockAlertService
+      .checkAndAlertMany(productIds, Product.findById.bind(Product))
+      .catch((err) => logger.error('[stock-alert] checkAndAlertMany failed (order):', err));
+
+    // Fire-and-forget emails — never block the order response.
     User.findAdminEmails()
       .then(async (adminEmails) => {
         await Promise.allSettled([
           emailService.sendAdminOrderNotification(order, user, adminEmails),
           user.email ? emailService.sendOrderConfirmation(order, user) : Promise.resolve(),
         ]);
-
-        // Check stock thresholds for every product touched by this order
-        const productIds = [...new Set(
-          updatedCart.items.map((i) => i.parent_product_id || i.product_id)
-        )];
-        stockAlertService
-          .checkAndAlertMany(productIds, require('../models').Product.findById.bind(require('../models').Product))
-          .catch((err) => logger.error('[stock-alert] checkAndAlertMany failed (order):', err));
       })
-      .catch(() => {});
+      .catch((err) => logger.error('[email] failed to resolve admin recipients for order notification:', err));
 
     logger.info(`Order created: ${orderNumber} by user ${userId}`);
     return order;
@@ -231,6 +239,13 @@ class OrderService {
     } else {
       await Order.updateStatus(orderId, status, notes);
     }
+
+    AdminNotification.createOrderNotification({
+      type: 'order_status',
+      title: `Order ${order.order_number} updated`,
+      message: `Order ${order.order_number} status changed from ${order.status} to ${status}.`,
+    }).catch((err) => logger.error('[notifications] failed to create order status notification:', err));
+
     // Email customer the moment their order is ready for pickup — no matter what
     if (status === 'ready_for_pickup') {
       const customer = await User.findById(order.user_id);
@@ -265,6 +280,13 @@ class OrderService {
       throw ApiError.badRequest('Order cannot be cancelled at this stage');
     }
     await Order.cancel(orderId, reason);
+
+    AdminNotification.createOrderNotification({
+      type: 'order_cancelled',
+      title: `Order Cancelled: ${order.order_number}`,
+      message: `Order ${order.order_number} was cancelled${reason ? ` (${reason})` : ''}.`,
+    }).catch((err) => logger.error('[notifications] failed to create cancelled order notification:', err));
+
     if (adminId) {
       await AdminLog.create({
         adminId,
