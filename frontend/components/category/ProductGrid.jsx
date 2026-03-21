@@ -9,25 +9,22 @@ export default function ProductGrid({ products, loading }) {
   if (loading) {
     return (
       <>
-        {/* Mobile: 2×2 Grid Skeleton with Horizontal Scroll */}
-        <div className="sm:hidden -mx-4 overflow-x-auto scrollbar-hide">
-          <div className="flex gap-4 px-4" style={{ width: "fit-content" }}>
-            {[...Array(2)].map((_, chunkIdx) => (
-              <div
-                key={chunkIdx}
-                className="grid grid-cols-2 gap-3 flex-shrink-0"
-                style={{ width: "calc(100vw - 2.5rem)" }}
-              >
-                {[...Array(4)].map((_, i) => (
-                  <ProductSkeleton key={`${chunkIdx}-${i}`} />
-                ))}
-              </div>
-            ))}
-          </div>
+        {/* Mobile: 2-column Grid Skeleton with Vertical Scroll */}
+        <div className="sm:hidden grid grid-cols-2 gap-3">
+          {[...Array(10)].map((_, i) => (
+            <ProductSkeleton key={i} />
+          ))}
+        </div>
+
+        {/* Tablet: 2-column Grid */}
+        <div className="hidden sm:grid md:hidden grid-cols-2 gap-5">
+          {[...Array(10)].map((_, i) => (
+            <ProductSkeleton key={i} />
+          ))}
         </div>
 
         {/* Desktop: Grid layout */}
-        <div className="hidden sm:grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-3 gap-y-4 sm:gap-4">
+        <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-5">
           {[...Array(10)].map((_, i) => (
             <ProductSkeleton key={i} />
           ))}
@@ -45,44 +42,48 @@ export default function ProductGrid({ products, loading }) {
 
   return (
     <>
-      {/* Mobile: 2×2 Grid with Horizontal Scroll - Exact 2 Cards Per Row */}
-      <div className="sm:hidden -mx-4 overflow-x-auto scrollbar-hide">
-        <div className="flex gap-4 px-4" style={{ width: "fit-content" }}>
-          {/* Group products in 2×2 chunks */}
-          {Array.from(
-            { length: Math.ceil(groups.length / 4) },
-            (_, chunkIdx) => chunkIdx,
-          ).map((chunkIdx) => (
-            <div
-              key={chunkIdx}
-              className="grid grid-cols-2 gap-3 flex-shrink-0"
-              style={{ width: "calc(100vw - 2.5rem)" }}
-            >
-              {groups
-                .slice(chunkIdx * 4, (chunkIdx + 1) * 4)
-                .map((group, index) => {
-                  const displayProduct = {
-                    ...group.variants[0],
-                    variant_count:
-                      group.variants.length > 1
-                        ? group.variants.length - 1
-                        : group.variants[0].variant_count || 0,
-                  };
-                  return (
-                    <LazyProductCard
-                      key={displayProduct.id}
-                      product={displayProduct}
-                      index={index}
-                    />
-                  );
-                })}
-            </div>
-          ))}
-        </div>
+      {/* Mobile: 2-column Grid with Vertical Scroll */}
+      <div className="sm:hidden grid grid-cols-2 gap-3">
+        {groups.map((group, index) => {
+          const displayProduct = {
+            ...group.variants[0],
+            variant_count:
+              group.variants.length > 1
+                ? group.variants.length - 1
+                : group.variants[0].variant_count || 0,
+          };
+          return (
+            <LazyProductCard
+              key={displayProduct.id}
+              product={displayProduct}
+              index={index}
+            />
+          );
+        })}
+      </div>
+
+      {/* Tablet: 2-column Grid */}
+      <div className="hidden sm:grid md:hidden grid-cols-2 gap-5">
+        {groups.map((group, index) => {
+          const displayProduct = {
+            ...group.variants[0],
+            variant_count:
+              group.variants.length > 1
+                ? group.variants.length - 1
+                : group.variants[0].variant_count || 0,
+          };
+          return (
+            <LazyProductCard
+              key={displayProduct.id}
+              product={displayProduct}
+              index={index}
+            />
+          );
+        })}
       </div>
 
       {/* Desktop: Grid layout */}
-      <div className="hidden sm:grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-3 gap-y-4 sm:gap-4">
+      <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-5">
         {groups.map((group, index) => {
           const displayProduct = {
             ...group.variants[0],

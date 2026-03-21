@@ -33,6 +33,26 @@ const TAG_CFG = {
   limited: { label: "Limited", cls: "bg-red-100 text-red-600" },
 };
 
+// ── Card background color palette ──────────────────────────────────────────────
+const CARD_BG_COLORS = [
+  { card: "bg-amber-50", image: "bg-orange-100/40" },      // Peachy/Cream
+  { card: "bg-yellow-50", image: "bg-yellow-100/40" },     // Light Yellow
+  { card: "bg-purple-50", image: "bg-purple-100/40" },     // Light Purple
+  { card: "bg-pink-50", image: "bg-pink-100/40" },         // Light Pink
+  { card: "bg-blue-50", image: "bg-blue-100/40" },         // Light Blue
+  { card: "bg-green-50", image: "bg-green-100/40" },       // Light Green
+  { card: "bg-red-50", image: "bg-red-100/40" },           // Light Red
+  { card: "bg-indigo-50", image: "bg-indigo-100/40" },     // Light Indigo
+];
+
+function getCardColor(productId) {
+  const hash = productId
+    .split("")
+    .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const index = hash % CARD_BG_COLORS.length;
+  return CARD_BG_COLORS[index];
+}
+
 function ProductCard({ product }) {
   const mrp = parseFloat(product.mrp || 0);
   const price = parseFloat(product.price || 0);
@@ -110,11 +130,13 @@ function ProductCard({ product }) {
   };
 
   // ── Wholesale card ──────────────────────────────────────────────────────
+  const { card: wsBg } = getCardColor(product.id);
+
   if (isWholesale) {
     return (
       <Link
         href={`/products/${product.id}`}
-        className={`group relative flex flex-col bg-white rounded-[14px] md:rounded-2xl overflow-hidden
+        className={`group relative flex flex-col ${wsBg} rounded-[14px] md:rounded-2xl overflow-hidden
           border shadow-sm active:scale-[0.97] hover:shadow-md transition-all duration-150 ease-out h-full
           min-h-0 sm:min-h-auto
           ${isOutOfStock ? "opacity-60 border-gray-200" : "border-amber-200 hover:border-amber-300"}`}
@@ -124,7 +146,7 @@ function ProductCard({ product }) {
 
         {/* ── Image ── */}
         <div
-          className="relative w-full bg-amber-50/30"
+          className="relative w-full bg-white"
           style={{ height: "clamp(80px, 30vw, 115px)" }}
         >
           {/* Wholesale savings badge */}
@@ -269,10 +291,12 @@ function ProductCard({ product }) {
   }
 
   // ── Retail card (original layout) ──────────────────────────────────────
+  const { card: cardBg } = getCardColor(product.id);
+
   return (
     <Link
       href={`/products/${product.id}`}
-      className={`group relative flex flex-col bg-white rounded-[14px] md:rounded-2xl overflow-hidden
+      className={`group relative flex flex-col ${cardBg} rounded-[14px] md:rounded-2xl overflow-hidden
         border border-gray-100 shadow-sm
         active:scale-[0.97] hover:shadow-md
         transition-all duration-150 ease-out h-full
@@ -281,7 +305,7 @@ function ProductCard({ product }) {
     >
       {/* ── Image ── */}
       <div
-        className="relative w-full bg-gray-50"
+        className="relative w-full bg-white"
         style={{ height: "clamp(80px, 30vw, 115px)" }}
       >
         {hasDiscount && !isOutOfStock && (

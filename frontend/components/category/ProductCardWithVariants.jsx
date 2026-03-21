@@ -87,7 +87,7 @@ const VariantRow = memo(function VariantRow({ variant, promo }) {
       }`}
     >
       {/* Thumbnail */}
-      <div className="w-16 h-16 rounded-lg bg-gray-50 flex-shrink-0 overflow-hidden">
+      <div className="w-16 h-16 rounded-lg bg-white flex-shrink-0 overflow-hidden">
         <ImageWithFallback
           src={variant.image_url}
           alt={variant.name}
@@ -381,7 +381,7 @@ function ProductCardWithVariants({ variants }) {
       >
         {/* Image - Dynamic height on mobile to keep square proportions */}
         <div
-          className="relative w-full bg-gray-50 flex items-center justify-center overflow-hidden"
+          className="relative w-full bg-white flex items-center justify-center overflow-hidden"
           style={{ height: "clamp(80px, 30vw, 115px)" }}
         >
           {!isOutOfStock && (cardBadgePct != null || cardFlatAmt != null) && (

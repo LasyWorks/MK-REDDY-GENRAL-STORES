@@ -167,8 +167,8 @@ export default function CategorySection() {
                     className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform duration-150"
                   >
                     <div
-                      className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm"
-                      style={{ backgroundColor: bg }}
+                      className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm border border-gray-100"
+                      style={{ backgroundColor: category.image_url ? "#ffffff" : bg }}
                     >
                       {category.image_url ? (
                         <ImageWithFallback
@@ -258,11 +258,11 @@ export default function CategorySection() {
                     className="flex flex-col items-center flex-shrink-0 group cursor-pointer snap-start"
                   >
                     {}
-                    <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 border-gray-100 group-hover:border-blue-500 transition-all duration-300 shadow-md group-hover:shadow-xl mb-3">
+                    <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 border-gray-100 bg-white group-hover:border-blue-500 transition-all duration-300 shadow-md group-hover:shadow-xl mb-3">
                       <ImageWithFallback
                         src={category.image_url}
                         alt={category.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain p-2"
                         size="lg"
                         priority
                       />

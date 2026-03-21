@@ -271,9 +271,9 @@ function CategoryClientView({
 
       {/* ── Two-Panel Body ── */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left: Subcategory list — 28% width, sticky */}
+        {/* Left: Subcategory list — 18% width, sticky */}
         <aside
-          className="w-[28%] flex-shrink-0 bg-white border-r border-gray-100 overflow-y-auto"
+          className="w-[18%] flex-shrink-0 bg-white border-r border-gray-100 overflow-y-auto"
           style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}
         >
           {displaySubs.length > 0 ? (
@@ -332,7 +332,7 @@ function CategoryClientView({
           )}
         </aside>
 
-        {/* Right: Products — 72% width, scrollable */}
+        {/* Right: Products — 82% width, scrollable */}
         <main
           ref={productsPanelRef}
           className="flex-1 min-w-0 overflow-y-auto bg-[#F5F5F5] px-2 pt-2 pb-20"

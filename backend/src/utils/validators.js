@@ -61,7 +61,7 @@ const commonRules = {
       .withMessage(`${field} can only contain letters and spaces`),
   nameTelugu: (field = "name_te") =>
     body(field)
-      .optional()
+      .optional({ nullable: true, checkFalsy: true })
       .trim()
       .isLength({ min: 2, max: 200 })
       .withMessage(`${field} must be between 2 and 200 characters`),
