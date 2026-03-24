@@ -137,7 +137,7 @@ const getAllProductsAdmin = asyncHandler(async (req, res) => {
     req.query.limit,
     1000,
   );
-  const { category_id, search, sort_by, sort_order } = req.query;
+  const { category_id, search, sort_by, sort_order, exclude_variants } = req.query;
   const lang = req.language || "en";
   const result = await ProductService.getAll({
     page,
@@ -149,6 +149,8 @@ const getAllProductsAdmin = asyncHandler(async (req, res) => {
     // Show both active and inactive products so admins can manage everything
     isActive: null,
     lang,
+    // Optional: exclude child variants to show only parent products
+    excludeVariants: exclude_variants === "true",
   });
   ApiResponse.paginated(res, result.products, {
     page,

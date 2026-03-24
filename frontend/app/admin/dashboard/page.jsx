@@ -2432,13 +2432,38 @@ function ProductsTab() {
       .map(([name, items]) => ({ name, items }));
   }, [products]);
 
+  const isLowStockProduct = (product) => {
+    const stock = product?.stock_quantity ?? 0;
+    return stock > 0 && stock <= (product?.low_stock_threshold ?? 10);
+  };
+
+  const isOutOfStockProduct = (product) => {
+    const stock = product?.stock_quantity ?? 0;
+    return stock <= 0;
+  };
+
+  const keepByStockState = (item, matcher, includeAllVariants = false) => {
+    const parentMatches = matcher(item);
+    const variants = Array.isArray(item._variants) ? item._variants : [];
+    const matchedVariants = variants.filter(matcher);
+
+    if (!parentMatches && matchedVariants.length === 0) {
+      return null;
+    }
+
+    return {
+      ...item,
+      _variants: includeAllVariants ? variants : matchedVariants,
+    };
+  };
+
   const stats = useMemo(() => {
     const base = allProducts.length > 0 ? allProducts : products;
     const total = base.length;
-    const outOfStock = base.filter((p) => (p.stock_quantity ?? 0) <= 0).length;
-    const lowStock = base.filter((p) => { const s = p.stock_quantity ?? 0; return s > 0 && s <= (p.low_stock_threshold ?? 10); }).length;
+    const outOfStock = base.filter(isOutOfStockProduct).length;
+    const lowStock = base.filter(isLowStockProduct).length;
     const inStock = total - outOfStock;
-    const cats = new Set(base.map((p) => p.category_name || p.category_id)).size;
+    const cats = new Set(base.map((p) => p.category_name || p.parent_category_name || p.category_id)).size;
     const totalValue = base.reduce((s, p) => s + (parseFloat(p.price || 0) * (p.stock_quantity ?? 0)), 0);
     return { total, outOfStock, lowStock, inStock, cats, totalValue };
   }, [allProducts, products]);
@@ -2447,11 +2472,32 @@ function ProductsTab() {
     let result = grouped;
     if (filterCat) result = result.filter((g) => g.name === filterCat);
     if (activeTab === "low_stock" || filterStock === "low") {
-      result = result.map((g) => ({ ...g, items: g.items.filter((p) => { const s = p.stock_quantity ?? 0; return s > 0 && s <= (p.low_stock_threshold ?? 10); }) })).filter((g) => g.items.length > 0);
+      result = result
+        .map((g) => ({
+          ...g,
+          items: g.items
+            .map((p) => keepByStockState(p, isLowStockProduct))
+            .filter(Boolean),
+        }))
+        .filter((g) => g.items.length > 0);
     } else if (activeTab === "out_of_stock" || filterStock === "out") {
-      result = result.map((g) => ({ ...g, items: g.items.filter((p) => (p.stock_quantity ?? 0) <= 0) })).filter((g) => g.items.length > 0);
+      result = result
+        .map((g) => ({
+          ...g,
+          items: g.items
+            .map((p) => keepByStockState(p, isOutOfStockProduct))
+            .filter(Boolean),
+        }))
+        .filter((g) => g.items.length > 0);
     } else if (filterStock === "in") {
-      result = result.map((g) => ({ ...g, items: g.items.filter((p) => (p.stock_quantity ?? 0) > 10) })).filter((g) => g.items.length > 0);
+      result = result
+        .map((g) => ({
+          ...g,
+          items: g.items
+            .map((p) => keepByStockState(p, (row) => !isLowStockProduct(row) && !isOutOfStockProduct(row), true))
+            .filter(Boolean),
+        }))
+        .filter((g) => g.items.length > 0);
     }
     // Sort
     if (sortBy !== "name_asc") {
@@ -2747,8 +2793,9 @@ function ProductsTab() {
       <div ref={tableTopRef} className="space-y-4">
         {!loading && paginatedGroups.map(({ name, items }) => {
           const isOpen = openCategories.has(name);
-          const lowStockCount = items.filter((p) => { const s = p.stock_quantity ?? 0; return s > 0 && s <= (p.low_stock_threshold ?? 10); }).length;
-          const outOfStockCount = items.filter((p) => (p.stock_quantity ?? 0) <= 0).length;
+          const flattenedItems = items.flatMap((p) => [p, ...(Array.isArray(p._variants) ? p._variants : [])]);
+          const lowStockCount = flattenedItems.filter(isLowStockProduct).length;
+          const outOfStockCount = flattenedItems.filter(isOutOfStockProduct).length;
           return (
             <div key={name} className="bg-white rounded-[10px] border border-gray-100 shadow-sm">
               <button onClick={() => toggleCategory(name)}

@@ -16,7 +16,6 @@ class AdminService {
   static async getDashboardStats() {
     const today = new Date().toISOString().split("T")[0];
     const customerCount = await User.countCustomers();
-    const productCount = await Product.count();
     const orderStats = await Order.getStatistics();
     const todayOrders = await Order.getStatistics(today, today);
     let recentActivity = [];
@@ -29,9 +28,13 @@ class AdminService {
         logErr.message,
       );
     }
-    const pendingOrders = await query(
-      `SELECT COUNT(*) as count FROM orders WHERE status IN ('pending', 'confirmed')`,
-    );
+    const [productCountResult, pendingOrders, lowStockResult, outOfStockResult] = await Promise.all([
+      query(`SELECT COUNT(*) as count FROM products`),
+      query(`SELECT COUNT(*) as count FROM orders WHERE status IN ('pending', 'confirmed')`),
+      query(`SELECT COUNT(*) as count FROM products WHERE stock_quantity > 0 AND stock_quantity <= COALESCE(low_stock_threshold, 10)`),
+      query(`SELECT COUNT(*) as count FROM products WHERE stock_quantity <= 0`),
+    ]);
+    const productCount = parseInt(productCountResult[0]?.count || 0);
     return {
       customers: {
         total: customerCount,
@@ -56,6 +59,8 @@ class AdminService {
         orders: todayOrders.total_orders || 0,
         revenue: parseFloat(todayOrders.total_revenue || 0),
       },
+      lowStock: parseInt(lowStockResult[0]?.count || 0),
+      outOfStock: parseInt(outOfStockResult[0]?.count || 0),
       recentActivity,
     };
   }
@@ -288,11 +293,11 @@ class AdminService {
   }
   static async getLowStockProducts(threshold = 10) {
     const products = await query(
-      `SELECT p.id, pt_en.name AS name, p.sku, ct_en.name AS category, p.stock_quantity, p.price
+      `SELECT p.id, pt_en.name AS name, p.sku, ct_en.name AS category, p.stock_quantity, p.price, p.low_stock_threshold
        FROM products p
        JOIN categories c ON p.category_id = c.id
        ${PROD_TRANS_JOIN}
-       WHERE p.stock_quantity <= $1 AND p.is_active = TRUE
+       WHERE p.stock_quantity > 0 AND p.stock_quantity <= COALESCE(p.low_stock_threshold, $1) AND p.is_active = TRUE
        ORDER BY p.stock_quantity ASC`,
       [threshold],
     );
@@ -322,11 +327,11 @@ class AdminService {
        FROM products p
        JOIN categories c ON p.category_id = c.id
        ${PROD_TRANS_JOIN}
-       WHERE p.stock_quantity <= 10 AND p.is_active = TRUE
+       WHERE p.stock_quantity > 0 AND p.stock_quantity <= COALESCE(p.low_stock_threshold, 10) AND p.is_active = TRUE
        ORDER BY p.stock_quantity ASC`,
     );
     const outOfStock = await queryOne(
-      `SELECT COUNT(*) AS count FROM products WHERE stock_quantity = 0 AND is_active = TRUE`,
+      `SELECT COUNT(*) AS count FROM products WHERE stock_quantity <= 0 AND is_active = TRUE`,
     );
     return {
       byCategory: byCategory.map((r) => ({
