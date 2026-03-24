@@ -627,6 +627,12 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
   const [activePreset, setActivePreset] = useState(null);
 
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
+  const isLooseProduct = form.unit_type === "loose";
+  const isLooseChildVariant = isEdit && isLooseProduct && !!product?.parent_product_id;
+  const parentProductForLooseVariant = useMemo(
+    () => (isLooseChildVariant ? allProducts.find((p) => p.id === product.parent_product_id) : null),
+    [isLooseChildVariant, allProducts, product?.parent_product_id],
+  );
 
   const parentCats = categories.filter((c) => !c.parent_id);
   const subCats = categories.filter((c) => c.parent_id === parentCatId);
@@ -649,6 +655,16 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
   useEffect(() => {
     setEditVariants(existingVariants.map(v => ({ ...v })));
   }, [product?.id]);
+
+  useEffect(() => {
+    if (!isLooseChildVariant || !parentProductForLooseVariant) return;
+    setForm((prev) => ({
+      ...prev,
+      stock: parentProductForLooseVariant.stock_quantity ?? prev.stock,
+      low_stock_threshold:
+        parentProductForLooseVariant.low_stock_threshold ?? prev.low_stock_threshold,
+    }));
+  }, [isLooseChildVariant, parentProductForLooseVariant]);
 
   function updateVariantRow(id, field, value) {
     setEditVariants(prev => prev.map(v => {
@@ -683,6 +699,20 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
       })
     );
   }
+
+  useEffect(() => {
+    if (!isLooseProduct) return;
+    setVariantRows((prev) => {
+      if (!prev.length) return prev;
+      const parentStock = prev[0]?.stock ?? (form.stock !== "" ? String(form.stock) : "0");
+      const parentThreshold = prev[0]?.low_stock_threshold ?? form.low_stock_threshold ?? 10;
+      return prev.map((row, idx) => ({
+        ...row,
+        stock: idx === 0 ? row.stock : parentStock,
+        low_stock_threshold: idx === 0 ? row.low_stock_threshold : parentThreshold,
+      }));
+    });
+  }, [isLooseProduct, form.stock, form.low_stock_threshold]);
 
   function toggleSize(size) {
     setSelectedSizes(prev => {
@@ -737,8 +767,12 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
           wholesale_price: form.wholesale_price !== "" ? parseFloat(form.wholesale_price) : null,
           purchase_price: form.purchase_price !== "" ? parseFloat(form.purchase_price) : null,
           gst_percentage: form.gst_percentage !== "" ? parseFloat(form.gst_percentage) : undefined,
-          stock_quantity: form.stock !== "" && form.stock !== null && form.stock !== undefined ? parseFloat(form.stock) : undefined,
-          low_stock_threshold: form.low_stock_threshold,
+          stock_quantity: isLooseChildVariant
+            ? undefined
+            : (form.stock !== "" && form.stock !== null && form.stock !== undefined
+                ? parseFloat(form.stock)
+                : undefined),
+          low_stock_threshold: isLooseChildVariant ? undefined : form.low_stock_threshold,
           unit: form.unit || undefined,
           variant: form.unit || undefined,
           unit_type: form.unit_type || "pcs",
@@ -752,14 +786,19 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
         // Save each edited variant
         for (const v of editVariants) {
           const unitVal = v.variant || v.unit_pack_size || v.unit || undefined;
-          await api.put(`/products/${v.id}`, {
+          const variantPayload = {
             price: v.price !== "" && v.price !== null && v.price !== undefined ? parseFloat(v.price) : undefined,
             mrp: v.mrp !== "" && v.mrp !== null && v.mrp !== undefined ? parseFloat(v.mrp) : undefined,
             wholesale_price: v.wholesale_price !== "" && v.wholesale_price !== null && v.wholesale_price !== undefined ? parseFloat(v.wholesale_price) : null,
-            stock_quantity: v.stock_quantity !== "" && v.stock_quantity !== null && v.stock_quantity !== undefined ? parseFloat(v.stock_quantity) : undefined,
-            low_stock_threshold: v.low_stock_threshold ?? 10,
             variant: unitVal,
             unit_pack_size: unitVal,
+          };
+          if (!isLooseProduct) {
+            variantPayload.stock_quantity = v.stock_quantity !== "" && v.stock_quantity !== null && v.stock_quantity !== undefined ? parseFloat(v.stock_quantity) : undefined;
+            variantPayload.low_stock_threshold = v.low_stock_threshold ?? 10;
+          }
+          await api.put(`/products/${v.id}`, {
+            ...variantPayload,
           });
         }
         // Delete variants that were removed
@@ -774,6 +813,8 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
         for (let i = 0; i < variantRows.length; i++) {
           const row = variantRows[i];
           if (!row.price) continue;
+          const sharedStock = parseFloat(variantRows[0]?.stock) || 0;
+          const sharedThreshold = variantRows[0]?.low_stock_threshold ?? form.low_stock_threshold;
           const res = await api.post("/products", {
             name_en: form.name.trim(),
             brand: form.brand || undefined,
@@ -783,8 +824,8 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
             wholesale_price: row.wholesale_price ? parseFloat(row.wholesale_price) : undefined,
             purchase_price: form.purchase_price !== "" ? parseFloat(form.purchase_price) : undefined,
             gst_percentage: form.gst_percentage !== "" ? parseFloat(form.gst_percentage) : undefined,
-            stock_quantity: parseFloat(row.stock) || 0,
-            low_stock_threshold: row.low_stock_threshold ?? form.low_stock_threshold,
+            stock_quantity: isLooseProduct ? sharedStock : (parseFloat(row.stock) || 0),
+            low_stock_threshold: isLooseProduct ? sharedThreshold : (row.low_stock_threshold ?? form.low_stock_threshold),
             unit: row.size,
             variant: row.size,
             unit_type: form.unit_type || "pcs",
@@ -1086,21 +1127,29 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
                                     </div>
                                   </td>
                                   <td className="px-3 py-2.5">
-                                    <input
-                                      type="number"
-                                      value={row.stock}
-                                      onChange={(e) => updateRow(row.size, "stock", e.target.value)}
-                                      className="w-16 border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-gray-300"
-                                    />
+                                    {isLooseProduct && i > 0 ? (
+                                      <span className="inline-flex items-center bg-indigo-50 text-indigo-600 text-[10px] font-bold px-2 py-1 rounded-lg">Shared</span>
+                                    ) : (
+                                      <input
+                                        type="number"
+                                        value={row.stock}
+                                        onChange={(e) => updateRow(row.size, "stock", e.target.value)}
+                                        className="w-16 border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-gray-300"
+                                      />
+                                    )}
                                   </td>
                                   <td className="px-3 py-2.5">
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      value={row.low_stock_threshold ?? 10}
-                                      onChange={(e) => updateRow(row.size, "low_stock_threshold", parseInt(e.target.value, 10) || 0)}
-                                      className="w-16 border border-orange-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-orange-400"
-                                    />
+                                    {isLooseProduct && i > 0 ? (
+                                      <span className="inline-flex items-center bg-indigo-50 text-indigo-600 text-[10px] font-bold px-2 py-1 rounded-lg">Parent</span>
+                                    ) : (
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        value={row.low_stock_threshold ?? 10}
+                                        onChange={(e) => updateRow(row.size, "low_stock_threshold", parseInt(e.target.value, 10) || 0)}
+                                        className="w-16 border border-orange-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-orange-400"
+                                      />
+                                    )}
                                   </td>
                                   <td className="px-3 py-2.5">
                                     <button type="button" onClick={() => toggleSize(row.size)} className="text-gray-300 hover:text-red-500 transition-colors">
@@ -1112,7 +1161,7 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
                             </tbody>
                           </table>
                         </div>
-                        <p className="text-[10px] text-gray-400 mt-1.5">First row becomes the parent product. Others link as size variants automatically.</p>
+                        <p className="text-[10px] text-gray-400 mt-1.5">First row becomes the parent product. Others link as size variants automatically.{isLooseProduct ? " Loose variants share parent stock and alert values." : ""}</p>
                       </div>
                     )}
                   </div>
@@ -1239,23 +1288,42 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
                         <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Inventory</span>
                         <div className="flex-1 h-px bg-gray-100" />
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Stock Quantity</label>
-                          <input type="number" value={form.stock} onChange={(e) => set("stock", e.target.value)} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                      {isLooseChildVariant ? (
+                        <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-3">
+                          <p className="text-xs font-bold text-indigo-700">Shared Parent Stock</p>
+                          <p className="text-[11px] text-indigo-600 mt-1">
+                            This loose variant uses parent stock automatically.
+                          </p>
+                          <div className="mt-2 grid grid-cols-2 gap-3">
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Stock Quantity</p>
+                              <p className="text-sm font-semibold text-gray-800 mt-1">{form.stock ?? 0} kg</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Low Stock Alert</p>
+                              <p className="text-sm font-semibold text-gray-800 mt-1">{form.low_stock_threshold ?? 10} kg</p>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Low Stock Alert</label>
-                          <input
-                            type="number"
-                            min="0"
-                            value={form.low_stock_threshold}
-                            onChange={(e) => set("low_stock_threshold", parseInt(e.target.value, 10) || 0)}
-                            className="w-full border border-orange-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-                          />
-                          <p className="text-[10px] text-orange-500 mt-1">Warn when stock falls below this</p>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Stock Quantity</label>
+                            <input type="number" value={form.stock} onChange={(e) => set("stock", e.target.value)} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Low Stock Alert</label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={form.low_stock_threshold}
+                              onChange={(e) => set("low_stock_threshold", parseInt(e.target.value, 10) || 0)}
+                              className="w-full border border-orange-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                            />
+                            <p className="text-[10px] text-orange-500 mt-1">Warn when stock falls below this</p>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
 
                     {/* Variants */}
@@ -1333,21 +1401,42 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
                                     </div>
                                   </td>
                                   <td className="px-2 py-1.5">
-                                    <input
-                                      type="number"
-                                      value={v.stock_quantity ?? ""}
-                                      onChange={(e) => updateVariantRow(v.id, "stock_quantity", e.target.value)}
-                                      className="w-16 border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-gray-300"
-                                    />
+                                    {isLooseProduct ? (
+                                      <input
+                                        type="number"
+                                        value={form.stock ?? ""}
+                                        readOnly
+                                        disabled
+                                        className="w-16 border border-indigo-200 bg-indigo-50 text-indigo-700 rounded-lg px-2 py-1 text-sm cursor-not-allowed"
+                                      />
+                                    ) : (
+                                      <input
+                                        type="number"
+                                        value={v.stock_quantity ?? ""}
+                                        onChange={(e) => updateVariantRow(v.id, "stock_quantity", e.target.value)}
+                                        className="w-16 border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-gray-300"
+                                      />
+                                    )}
                                   </td>
                                   <td className="px-2 py-1.5">
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      value={v.low_stock_threshold ?? 10}
-                                      onChange={(e) => updateVariantRow(v.id, "low_stock_threshold", parseInt(e.target.value, 10) || 0)}
-                                      className="w-16 border border-orange-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-orange-400"
-                                    />
+                                    {isLooseProduct ? (
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        value={form.low_stock_threshold ?? 10}
+                                        readOnly
+                                        disabled
+                                        className="w-16 border border-indigo-200 bg-indigo-50 text-indigo-700 rounded-lg px-2 py-1 text-sm cursor-not-allowed"
+                                      />
+                                    ) : (
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        value={v.low_stock_threshold ?? 10}
+                                        onChange={(e) => updateVariantRow(v.id, "low_stock_threshold", parseInt(e.target.value, 10) || 0)}
+                                        className="w-16 border border-orange-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-orange-400"
+                                      />
+                                    )}
                                   </td>
                                   <td className="px-2 py-1.5">
                                     <button
@@ -1622,7 +1711,16 @@ function VariantSubRow({ p, onEdit, onDelete, onAdjustStock, deleting, selected,
   const price = parseFloat(p.price || 0);
   const disc = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
   const img = Array.isArray(p.image_urls) ? p.image_urls[0] : p.image_url;
-  const stock = p.stock_quantity ?? 0;
+  const isLooseVariant = p.unit_type === "loose" && !!p.parent_product_id;
+  const stock = isLooseVariant
+    ? (p._parent_stock_quantity ?? p.stock_quantity ?? 0)
+    : (p.stock_quantity ?? 0);
+  const threshold = isLooseVariant
+    ? (p._parent_low_stock_threshold ?? p.low_stock_threshold ?? 10)
+    : (p.low_stock_threshold ?? 10);
+  const isOutOfStock = stock <= 0;
+  const isLowStock = stock > 0 && stock <= threshold;
+  const stockUnit = p.unit_type === "loose" ? "kg" : "units";
   return (
     <tr className="bg-indigo-50/30 hover:bg-indigo-50/60 transition-colors border-l-4 border-indigo-200" style={{ height: 72 }}>
       <td className="pl-4 pr-2 py-3 w-10">
@@ -1646,23 +1744,28 @@ function VariantSubRow({ p, onEdit, onDelete, onAdjustStock, deleting, selected,
       </td>
       <td className="px-4 py-3 whitespace-nowrap">
         <div className="flex items-center gap-2">
-          <span className={`text-[13px] font-semibold ${stock <= 0 ? "text-red-500" : stock <= 10 ? "text-orange-500" : "text-gray-800"}`}>{stock}</span>
-          {stock <= 0 ? (
+          <span className={`text-[13px] font-semibold ${isOutOfStock ? "text-red-500" : isLowStock ? "text-orange-500" : "text-gray-800"}`}>
+            {p.unit_type === "loose" ? `${stock} kg` : stock}
+          </span>
+          {isOutOfStock ? (
             <span className="inline-flex items-center bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full">Out</span>
-          ) : stock <= 10 ? (
+          ) : isLowStock ? (
             <span className="inline-flex items-center bg-orange-100 text-orange-700 text-[10px] font-bold px-2 py-0.5 rounded-full">Low</span>
           ) : (
             <span className="inline-flex items-center bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full">OK</span>
           )}
         </div>
+        <p className="text-[11px] text-gray-400 mt-0.5">
+          {isLooseVariant ? `Shared with parent (threshold: ${threshold} kg)` : `Threshold: ${threshold} ${stockUnit}`}
+        </p>
       </td>
       <td className="px-4 py-3" />
       <td className="px-4 py-3">
         {p.is_active === false ? (
           <span className="inline-flex items-center bg-gray-100 text-gray-500 text-[11px] font-semibold px-2.5 py-1 rounded-full">Inactive</span>
-        ) : stock <= 0 ? (
+        ) : isOutOfStock ? (
           <span className="inline-flex items-center bg-red-100 text-red-700 text-[11px] font-semibold px-2.5 py-1 rounded-full">Out of Stock</span>
-        ) : stock <= 10 ? (
+        ) : isLowStock ? (
           <span className="inline-flex items-center bg-orange-100 text-orange-700 text-[11px] font-semibold px-2.5 py-1 rounded-full">Low Stock</span>
         ) : (
           <span className="inline-flex items-center bg-green-100 text-green-700 text-[11px] font-semibold px-2.5 py-1 rounded-full">Active</span>
@@ -1672,7 +1775,7 @@ function VariantSubRow({ p, onEdit, onDelete, onAdjustStock, deleting, selected,
       <td className="px-4 py-3">
         <div className="flex items-center gap-1">
           <button onClick={() => onEdit(p)} title="Edit" className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
-          <button onClick={() => onAdjustStock(p)} title="Adjust stock" className="p-1.5 rounded-lg text-gray-400 hover:text-orange-600 hover:bg-orange-50 transition-colors"><Package className="w-3.5 h-3.5" /></button>
+          <button onClick={() => onAdjustStock(isLooseVariant ? { ...p, id: p.parent_product_id, name: `${p.name} (shared parent stock)` } : p)} title="Adjust stock" className="p-1.5 rounded-lg text-gray-400 hover:text-orange-600 hover:bg-orange-50 transition-colors"><Package className="w-3.5 h-3.5" /></button>
           <button onClick={() => onDelete(p.id)} disabled={deleting === p.id} title="Delete" className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors">
             {deleting === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
           </button>
@@ -1689,8 +1792,8 @@ function VariantModal({ parent, onClose, onSaved }) {
     price: "",
     mrp: "",
     wholesale_price: "",
-    stock_quantity: 0,
-    low_stock_threshold: 10,
+    stock_quantity: parent?.stock_quantity ?? 0,
+    low_stock_threshold: parent?.low_stock_threshold ?? 10,
     image_url: "",
   });
   const [saving, setSaving] = useState(false);
@@ -1712,7 +1815,7 @@ function VariantModal({ parent, onClose, onSaved }) {
         price: form.price ? parseFloat(form.price) : undefined,
         wholesale_price: form.wholesale_price ? parseFloat(form.wholesale_price) : undefined,
         stock_quantity: parent.unit_type === "loose" ? 0 : (parseFloat(form.stock_quantity) || 0),
-        low_stock_threshold: form.low_stock_threshold,
+        low_stock_threshold: parent.unit_type === "loose" ? (parent.low_stock_threshold ?? form.low_stock_threshold) : form.low_stock_threshold,
         variant: form.unit,
         unit: form.unit,
         unit_type: parent.unit_type || null,
@@ -2425,7 +2528,12 @@ function ProductsTab() {
       const key = p.parent_category_name || p.category_name;
       if (!key) continue;
       if (!map[key]) map[key] = [];
-      map[key].push({ ...p, _variants: variantMap[p.id] || [] });
+      const normalizedVariants = (variantMap[p.id] || []).map((v) => ({
+        ...v,
+        _parent_stock_quantity: p.stock_quantity,
+        _parent_low_stock_threshold: p.low_stock_threshold,
+      }));
+      map[key].push({ ...p, _variants: normalizedVariants });
     }
     return Object.entries(map)
       .sort(([a], [b]) => a.localeCompare(b))
@@ -2433,12 +2541,21 @@ function ProductsTab() {
   }, [products]);
 
   const isLowStockProduct = (product) => {
-    const stock = product?.stock_quantity ?? 0;
-    return stock > 0 && stock <= (product?.low_stock_threshold ?? 10);
+    const isLooseVariant = product?.unit_type === "loose" && !!product?.parent_product_id;
+    const stock = isLooseVariant
+      ? (product?._parent_stock_quantity ?? product?.stock_quantity ?? 0)
+      : (product?.stock_quantity ?? 0);
+    const threshold = isLooseVariant
+      ? (product?._parent_low_stock_threshold ?? product?.low_stock_threshold ?? 10)
+      : (product?.low_stock_threshold ?? 10);
+    return stock > 0 && stock <= threshold;
   };
 
   const isOutOfStockProduct = (product) => {
-    const stock = product?.stock_quantity ?? 0;
+    const isLooseVariant = product?.unit_type === "loose" && !!product?.parent_product_id;
+    const stock = isLooseVariant
+      ? (product?._parent_stock_quantity ?? product?.stock_quantity ?? 0)
+      : (product?.stock_quantity ?? 0);
     return stock <= 0;
   };
 
@@ -2459,12 +2576,26 @@ function ProductsTab() {
 
   const stats = useMemo(() => {
     const base = allProducts.length > 0 ? allProducts : products;
-    const total = base.length;
-    const outOfStock = base.filter(isOutOfStockProduct).length;
-    const lowStock = base.filter(isLowStockProduct).length;
+    const parentById = new Map(
+      base.filter((p) => !p.parent_product_id).map((p) => [p.id, p]),
+    );
+    const normalizedBase = base.map((p) => {
+      if (p.unit_type !== "loose" || !p.parent_product_id) return p;
+      const parent = parentById.get(p.parent_product_id);
+      if (!parent) return p;
+      return {
+        ...p,
+        _parent_stock_quantity: parent.stock_quantity,
+        _parent_low_stock_threshold: parent.low_stock_threshold,
+      };
+    });
+
+    const total = normalizedBase.length;
+    const outOfStock = normalizedBase.filter(isOutOfStockProduct).length;
+    const lowStock = normalizedBase.filter(isLowStockProduct).length;
     const inStock = total - outOfStock;
-    const cats = new Set(base.map((p) => p.category_name || p.parent_category_name || p.category_id)).size;
-    const totalValue = base.reduce((s, p) => s + (parseFloat(p.price || 0) * (p.stock_quantity ?? 0)), 0);
+    const cats = new Set(normalizedBase.map((p) => p.category_name || p.parent_category_name || p.category_id)).size;
+    const totalValue = normalizedBase.reduce((s, p) => s + (parseFloat(p.price || 0) * ((p._parent_stock_quantity ?? p.stock_quantity) ?? 0)), 0);
     return { total, outOfStock, lowStock, inStock, cats, totalValue };
   }, [allProducts, products]);
 
