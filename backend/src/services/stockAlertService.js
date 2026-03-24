@@ -39,7 +39,7 @@ async function checkAndAlert(product) {
     const productName = product.name || product.name_en || 'Unknown Product';
     const variant = product.variant || product.unit_pack_size || '';
     const label = alertType === 'out' ? 'Out of Stock' : 'Low Stock';
-    const title = `${label}: ${productName}${variant ? ' - ' + variant : ''}`;
+    const title = `${label}: ${productName}${variant ? ` (${variant})` : ''}`;
     const message = alertType === 'out'
       ? `${productName} is out of stock (0 units).`
       : `${productName} has only ${stock} unit(s) left (threshold: ${thresh}).`;

@@ -16,6 +16,7 @@ const { pool, testConnection } = require("./config/database");
 const logger = require("./utils/logger");
 const stockAlertService = require("./services/stockAlertService");
 const pendingOrderAlertService = require("./services/pendingOrderAlertService");
+const { AdminNotification } = require("./models");
 
 const ALERT_SCAN_INTERVAL_MS = 60 * 60 * 1000;
 
@@ -30,6 +31,9 @@ async function init() {
       process.exit(1);
     }
     logger.info("Database connection successful");
+
+    await AdminNotification.ensureTable();
+    logger.info("Admin notifications table verified");
 
     const server = app.listen(PORT, () => {
       logger.info(`Server running on port ${PORT} [${config.env}]`);

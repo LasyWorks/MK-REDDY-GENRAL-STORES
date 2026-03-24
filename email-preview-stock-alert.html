@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stock Alert Email Preview</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #f1f5f9; font-family: 'Segoe UI', Helvetica, Arial, sans-serif; color: #1e293b; padding: 20px; }
+    .container { max-width: 680px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(13, 27, 62, 0.10); }
+    .em-accent { height: 5px; background: linear-gradient(90deg, #78350f 0%, #f59e0b 100%); }
+    .em-brand { background: #ffffff; padding: 16px 36px; text-align: left; border-bottom: 2px solid #0d1b3e; display: flex; align-items: center; gap: 12px; }
+    .em-brand-logo { background: #0d1b3e; color: #c8972a; font-size: 20px; font-weight: 700; padding: 8px 12px; border-radius: 4px; }
+    .em-brand h2 { color: #0d1b3e; font-size: 18px; font-weight: 700; letter-spacing: 1px; margin: 0; }
+    .em-status { background: #fffbeb; border-bottom: 1px solid #fde68a; padding: 28px 36px; text-align: center; }
+    .em-status h1 { color: #78350f; font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    .em-status p { color: #92400e; font-size: 14px; line-height: 1.6; }
+    .em-body { padding: 24px 36px 32px; }
+    .meta { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+    .meta-row { display: flex; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #e2e8f0; }
+    .meta-row:last-child { border-bottom: none; }
+    .meta-label { font-size: 10px; text-transform: uppercase; color: #94a3b8; letter-spacing: 1px; }
+    .meta-value { font-size: 14px; font-weight: 600; color: #1e293b; }
+    .cta { text-align: center; margin-top: 20px; }
+    .cta a { display: inline-block; background: #0d1b3e; color: #c8972a; font-weight: 700; font-size: 14px; padding: 12px 28px; border-radius: 10px; text-decoration: none; letter-spacing: 0.5px; }
+    .em-footer { background: #0d1b3e; padding: 22px 36px; }
+    .footer-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+    .footer-brand { color: #c8972a; font-size: 13px; font-weight: 700; letter-spacing: 1px; }
+    .footer-contact { color: #94a3b8; font-size: 12px; text-align: right; line-height: 1.7; }
+    .footer-legal { border-top: 1px solid #1e3a6e; padding-top: 12px; color: #475569; font-size: 11px; text-align: center; line-height: 1.7; }
+    @media only screen and (max-width:640px) {
+      body { padding: 8px; }
+      .container { border-radius: 0; box-shadow: none; }
+      .em-brand { padding: 14px 16px; display: block; }
+      .em-brand h2 { font-size: 16px; letter-spacing: 0.4px; margin-top: 8px; }
+      .em-status { padding: 20px 16px; }
+      .em-status h1 { font-size: 20px; }
+      .em-body { padding: 20px 16px; }
+      .meta-row { display: block; }
+      .meta-row > div:last-child { margin-top: 4px; }
+      .cta a { width: 100%; text-align: center; }
+      .footer-row { display: block; }
+      .footer-contact { text-align: left; margin-top: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="em-accent"></div>
+    <div class="em-brand">
+      <div class="em-brand-logo">MK</div>
+      <h2>MK Reddy General Stores</h2>
+    </div>
+    <div class="em-status">
+      <h1>Low Stock Alert</h1>
+      <p>This product has fallen below its minimum stock threshold.</p>
+    </div>
+    <div class="em-body">
+      <div class="meta">
+        <div class="meta-row"><div class="meta-label">Product Name</div><div class="meta-value">Tea Powder 500g</div></div>
+        <div class="meta-row"><div class="meta-label">Current Stock</div><div class="meta-value">4 units</div></div>
+        <div class="meta-row"><div class="meta-label">Min Threshold</div><div class="meta-value">10 units</div></div>
+      </div>
+      <div class="cta">
+        <a href="#">Go to Admin Dashboard</a>
+      </div>
+    </div>
+    <div class="em-footer">
+      <div class="footer-row">
+        <div>
+          <div class="footer-brand">MK Reddy General Stores</div>
+          <div style="color:#64748b;font-size:12px;margin-top:3px;">GSTIN: 18AABCU1234H1Z0</div>
+        </div>
+        <div class="footer-contact">+91-80-0000-0000<br>contact@mkreddy.com</div>
+      </div>
+      <div class="footer-legal">Auto-generated inventory alert.</div>
+    </div>
+  </div>
+</body>
+</html>

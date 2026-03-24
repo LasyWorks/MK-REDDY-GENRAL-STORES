@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Merge OTP Email Preview</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #f1f5f9; font-family: 'Segoe UI', Helvetica, Arial, sans-serif; color: #1e293b; padding: 20px; }
+    .container { max-width: 620px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(13, 27, 62, 0.10); }
+    .em-accent { height: 5px; background: linear-gradient(90deg, #0d1b3e 0%, #c8972a 100%); }
+    .em-brand { background: #ffffff; padding: 16px 36px; text-align: left; border-bottom: 2px solid #0d1b3e; display: flex; align-items: center; gap: 12px; }
+    .em-brand-logo { background: #0d1b3e; color: #c8972a; font-size: 20px; font-weight: 700; padding: 8px 12px; border-radius: 4px; }
+    .em-brand h2 { color: #0d1b3e; font-size: 18px; font-weight: 700; letter-spacing: 1px; margin: 0; }
+    .em-status { background: #eff6ff; border-bottom: 1px solid #bfdbfe; padding: 28px 36px; text-align: center; }
+    .em-status h1 { color: #1e3a8a; font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    .em-status p { color: #475569; font-size: 14px; line-height: 1.6; }
+    .em-body { padding: 24px 36px 32px; }
+    .otp-box { background: #eff6ff; border: 2px dashed #93c5fd; border-radius: 12px; padding: 22px; text-align: center; margin: 16px 0; }
+    .otp-label { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #3b82f6; margin-bottom: 8px; }
+    .otp-code { font-size: 40px; font-weight: 900; color: #1e3a8a; letter-spacing: 8px; font-family: monospace; }
+    .info-box { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 18px 20px; }
+    .info-box-title { color: #991b1b; text-transform: uppercase; font-size: 11px; margin-bottom: 10px; font-weight: 700; }
+    .em-footer { background: #0d1b3e; padding: 22px 36px; }
+    .footer-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+    .footer-brand { color: #c8972a; font-size: 13px; font-weight: 700; letter-spacing: 1px; }
+    .footer-contact { color: #94a3b8; font-size: 12px; text-align: right; line-height: 1.7; }
+    .footer-legal { border-top: 1px solid #1e3a6e; padding-top: 12px; color: #475569; font-size: 11px; text-align: center; line-height: 1.7; }
+    @media only screen and (max-width:640px) {
+      body { padding: 8px; }
+      .container { border-radius: 0; box-shadow: none; }
+      .em-brand { padding: 14px 16px; display: block; }
+      .em-brand h2 { font-size: 16px; letter-spacing: 0.4px; margin-top: 8px; }
+      .em-status { padding: 20px 16px; }
+      .em-status h1 { font-size: 20px; }
+      .em-body { padding: 20px 16px; }
+      .otp-code { font-size: 32px; letter-spacing: 5px; }
+      .footer-row { display: block; }
+      .footer-contact { text-align: left; margin-top: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="em-accent"></div>
+    <div class="em-brand">
+      <div class="em-brand-logo">MK</div>
+      <h2>MK Reddy General Stores</h2>
+    </div>
+    <div class="em-status">
+      <h1>Verify Your Account</h1>
+      <p>Use the code below to authorize the account merge.</p>
+    </div>
+    <div class="em-body">
+      <div class="otp-box">
+        <div class="otp-label">Verification Code (New Account)</div>
+        <div class="otp-code">819204</div>
+      </div>
+      <div class="info-box">
+        <div class="info-box-title">Both accounts must confirm</div>
+        <p style="font-size:13px;color:#7f1d1d;line-height:1.7;">The merge will proceed only if both emails confirm the codes.</p>
+      </div>
+    </div>
+    <div class="em-footer">
+      <div class="footer-row">
+        <div>
+          <div class="footer-brand">MK Reddy General Stores</div>
+        </div>
+        <div class="footer-contact">+91-80-0000-0000<br>contact@mkreddy.com</div>
+      </div>
+      <div class="footer-legal">Auto-generated security email. Do not reply.</div>
+    </div>
+  </div>
+</body>
+</html>

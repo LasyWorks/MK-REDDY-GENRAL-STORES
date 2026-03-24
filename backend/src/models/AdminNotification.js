@@ -43,32 +43,51 @@ class AdminNotification {
 
   /** Find the most recent unresolved notification for an order + type. */
   static async findUnresolvedOrder(orderId, type = 'pending_order') {
-    return queryOne(
-      `SELECT * FROM admin_notifications
-       WHERE order_id = $1 AND type = $2 AND resolved_at IS NULL
-       ORDER BY created_at DESC LIMIT 1`,
-      [orderId, type]
-    );
+    try {
+      return queryOne(
+        `SELECT * FROM admin_notifications
+         WHERE order_id = $1 AND type = $2 AND resolved_at IS NULL
+         ORDER BY created_at DESC LIMIT 1`,
+        [orderId, type]
+      );
+    } catch (err) {
+      if (err?.code === '42703' && String(err?.message || '').includes('order_id')) {
+        return null;
+      }
+      throw err;
+    }
   }
 
   /** Insert a new notification row (email_sent_at is NULL until email actually sends). */
   static async create({ type, title, message, productId, orderId, stockAtAlert }) {
-    const rows = await query(
-      `INSERT INTO admin_notifications (type, title, message, product_id, order_id, stock_at_alert)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [type, title, message || null, productId || null, orderId || null, stockAtAlert ?? null]
-    );
-    return rows[0];
+    try {
+      const rows = await query(
+        `INSERT INTO admin_notifications (type, title, message, product_id, order_id, stock_at_alert)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+        [type, title, message || null, productId || null, orderId || null, stockAtAlert ?? null]
+      );
+      return rows[0];
+    } catch (err) {
+      if (err?.code === '42703' && String(err?.message || '').includes('order_id')) {
+        const rows = await query(
+          `INSERT INTO admin_notifications (type, title, message, product_id, stock_at_alert)
+           VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+          [type, title, message || null, productId || null, stockAtAlert ?? null]
+        );
+        return rows[0];
+      }
+      throw err;
+    }
   }
 
   /** Insert a generic order-related notification for the admin bell. */
-  static async createOrderNotification({ type = 'order', title, message }) {
+  static async createOrderNotification({ type = 'order', title, message, orderId = null }) {
     return this.create({
       type,
       title,
       message,
       productId: null,
-      orderId: null,
+      orderId,
       stockAtAlert: null,
     });
   }
@@ -95,26 +114,101 @@ class AdminNotification {
   /** Mark all open notifications for an order as resolved (order moved forward). */
   static async resolveForOrder(orderId, type = null) {
     if (!orderId) return;
-    if (type) {
+    try {
+      if (type) {
+        await modify(
+          `UPDATE admin_notifications SET resolved_at = NOW()
+           WHERE order_id = $1 AND type = $2 AND resolved_at IS NULL`,
+          [orderId, type]
+        );
+        return;
+      }
       await modify(
         `UPDATE admin_notifications SET resolved_at = NOW()
-         WHERE order_id = $1 AND type = $2 AND resolved_at IS NULL`,
-        [orderId, type]
+         WHERE order_id = $1 AND resolved_at IS NULL`,
+        [orderId]
       );
-      return;
+    } catch (err) {
+      if (err?.code === '42703' && String(err?.message || '').includes('order_id')) {
+        return;
+      }
+      throw err;
     }
-    await modify(
-      `UPDATE admin_notifications SET resolved_at = NOW()
-       WHERE order_id = $1 AND resolved_at IS NULL`,
-      [orderId]
+  }
+
+  /**
+   * Resolve issue notifications that are no longer active based on current data.
+   * - low/out: resolve when stock is now above threshold
+   * - pending_order: resolve when order moved beyond pending/confirmed
+   */
+  static async resolveCompletedIssues() {
+    const stockResolved = await modify(
+      `UPDATE admin_notifications n
+       SET resolved_at = NOW()
+       FROM products p
+       LEFT JOIN products parent ON parent.id = p.parent_product_id
+       WHERE n.product_id = p.id
+         AND n.type IN ('low', 'out')
+         AND n.resolved_at IS NULL
+         AND (
+           p.is_active = FALSE
+           OR
+           (
+             CASE
+               WHEN p.unit_type = 'loose' AND p.parent_product_id IS NOT NULL
+                 THEN COALESCE(parent.stock_quantity, p.stock_quantity)
+               ELSE p.stock_quantity
+             END
+             >
+             CASE
+               WHEN p.unit_type = 'loose' AND p.parent_product_id IS NOT NULL
+                 THEN COALESCE(parent.low_stock_threshold, p.low_stock_threshold, 10)
+               ELSE COALESCE(p.low_stock_threshold, 10)
+             END
+           )
+         )`
     );
+
+    let orderResolved = 0;
+    try {
+      orderResolved = await modify(
+        `UPDATE admin_notifications n
+         SET resolved_at = NOW()
+         FROM orders o
+         WHERE n.order_id = o.id
+           AND n.type = 'pending_order'
+           AND n.resolved_at IS NULL
+           AND o.status NOT IN ('pending', 'confirmed')`
+      );
+    } catch (err) {
+      if (!(err?.code === '42703' && String(err?.message || '').includes('order_id'))) {
+        throw err;
+      }
+    }
+
+    return {
+      stockResolved,
+      orderResolved,
+      totalResolved: stockResolved + orderResolved,
+    };
+  }
+
+  /** Delete all already-resolved issue notifications. */
+  static async deleteResolvedIssues() {
+    const deleted = await query(
+      `DELETE FROM admin_notifications
+       WHERE resolved_at IS NOT NULL
+         AND type IN ('low', 'out', 'pending_order')
+       RETURNING id`
+    );
+    return deleted.length;
   }
 
   /**
    * Return notifications for the admin bell:
-   *   - All unresolved ones
-   *   - Resolved ones created within the last 7 days
-   * Sorted: unresolved first, then by created_at desc.
+    *   - Active issue notifications (low/out/pending_order) only while unresolved
+    *   - Other notifications from the last 7 days
+    * Sorted: newest first.
    */
   static async getForAdmin({ limit = 100 } = {}) {
     const rows = await query(
@@ -128,23 +222,35 @@ class AdminNotification {
               ON p.id = n.product_id
        LEFT JOIN product_translations pt
               ON pt.product_id = n.product_id AND pt.lang_code = 'en'
-       WHERE n.resolved_at IS NULL
-          OR n.created_at >= NOW() - INTERVAL '7 days'
-       ORDER BY
-         CASE WHEN n.resolved_at IS NULL THEN 0 ELSE 1 END,
-         n.created_at DESC
+      WHERE n.type <> 'order_status'
+      AND (
+        n.type IN ('low', 'out', 'pending_order')
+        AND n.resolved_at IS NULL
+      )
+      OR (
+        n.type <> 'order_status'
+        AND
+        n.type NOT IN ('low', 'out', 'pending_order')
+        AND n.created_at >= NOW() - INTERVAL '7 days'
+      )
+       ORDER BY n.created_at DESC
        LIMIT $1`,
       [limit]
     );
     return rows;
   }
 
-  /** Count unread + unresolved notifications (badge number). */
+  /** Count unread notifications in the bell feed scope. */
   static async countUnread() {
     const row = await queryOne(
       `SELECT COUNT(*) AS cnt
        FROM admin_notifications
-       WHERE is_read = FALSE AND resolved_at IS NULL`
+       WHERE is_read = FALSE
+         AND (
+           (type IN ('low', 'out', 'pending_order') AND resolved_at IS NULL)
+           OR
+           (type <> 'order_status' AND type NOT IN ('low', 'out', 'pending_order') AND created_at >= NOW() - INTERVAL '7 days')
+         )`
     );
     return parseInt(row?.cnt ?? 0, 10);
   }
@@ -157,6 +263,12 @@ class AdminNotification {
   /** Mark every unread notification as read. */
   static async markAllRead() {
     await modify(`UPDATE admin_notifications SET is_read = TRUE WHERE is_read = FALSE`);
+  }
+
+  /** Delete all notifications from admin bell history. */
+  static async deleteAll() {
+    const deleted = await query(`DELETE FROM admin_notifications RETURNING id`);
+    return deleted.length;
   }
 }
 

@@ -5,6 +5,8 @@ const emailService = require('../services/emailService');
 const { modify } = require('../config/database');
 
 const getNotifications = asyncHandler(async (req, res) => {
+  await AdminNotification.resolveCompletedIssues().catch(() => {});
+
   const [notifications, unreadCount] = await Promise.all([
     AdminNotification.getForAdmin({ limit: 100 }),
     AdminNotification.countUnread(),
@@ -94,4 +96,28 @@ const forceResend = asyncHandler(async (req, res) => {
   ApiResponse.success(res, { triggered: results.length, products: results }, 'Force resend complete');
 });
 
-module.exports = { getNotifications, markRead, markAllRead, testEmail, forceResend, scanStockAlerts };
+/**
+ * PATCH /api/v1/notifications/cleanup-done
+ * Manually resolves completed issue notifications and removes resolved issue rows.
+ */
+const cleanupDone = asyncHandler(async (req, res) => {
+  const resolved = await AdminNotification.resolveCompletedIssues();
+  const removed = await AdminNotification.deleteResolvedIssues();
+
+  ApiResponse.success(
+    res,
+    { resolved, removed },
+    `Cleanup completed. Removed ${removed} completed notifications.`
+  );
+});
+
+/**
+ * DELETE /api/v1/notifications/all
+ * Remove all bell notifications.
+ */
+const clearAll = asyncHandler(async (req, res) => {
+  const removed = await AdminNotification.deleteAll();
+  ApiResponse.success(res, { removed }, `Cleared ${removed} notifications.`);
+});
+
+module.exports = { getNotifications, markRead, markAllRead, testEmail, forceResend, scanStockAlerts, cleanupDone, clearAll };

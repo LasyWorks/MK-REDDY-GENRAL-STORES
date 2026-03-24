@@ -295,7 +295,6 @@ const orderValidation = {
         "confirmed",
         "ready_for_pickup",
         "picked_up",
-        "cancelled",
       ])
       .withMessage("Invalid order status"),
     body("notes").optional().trim().isLength({ max: 500 }),
@@ -433,6 +432,39 @@ const validateCreateOrder = orderValidation.create;
 const validateUpdateOrderStatus = orderValidation.updateStatus;
 const validateCancelOrder = [
   body("reason").optional().trim().isLength({ max: 500 }),
+  body("reason_code")
+    .optional()
+    .isIn([
+      "out_of_stock",
+      "product_unavailable",
+      "delivery_not_serviceable",
+      "price_mismatch",
+      "payment_issue",
+      "duplicate_or_fraudulent",
+      "other",
+    ])
+    .withMessage("Invalid cancellation reason code"),
+  body("reason_custom")
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage("Custom cancellation reason must not exceed 500 characters"),
+  body().custom((_, { req }) => {
+    const isAdmin = req.user?.role === "admin";
+    if (!isAdmin) return true;
+
+    const reason = typeof req.body.reason === "string" ? req.body.reason.trim() : "";
+    const reasonCode = typeof req.body.reason_code === "string" ? req.body.reason_code.trim() : "";
+    const reasonCustom = typeof req.body.reason_custom === "string" ? req.body.reason_custom.trim() : "";
+
+    if (!reason && !reasonCode) {
+      throw new Error("Cancellation reason is required for admin");
+    }
+    if (reasonCode === "other" && !reasonCustom && !reason) {
+      throw new Error("Custom cancellation reason is required when reason code is other");
+    }
+    return true;
+  }),
   validate,
 ];
 const validateMarkAsPaid = invoiceValidation.markAsPaid;

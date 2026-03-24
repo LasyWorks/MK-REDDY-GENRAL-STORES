@@ -135,6 +135,15 @@ const STATUS_LABELS = {
   picked_up: "Picked Up",
   cancelled: "Cancelled",
 };
+const ADMIN_CANCEL_REASON_OPTIONS = [
+  { value: "out_of_stock", label: "Out of stock" },
+  { value: "product_unavailable", label: "Product unavailable" },
+  { value: "delivery_not_serviceable", label: "Delivery not serviceable" },
+  { value: "price_mismatch", label: "Price mismatch" },
+  { value: "payment_issue", label: "Payment issue" },
+  { value: "duplicate_or_fraudulent", label: "Duplicate or fraudulent order" },
+  { value: "other", label: "Other" },
+];
 function fmtCurrency(n) {
   const num = parseFloat(n || 0);
   if (num >= 10_00_000) return `₹${(num / 10_00_000).toFixed(1)}L`;
@@ -3061,8 +3070,82 @@ function OrdersTab() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancelTargetIds, setCancelTargetIds] = useState([]);
+  const [cancelReasonCode, setCancelReasonCode] = useState("out_of_stock");
+  const [cancelReasonCustom, setCancelReasonCustom] = useState("");
+  const [cancelSubmitting, setCancelSubmitting] = useState(false);
+  const [actionMenuOpenId, setActionMenuOpenId] = useState(null);
   const searchTimer = useRef(null);
   const LIMIT = 20;
+
+  useEffect(() => {
+    function handleOutsideClick(e) {
+      if (!e.target.closest("[data-order-action-menu='true']")) {
+        setActionMenuOpenId(null);
+      }
+    }
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
+
+  function openCancelModal(orderIds = []) {
+    if (!orderIds.length) return;
+    setCancelTargetIds(orderIds);
+    setCancelReasonCode("out_of_stock");
+    setCancelReasonCustom("");
+    setCancelModalOpen(true);
+  }
+
+  function closeCancelModal() {
+    if (cancelSubmitting) return;
+    setCancelModalOpen(false);
+    setCancelTargetIds([]);
+    setCancelReasonCode("out_of_stock");
+    setCancelReasonCustom("");
+  }
+
+  async function submitAdminCancellation() {
+    if (!cancelTargetIds.length) return;
+    if (cancelReasonCode === "other" && !cancelReasonCustom.trim()) {
+      toast("Please enter a custom cancellation reason", "error");
+      return;
+    }
+
+    setCancelSubmitting(true);
+    try {
+      const displayReason = cancelReasonCode === "other"
+        ? cancelReasonCustom.trim()
+        : (ADMIN_CANCEL_REASON_OPTIONS.find((o) => o.value === cancelReasonCode)?.label || "Cancelled by admin");
+
+      const payload = {
+        reason_code: cancelReasonCode,
+        reason: displayReason,
+        ...(cancelReasonCode === "other" ? { reason_custom: cancelReasonCustom.trim() } : {}),
+      };
+      await Promise.all(cancelTargetIds.map((id) => api.post(`/orders/${id}/cancel`, payload)));
+
+      const appliedReason = displayReason;
+
+      setOrders((prev) => prev.map((o) => (
+        cancelTargetIds.includes(o.id)
+          ? { ...o, status: "cancelled", cancellation_reason: appliedReason }
+          : o
+      )));
+
+      if (drawerOrder?.id && cancelTargetIds.includes(drawerOrder.id)) {
+        setDrawerOrder((d) => d ? { ...d, status: "cancelled", cancellation_reason: appliedReason } : d);
+      }
+
+      toast(`${cancelTargetIds.length} order${cancelTargetIds.length !== 1 ? "s" : ""} cancelled`, "success");
+      setSelected(new Set());
+      closeCancelModal();
+    } catch (e) {
+      toast(e.message || "Failed to cancel order", "error");
+    } finally {
+      setCancelSubmitting(false);
+    }
+  }
 
   const load = useCallback(async (opts = {}) => {
     const f = opts.filter !== undefined ? opts.filter : filter;
@@ -3120,11 +3203,17 @@ function OrdersTab() {
   }
 
   async function updateStatus(orderId, status) {
+    if (status === "cancelled") {
+      openCancelModal([orderId]);
+      setActionMenuOpenId(null);
+      return;
+    }
     setUpdating(orderId);
     try {
       await api.put(`/orders/${orderId}/status`, { status });
       setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status } : o)));
       if (drawerOrder?.id === orderId) setDrawerOrder((d) => ({ ...d, status }));
+      setActionMenuOpenId(null);
     } catch (e) {
       toast(e.message || "Update failed", "error");
     } finally {
@@ -3134,6 +3223,10 @@ function OrdersTab() {
 
   async function bulkUpdate(status) {
     if (selected.size === 0) return;
+    if (status === "cancelled") {
+      openCancelModal([...selected]);
+      return;
+    }
     setBulkUpdating(true);
     try {
       await Promise.all([...selected].map((id) => api.put(`/orders/${id}/status`, { status })));
@@ -3219,12 +3312,31 @@ function OrdersTab() {
     delivered:        { bg: "bg-teal-100",   text: "text-teal-700",   dot: "bg-teal-500",    label: "Delivered" },
   };
 
-  function OrderBadge({ status }) {
+  function inferCancelledActor(order) {
+    const reason = String(order?.cancellation_reason || "").toLowerCase();
+
+    if (/customer|requested by customer/.test(reason)) return "customer";
+    if (/admin|out of stock|product unavailable|delivery not serviceable|price mismatch|payment issue|fraudulent|duplicate/.test(reason)) {
+      return "admin";
+    }
+
+    // For legacy cancelled orders with no actor info, assign a stable pseudo-random actor.
+    const seed = String(order?.id || order?.order_number || "legacy-cancelled");
+    const sum = seed.split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+    return sum % 2 === 0 ? "customer" : "admin";
+  }
+
+  function OrderBadge({ status, order = null }) {
     const s = STATUS_BADGE[status] || { bg: "bg-gray-100", text: "text-gray-600", dot: "bg-gray-400", label: status };
+    const cancelledActor = status === "cancelled" ? inferCancelledActor(order) : null;
+    const label = status === "cancelled"
+      ? `Cancelled by ${cancelledActor === "customer" ? "Customer" : "Admin"}`
+      : s.label;
+
     return (
       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${s.bg} ${s.text}`}>
         <span className={`w-1.5 h-1.5 rounded-full ${s.dot} shrink-0`} />
-        {s.label}
+        {label}
       </span>
     );
   }
@@ -3391,6 +3503,7 @@ function OrdersTab() {
                   ? o.item_names.slice(0, 2).join(", ")
                   : null;
                 const itemCount = o.item_count ?? o.total_items ?? o.items?.length ?? 0;
+                const rowTransitions = VALID_TRANSITIONS[o.status] || [];
                 return (
                   <tr
                     key={o.id}
@@ -3420,25 +3533,46 @@ function OrdersTab() {
                       ₹{parseFloat(o.total_amount || 0).toFixed(0)}
                     </td>
                     <td className="px-4 py-3.5">
-                      <OrderBadge status={o.status} />
+                      <OrderBadge status={o.status} order={o} />
                     </td>
                     <td className="px-4 py-3.5 text-xs text-gray-500 whitespace-nowrap">{fmtDate(o.created_at)}</td>
                     <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
-                      <div className="relative">
-                        <select
-                          value={o.status}
-                          disabled={updating === o.id || (VALID_TRANSITIONS[o.status] || []).length === 0}
-                          onChange={(e) => updateStatus(o.id, e.target.value)}
-                          className="appearance-none pr-6 pl-2.5 py-1.5 text-xs rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-1 focus:ring-green-500 disabled:opacity-50 cursor-pointer"
-                        >
-                          <option value={o.status}>{STATUS_LABELS[o.status] || o.status}</option>
-                          {(VALID_TRANSITIONS[o.status] || []).map((s) => (
-                            <option key={s} value={s}>{STATUS_LABELS[s] || s}</option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
-                        {updating === o.id && <Loader2 className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 animate-spin text-green-600" />}
-                      </div>
+                      {rowTransitions.length === 0 ? (
+                        <span className="inline-flex items-center px-2.5 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed">
+                          No actions
+                        </span>
+                      ) : (
+                        <div className="relative" data-order-action-menu="true">
+                          <button
+                            type="button"
+                            disabled={updating === o.id}
+                            onClick={() => setActionMenuOpenId((id) => (id === o.id ? null : o.id))}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-green-500 disabled:opacity-50"
+                          >
+                            {updating === o.id ? <Loader2 className="w-3 h-3 animate-spin text-green-600" /> : null}
+                            <span>{STATUS_LABELS[o.status] || o.status}</span>
+                            <ChevronDown className="w-3 h-3 text-gray-400" />
+                          </button>
+
+                          {actionMenuOpenId === o.id && updating !== o.id && (
+                            <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden">
+                              <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400 border-b border-gray-100 bg-gray-50">
+                                Change status
+                              </div>
+                              {rowTransitions.map((s) => (
+                                <button
+                                  key={s}
+                                  type="button"
+                                  onClick={() => updateStatus(o.id, s)}
+                                  className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                                >
+                                  {STATUS_LABELS[s] || s}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );
@@ -3517,7 +3651,7 @@ function OrdersTab() {
                   {/* Status */}
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Status</span>
-                    <OrderBadge status={drawerOrder.status} />
+                    <OrderBadge status={drawerOrder.status} order={drawerOrder} />
                   </div>
 
                   {/* Customer */}
@@ -3640,6 +3774,66 @@ function OrdersTab() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {cancelModalOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={closeCancelModal} />
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-100 p-5">
+            <h3 className="text-lg font-bold text-gray-900">Cancel order</h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Select a reason to send to customer{cancelTargetIds.length > 1 ? ` for ${cancelTargetIds.length} orders` : ""}.
+            </p>
+
+            <div className="mt-4 space-y-2 max-h-64 overflow-y-auto pr-1">
+              {ADMIN_CANCEL_REASON_OPTIONS.map((opt) => (
+                <label key={opt.value} className="flex items-center gap-2 p-2 rounded-lg border border-gray-100 hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="cancel-reason"
+                    value={opt.value}
+                    checked={cancelReasonCode === opt.value}
+                    onChange={(e) => setCancelReasonCode(e.target.value)}
+                    className="accent-red-600"
+                  />
+                  <span className="text-sm text-gray-700 font-medium">{opt.label}</span>
+                </label>
+              ))}
+            </div>
+
+            {cancelReasonCode === "other" && (
+              <div className="mt-3">
+                <textarea
+                  value={cancelReasonCustom}
+                  onChange={(e) => setCancelReasonCustom(e.target.value)}
+                  placeholder="Type custom cancellation reason"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                  rows={3}
+                  maxLength={500}
+                />
+              </div>
+            )}
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeCancelModal}
+                disabled={cancelSubmitting}
+                className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={submitAdminCancellation}
+                disabled={cancelSubmitting}
+                className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
+              >
+                {cancelSubmitting ? "Cancelling..." : "Confirm cancel"}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -7736,6 +7930,7 @@ const SUPER_ADMIN_SIDEBAR_ITEMS = [
 ];
 export default function AdminDashboard() {
   const { ready, admin, isSuperAdmin } = useAdminGuard();
+  const { confirm, toast } = useDialog();
   const router = useRouter();
   const [tab, setTab] = useState(() => {
     if (typeof window !== "undefined") {
@@ -7806,6 +8001,31 @@ export default function AdminDashboard() {
     } catch (_) {}
   }
 
+  async function clearAllNotifications() {
+    try {
+      const ok = await confirm("This will permanently remove all notifications from the bell.", {
+        title: "Clear all notifications?",
+        confirmLabel: "Clear all",
+        danger: true,
+      });
+      if (!ok) return;
+
+      const token = secureStorage.getItem("token");
+      const res = await fetch(`${NOTIF_API}/all`, {
+        method: "DELETE",
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      });
+      if (!res.ok) {
+        throw new Error("Failed to clear notifications");
+      }
+      setNotifications([]);
+      setNotifUnread(0);
+      toast("All notifications cleared", "success");
+    } catch (e) {
+      toast(e?.message || "Failed to clear notifications", "error");
+    }
+  }
+
   function handleTabChange(tabId) {
     if (tabId === "billing") {
       router.push("/admin/billing");
@@ -7841,6 +8061,10 @@ export default function AdminDashboard() {
     if (h < 17) return "Good Afternoon";
     return "Good Evening";
   })();
+
+  const visibleNotifications = notifications.filter(
+    (n) => !(["low", "out", "pending_order"].includes(n.type) && !!n.resolved_at)
+  );
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex">
@@ -7977,27 +8201,44 @@ export default function AdminDashboard() {
               {notifOpen && (
                 <div className="absolute right-0 top-full mt-2 w-[340px] bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden" style={{ maxHeight: "480px" }}>
                   {/* Header */}
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                    <div className="flex items-center gap-2">
+                  <div className="px-4 py-3 border-b border-gray-100 bg-gradient-to-b from-gray-50/80 to-white">
+                    <div className="flex items-center justify-between gap-3">
                       <span className="font-semibold text-[14px] text-gray-800">Notifications</span>
                       {notifUnread > 0 && (
-                        <span className="bg-red-100 text-red-600 text-[11px] font-bold px-1.5 py-0.5 rounded-full">{notifUnread} new</span>
+                        <span className="bg-red-100 text-red-600 text-[11px] font-bold px-2 py-0.5 rounded-full">{notifUnread} new</span>
                       )}
                     </div>
-                    {notifUnread > 0 && (
-                      <button onClick={markAllNotifRead} className="text-[12px] text-indigo-600 hover:text-indigo-800 font-medium transition-colors">
-                        Mark all read
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <button
+                        onClick={clearAllNotifications}
+                        disabled={visibleNotifications.length === 0}
+                        className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-red-600 bg-red-50 border border-red-100 hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        Clear all
                       </button>
-                    )}
+                      {notifUnread > 0 && (
+                        <button
+                          onClick={markAllNotifRead}
+                          className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 transition-colors"
+                        >
+                          <Check className="w-3 h-3" />
+                          Mark all read
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {/* List */}
                   <div className="overflow-y-auto" style={{ maxHeight: "380px" }}>
-                    {notifications.length === 0 ? (
+                    {visibleNotifications.length === 0 ? (
                       <div className="px-4 py-10 text-center text-[13px] text-gray-400">No notifications</div>
                     ) : (
-                      notifications.map((n) => {
+                      visibleNotifications.map((n) => {
+                        const cleanTitle = String(n.title || "").replace(/\s+[—-]\s+/g, " ");
                         const isOut = n.type === "out";
-                        const isOrderNotif = ["new_order", "order_status", "order_cancelled"].includes(n.type);
+                        const isOrderNotif = ["new_order", "order_cancelled_by_customer", "order_cancelled_by_admin", "order_cancelled"].includes(n.type);
+                        const isCustomerCancelled = n.type === "order_cancelled_by_customer";
+                        const isAdminCancelled = n.type === "order_cancelled_by_admin";
                         const isResolved = !!n.resolved_at;
                         const timeAgo = (() => {
                           const d = new Date(n.created_at);
@@ -8027,8 +8268,13 @@ export default function AdminDashboard() {
                                   : <AlertTriangle className="w-4 h-4 text-amber-500" />}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className={`text-[13px] font-semibold leading-tight truncate ${isResolved ? "text-gray-500" : "text-gray-800"}`}>{n.title}</p>
-                              <p className="text-[11px] text-gray-400 mt-0.5">{timeAgo}{isResolved ? " — Resolved" : n.stock_at_alert != null ? ` — ${n.stock_at_alert} units` : ""}</p>
+                              <p className={`text-[13px] font-semibold leading-tight truncate ${isResolved ? "text-gray-500" : "text-gray-800"}`}>{cleanTitle}</p>
+                              <p className="text-[11px] text-gray-400 mt-0.5">
+                                {timeAgo}
+                                {isCustomerCancelled ? " Customer cancelled" : ""}
+                                {isAdminCancelled ? " Admin cancelled" : ""}
+                                {isResolved ? " Resolved" : n.stock_at_alert != null ? ` ${n.stock_at_alert} units` : ""}
+                              </p>
                             </div>
                             {!n.is_read && !isResolved && <div className="mt-1.5 w-2 h-2 bg-red-400 rounded-full shrink-0" />}
                           </button>

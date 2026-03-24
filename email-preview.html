@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Confirmation Email Preview</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #f1f5f9; font-family: 'Segoe UI', Helvetica, Arial, sans-serif; color: #1e293b; padding: 20px; }
+    .container { max-width: 620px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(13, 27, 62, 0.10); }
+    .em-accent { height: 5px; background: linear-gradient(90deg, #0d1b3e 0%, #c8972a 100%); }
+    .em-brand { background: #ffffff; padding: 16px 36px; text-align: left; border-bottom: 2px solid #0d1b3e; display: flex; align-items: center; gap: 12px; }
+    .em-brand-logo { background: #0d1b3e; color: #c8972a; font-size: 20px; font-weight: 700; padding: 8px 12px; border-radius: 4px; }
+    .em-brand h2 { color: #0d1b3e; font-size: 18px; font-weight: 700; letter-spacing: 1px; margin: 0; }
+    .em-status { background: #f8fafc; border-bottom: none; padding: 28px 36px; text-align: center; }
+    .em-status h1 { color: #0d1b3e; font-size: 24px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px; }
+    .em-status p:first-of-type { color: #64748b; font-size: 14px; margin-bottom: 0; line-height: 1.6; }
+    .em-body { padding: 28px 36px; }
+    .section-heading { color: #1e293b; font-size: 12px; font-weight: 700; text-transform: uppercase; margin-bottom: 16px; letter-spacing: 1.2px; margin-top: 8px; }
+    .details-box { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; margin-bottom: 16px; padding: 0; }
+    .meta-grid { display: table; width: 100%; border-collapse: collapse; }
+    .meta-cell { display: table-cell; width: 50%; padding: 16px; vertical-align: top; border-right: 1px solid #e2e8f0; }
+    .meta-cell:last-child { border-right: none; }
+    .meta-label { font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .meta-value { font-size: 15px; font-weight: 600; color: #1e293b; }
+    .meta-cell:nth-child(2n) .meta-value { color: #c8972a; }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: #dcfce7; color: #166534; }
+    .em-divider { height: 1px; background: #e2e8f0; margin: 24px 0; }
+    table { width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 13px; margin-bottom: 16px; }
+    .table-wrapper { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; margin-bottom: 24px; }
+    thead { background: #0d1b3e; }
+    th { color: #c8b88a; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; padding: 12px 14px; text-align: left; }
+    th:nth-child(2), th:nth-child(3), th:nth-child(4) { text-align: right; }
+    td { padding: 11px 14px; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
+    tr:nth-child(even) td { background: #f8fafc; }
+    td:nth-child(2), td:nth-child(3), td:nth-child(4) { text-align: right; color: #374151; }
+    td:nth-child(4) { font-weight: 600; color: #14532d; }
+    .totals { margin-bottom: 24px; }
+    .totals-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
+    .totals-row:last-child { border-bottom: none; margin-top: 6px; padding: 14px 0; }
+    .totals-row:last-child { font-size: 18px; font-weight: 700; }
+    .totals-row:last-child span:first-child { font-size: 15px; }
+    .totals-row:last-child span:last-child { color: #0d1b3e; }
+    .totals-label { color: #475569; font-weight: 500; }
+    .totals-value { font-weight: 600; font-variant-numeric: tabular-nums; color: #1e293b; }
+    .discount { color: #16a34a; font-weight: 700; }
+    .info-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 20px; }
+    .info-box-title { color: #1d4ed8; text-transform: uppercase; font-size: 11px; margin-bottom: 12px; font-weight: 700; }
+    .info-row { font-size: 13px; margin-bottom: 8px; display: flex; gap: 16px; }
+    .info-row:last-child { margin-bottom: 0; }
+    .info-key { color: #64748b; font-weight: 600; min-width: 80px; }
+    .info-val { color: #1e293b; font-weight: 600; }
+    .info-row.note { margin-top: 12px; padding-top: 12px; border-top: 1px solid #bfdbfe; color: #1e40af; font-weight: 600; }
+    .em-footer { background: #0d1b3e; padding: 22px 36px; }
+    .footer-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+    .footer-brand { color: #c8972a; font-size: 13px; font-weight: 700; letter-spacing: 1px; }
+    .footer-gst { color: #64748b; font-size: 12px; margin-top: 3px; }
+    .footer-contact { color: #94a3b8; font-size: 12px; text-align: right; line-height: 1.7; }
+    .footer-legal { border-top: 1px solid #1e3a6e; padding-top: 14px; color: #475569; font-size: 11px; text-align: center; line-height: 1.7; }
+    @media only screen and (max-width:640px) {
+      body { padding: 8px; }
+      .container { border-radius: 0; box-shadow: none; }
+      .em-brand { padding: 14px 16px; display: block; }
+      .em-brand h2 { font-size: 16px; letter-spacing: 0.4px; margin-top: 8px; }
+      .em-status { padding: 20px 16px; }
+      .em-status h1 { font-size: 20px; }
+      .em-body { padding: 20px 16px; }
+      .meta-grid, .meta-cell { display: block; width: 100%; }
+      .meta-cell { border-right: none; border-bottom: 1px solid #e2e8f0; }
+      .info-row { display: block; }
+      .info-key { display: block; min-width: 0; margin-bottom: 2px; }
+      .totals-row { padding: 10px 0; }
+      th, td { font-size: 12px; padding: 9px 8px; }
+      .footer-row { display: block; }
+      .footer-contact { text-align: left; margin-top: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    
+    <div class="em-accent"></div>
+    <div class="em-brand">
+      <div class="em-brand-logo">MK</div>
+      <h2>MK Reddy General Stores</h2>
+    </div>
+    
+    <div class="em-status">
+      <h1>Your Order is Confirmed</h1>
+      <p>Thank you for your order! We've received it and will notify you when it's ready for pickup.</p>
+    </div>
+    
+    <div class="em-body">
+      <div class="section-heading">YOUR DETAILS</div>
+      <div class="details-box">
+        <div class="meta-grid">
+          <div class="meta-cell">
+            <div class="meta-label">Order Number</div>
+            <div class="meta-value">ORD-2024061201</div>
+          </div>
+          <div class="meta-cell">
+            <div class="meta-label">Delivery Method</div>
+            <div class="meta-value">Store Pickup</div>
+          </div>
+        </div>
+      </div>
+      <div class="details-box" style="margin-bottom: 24px;">
+        <div class="meta-grid">
+          <div class="meta-cell">
+            <div class="meta-label">Order Date</div>
+            <div class="meta-value">5 Jun 2024</div>
+          </div>
+          <div class="meta-cell">
+            <div class="meta-label">Status</div>
+            <div class="meta-value"><span class="badge">Confirmed</span></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="em-divider"></div>
+      <div class="section-heading">ORDER SUMMARY</div>
+      
+      <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align: left;">Product</th>
+            <th style="text-align: center;">Qty</th>
+            <th style="text-align: right;">Price</th>
+            <th style="text-align: right;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Puff sleeve mini dress</td>
+            <td style="text-align: center;">1</td>
+            <td style="text-align: right;">₹200.00</td>
+            <td style="text-align: right;">₹200.00</td>
+          </tr>
+          <tr>
+            <td>Soft tee - White</td>
+            <td style="text-align: center;">1</td>
+            <td style="text-align: right;">₹140.00</td>
+            <td style="text-align: right;">₹140.00</td>
+          </tr>
+          <tr>
+            <td>Super-soft trousers - Washed magic</td>
+            <td style="text-align: center;">1</td>
+            <td style="text-align: right;">₹200.00</td>
+            <td style="text-align: right;">₹200.00</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+      
+      <div class="totals" style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; background: #f8fafc;">
+        <div class="totals-row">
+          <span class="totals-label">Subtotal</span>
+          <span class="totals-value">₹480.00</span>
+        </div>
+        <div class="totals-row">
+          <span class="totals-label">CGST (9%)</span>
+          <span class="totals-value">₹43.20</span>
+        </div>
+        <div class="totals-row">
+          <span class="totals-label">SGST (9%)</span>
+          <span class="totals-value">₹43.20</span>
+        </div>
+        <div class="totals-row">
+          <span class="totals-label">Discount</span>
+          <span class="totals-value discount">- ₹53.40</span>
+        </div>
+        <div class="totals-row">
+          <span style="font-size: 15px;">Total Amount</span>
+          <span style="color: #0d1b3e;">₹512.80</span>
+        </div>
+      </div>
+      
+      <div class="em-divider"></div>
+      
+      <div class="info-box">
+        <div class="info-box-title">Pickup Information</div>
+        <div class="info-row">
+          <span class="info-key">Store</span>
+          <span class="info-val">MK Reddy General Stores</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Address</span>
+          <span class="info-val">123 Main Street, Downtown City 560001</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Phone</span>
+          <span class="info-val">+91-80-XXXX-XXXX</span>
+        </div>
+        <div class="info-row note">
+          <span class="info-key">Note:</span>
+          <span class="info-val">Keep your order number handy. Present it or this email at the counter.</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="em-footer">
+      <div class="footer-row">
+        <div>
+          <div class="footer-brand">MK Reddy General Stores</div>
+          <div class="footer-gst">GSTIN: 18AABCU1234H1Z0</div>
+        </div>
+        <div class="footer-contact">+91-80-XXXX-XXXX<br>contact@mkreddy.com</div>
+      </div>
+      <div class="footer-legal">
+        This is an auto-generated confirmation. Please do not reply to this email.<br>
+        &copy; 2026 MK Reddy General Stores. All rights reserved.
+      </div>
+    </div>
+  </div>
+</body>
+</html>

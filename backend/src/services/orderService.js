@@ -4,7 +4,93 @@ const logger = require('../utils/logger');
 const emailService = require('./emailService');
 const stockAlertService = require('./stockAlertService');
 const StoreSetting = require('../models/StoreSetting');
+
+const ADMIN_CANCEL_REASON_LABELS = {
+  out_of_stock: 'Out of stock',
+  product_unavailable: 'Product unavailable',
+  delivery_not_serviceable: 'Delivery not serviceable',
+  price_mismatch: 'Price mismatch',
+  payment_issue: 'Payment issue',
+  duplicate_or_fraudulent: 'Duplicate or fraudulent order',
+};
+
 class OrderService {
+  static normalizeCancellationReason(reasonInput, isAdmin = false) {
+    if (typeof reasonInput === 'string') {
+      const txt = reasonInput.trim();
+      if (txt) return txt;
+      return isAdmin ? 'Cancelled by admin' : 'Customer requested cancellation';
+    }
+
+    const payload = reasonInput && typeof reasonInput === 'object' ? reasonInput : {};
+    const legacy = typeof payload.reason === 'string' ? payload.reason.trim() : '';
+    const reasonCode = typeof payload.reason_code === 'string' ? payload.reason_code.trim() : '';
+    const reasonCustom = typeof payload.reason_custom === 'string' ? payload.reason_custom.trim() : '';
+
+    if (isAdmin) {
+      if (legacy) return legacy;
+      if (reasonCode === 'other') {
+        if (reasonCustom) return reasonCustom;
+        return 'Cancelled by admin';
+      }
+      if (reasonCode && ADMIN_CANCEL_REASON_LABELS[reasonCode]) {
+        return ADMIN_CANCEL_REASON_LABELS[reasonCode];
+      }
+      return 'Cancelled by admin';
+    }
+
+    if (legacy) return legacy;
+    if (reasonCustom) return reasonCustom;
+    return 'Customer requested cancellation';
+  }
+
+  static async handleCancellationSideEffects(order, reasonText, cancelledBy = 'customer') {
+    // Cancelled orders should not keep pending-order reminders open.
+    AdminNotification.resolveForOrder(order.id, 'pending_order').catch(() => {});
+
+    const isAdminCancelled = cancelledBy === 'admin';
+    const notificationType = isAdminCancelled ? 'order_cancelled_by_admin' : 'order_cancelled_by_customer';
+    const title = isAdminCancelled
+      ? `Order ${order.order_number} cancelled by admin`
+      : `Order ${order.order_number} cancelled by customer`;
+    const message = isAdminCancelled
+      ? `Admin cancelled order ${order.order_number}. Reason: ${reasonText}.`
+      : `Customer cancelled order ${order.order_number}${reasonText ? ` (${reasonText})` : ''}.`;
+
+    try {
+      await AdminNotification.createOrderNotification({
+        type: notificationType,
+        title,
+        message,
+        orderId: order.id,
+      });
+    } catch (err) {
+      logger.error('[notifications] failed to create cancellation notification:', err);
+    }
+
+    try {
+      const customer = await User.findById(order.user_id).catch(() => null);
+      const fallbackEmail = typeof order?.customer_email === 'string' ? order.customer_email.trim() : '';
+      const targetEmail = customer?.email || fallbackEmail || null;
+
+      if (targetEmail) {
+        await emailService.sendCustomerOrderCancellationNotification(
+          order,
+          {
+            ...(customer || {}),
+            name: customer?.name || order?.customer_name || 'Customer',
+            email: targetEmail,
+          },
+          reasonText
+        );
+      } else {
+        logger.warn(`[email] cancellation email skipped for order ${order.order_number}: no customer email available`);
+      }
+    } catch (err) {
+      logger.error('[email] failed to send customer cancellation email:', err);
+    }
+  }
+
   static async createOrder(userId, notes = null, lang = 'en', userType = 'retail') {
     const user = await User.findById(userId);
     if (!user) {
@@ -152,11 +238,16 @@ class OrderService {
     await Invoice.create(order, user);
 
     // Create an in-app admin notification for every new order.
-    AdminNotification.createOrderNotification({
-      type: 'new_order',
-      title: `New Order: ${order.order_number}`,
-      message: `${user.name || 'Customer'} placed order ${order.order_number} for Rs.${parseFloat(order.total_amount || 0).toFixed(2)}.`,
-    }).catch((err) => logger.error('[notifications] failed to create new order notification:', err));
+    try {
+      await AdminNotification.createOrderNotification({
+        type: 'new_order',
+        title: `New Order: ${order.order_number}`,
+        message: `${user.name || 'Customer'} placed order ${order.order_number} for Rs.${parseFloat(order.total_amount || 0).toFixed(2)}.`,
+        orderId: order.id,
+      });
+    } catch (err) {
+      logger.error('[notifications] failed to create new order notification:', err);
+    }
 
     // Atomically claim limited deals for each qualifying product.
     // Fire-and-forget: failures must not block the order response.
@@ -235,21 +326,14 @@ class OrderService {
       );
     }
     if (status === 'cancelled') {
-      await Order.cancel(orderId, notes);
-    } else {
-      await Order.updateStatus(orderId, status, notes);
+      throw ApiError.badRequest('Use cancel action with reason to cancel orders');
     }
 
+    await Order.updateStatus(orderId, status, notes);
     // Close pending-order reminders when order is no longer pending/confirmed.
     if (!['pending', 'confirmed'].includes(status)) {
       AdminNotification.resolveForOrder(orderId, 'pending_order').catch(() => {});
     }
-
-    AdminNotification.createOrderNotification({
-      type: 'order_status',
-      title: `Order ${order.order_number} updated`,
-      message: `Order ${order.order_number} status changed from ${order.status} to ${status}.`,
-    }).catch((err) => logger.error('[notifications] failed to create order status notification:', err));
 
     // Email customer the moment their order is ready for pickup — no matter what
     if (status === 'ready_for_pickup') {
@@ -284,16 +368,10 @@ class OrderService {
     if (!['pending', 'confirmed'].includes(order.status)) {
       throw ApiError.badRequest('Order cannot be cancelled at this stage');
     }
-    await Order.cancel(orderId, reason);
-
-    // Cancelled orders should not keep pending-order reminders open.
-    AdminNotification.resolveForOrder(orderId, 'pending_order').catch(() => {});
-
-    AdminNotification.createOrderNotification({
-      type: 'order_cancelled',
-      title: `Order Cancelled: ${order.order_number}`,
-      message: `Order ${order.order_number} was cancelled${reason ? ` (${reason})` : ''}.`,
-    }).catch((err) => logger.error('[notifications] failed to create cancelled order notification:', err));
+    const isAdmin = Boolean(adminId);
+    const reasonText = this.normalizeCancellationReason(reason, isAdmin);
+    await Order.cancel(orderId, reasonText);
+    await this.handleCancellationSideEffects(order, reasonText, isAdmin ? 'admin' : 'customer');
 
     if (adminId) {
       await AdminLog.create({
@@ -302,7 +380,7 @@ class OrderService {
         entityType: 'order',
         entityId: orderId,
         oldValue: { status: order.status },
-        newValue: { status: 'cancelled', reason },
+        newValue: { status: 'cancelled', reason: reasonText },
       });
     }
     const cancelledOrder = await Order.findById(orderId);

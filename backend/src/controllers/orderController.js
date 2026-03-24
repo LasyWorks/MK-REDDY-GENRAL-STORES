@@ -62,11 +62,10 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   ApiResponse.success(res, order, 'Order status updated');
 });
 const cancelOrder = asyncHandler(async (req, res) => {
-  const { reason } = req.body;
   const isAdmin = req.user.role === 'admin';
   const order = await OrderService.cancelOrder(
     req.params.id,
-    reason,
+    req.body,
     isAdmin ? null : req.user.id,
     isAdmin ? req.user.id : null
   );

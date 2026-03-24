@@ -14,11 +14,14 @@ class OrderService {
   async create(orderData = {}) {
     return api.post("/orders", orderData);
   }
-  async cancel(id, reason) {
-    return api.post(`/orders/${id}/cancel`, { reason });
+  async cancel(id, reasonOrPayload) {
+    const payload = typeof reasonOrPayload === "string"
+      ? { reason: reasonOrPayload }
+      : (reasonOrPayload || {});
+    return api.post(`/orders/${id}/cancel`, payload);
   }
   async getInvoice(orderId) {
     return api.get(`/invoices/order/${orderId}`);
   }
 }
-export default new OrderService();
+export default new OrderService();

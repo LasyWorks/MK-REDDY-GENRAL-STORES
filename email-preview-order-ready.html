@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Ready Email Preview</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #f1f5f9; font-family: 'Segoe UI', Helvetica, Arial, sans-serif; color: #1e293b; padding: 20px; }
+    .container { max-width: 620px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(13, 27, 62, 0.10); }
+    .em-accent { height: 5px; background: linear-gradient(90deg, #0d1b3e 0%, #0369a1 100%); }
+    .em-brand { background: #ffffff; padding: 16px 36px; text-align: left; border-bottom: 2px solid #0d1b3e; display: flex; align-items: center; gap: 12px; }
+    .em-brand-logo { background: #0d1b3e; color: #c8972a; font-size: 20px; font-weight: 700; padding: 8px 12px; border-radius: 4px; }
+    .em-brand h2 { color: #0d1b3e; font-size: 18px; font-weight: 700; letter-spacing: 1px; margin: 0; }
+    .em-status { background: #eff6ff; border-bottom: 1px solid #bfdbfe; padding: 28px 36px; text-align: center; }
+    .em-status h1 { color: #1e40af; font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    .em-status p { color: #475569; font-size: 14px; line-height: 1.6; }
+    .em-body { padding: 24px 36px 32px; }
+    .meta { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; display: flex; justify-content: space-between; }
+    .meta .label { font-size: 10px; text-transform: uppercase; color: #94a3b8; letter-spacing: 1px; }
+    .meta .value { font-size: 14px; font-weight: 600; color: #1e293b; }
+    .em-divider { height: 1px; background: #e2e8f0; margin: 20px 0; }
+    table { width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 13px; }
+    thead { background: #0d1b3e; }
+    th { color: #c8b88a; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; padding: 12px 14px; text-align: left; }
+    td { padding: 11px 14px; border-bottom: 1px solid #f1f5f9; }
+    tr:nth-child(even) td { background: #f8fafc; }
+    .info-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 18px 20px; }
+    .info-box-title { color: #1d4ed8; text-transform: uppercase; font-size: 11px; margin-bottom: 10px; font-weight: 700; }
+    .info-row { font-size: 13px; margin-bottom: 8px; display: flex; gap: 16px; }
+    .info-row:last-child { margin-bottom: 0; }
+    .info-key { color: #64748b; font-weight: 600; min-width: 80px; }
+    .info-val { color: #1e293b; font-weight: 600; }
+    .em-footer { background: #0d1b3e; padding: 22px 36px; }
+    .footer-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+    .footer-brand { color: #c8972a; font-size: 13px; font-weight: 700; letter-spacing: 1px; }
+    .footer-contact { color: #94a3b8; font-size: 12px; text-align: right; line-height: 1.7; }
+    .footer-legal { border-top: 1px solid #1e3a6e; padding-top: 12px; color: #475569; font-size: 11px; text-align: center; line-height: 1.7; }
+    @media only screen and (max-width:640px) {
+      body { padding: 8px; }
+      .container { border-radius: 0; box-shadow: none; }
+      .em-brand { padding: 14px 16px; display: block; }
+      .em-brand h2 { font-size: 16px; letter-spacing: 0.4px; margin-top: 8px; }
+      .em-status { padding: 20px 16px; }
+      .em-status h1 { font-size: 20px; }
+      .em-body { padding: 20px 16px; }
+      .meta { display: block; }
+      .em-divider { margin: 16px 0; }
+      th, td { font-size: 12px; padding: 9px 8px; }
+      .info-row { display: block; }
+      .info-key { display: block; min-width: 0; margin-bottom: 2px; }
+      .footer-row { display: block; }
+      .footer-contact { text-align: left; margin-top: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="em-accent"></div>
+    <div class="em-brand">
+      <div class="em-brand-logo">MK</div>
+      <h2>MK Reddy General Stores</h2>
+    </div>
+    <div class="em-status">
+      <h1>Ready for Pickup</h1>
+      <p>Your order is packed and ready to collect from our store.</p>
+    </div>
+    <div class="em-body">
+      <div class="meta">
+        <div>
+          <div class="label">Order Number</div>
+          <div class="value">ORD-2024061201</div>
+        </div>
+        <div>
+          <div class="label">Order Total</div>
+          <div class="value">Rs. 1240.00</div>
+        </div>
+      </div>
+      <div class="em-divider"></div>
+      <table>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th style="text-align:center;">Qty</th>
+            <th style="text-align:right;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Rice 10kg</td>
+            <td style="text-align:center;">1</td>
+            <td style="text-align:right;">Rs. 620.00</td>
+          </tr>
+          <tr>
+            <td>Cooking Oil 2L</td>
+            <td style="text-align:center;">1</td>
+            <td style="text-align:right;">Rs. 620.00</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="em-divider"></div>
+      <div class="info-box">
+        <div class="info-box-title">Pickup Details</div>
+        <div class="info-row"><span class="info-key">Store</span><span class="info-val">MK Reddy General Stores</span></div>
+        <div class="info-row"><span class="info-key">Address</span><span class="info-val">123 Main Street, Downtown City</span></div>
+        <div class="info-row"><span class="info-key">Phone</span><span class="info-val">+91-80-0000-0000</span></div>
+      </div>
+    </div>
+    <div class="em-footer">
+      <div class="footer-row">
+        <div>
+          <div class="footer-brand">MK Reddy General Stores</div>
+          <div style="color:#64748b;font-size:12px;margin-top:3px;">GSTIN: 18AABCU1234H1Z0</div>
+        </div>
+        <div class="footer-contact">+91-80-0000-0000<br>contact@mkreddy.com</div>
+      </div>
+      <div class="footer-legal">This is an auto-generated notification. Please do not reply.</div>
+    </div>
+  </div>
+</body>
+</html>
