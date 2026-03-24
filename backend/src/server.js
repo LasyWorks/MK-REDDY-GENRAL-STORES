@@ -15,6 +15,9 @@ const config = require("./config");
 const { pool, testConnection } = require("./config/database");
 const logger = require("./utils/logger");
 const stockAlertService = require("./services/stockAlertService");
+const pendingOrderAlertService = require("./services/pendingOrderAlertService");
+
+const ALERT_SCAN_INTERVAL_MS = 60 * 60 * 1000;
 
 const PORT = process.env.PORT || config.port || 5001;
 
@@ -40,6 +43,35 @@ async function init() {
         .catch((err) => {
           logger.error("[stock-alert] startup scan failed:", err);
         });
+
+      pendingOrderAlertService
+        .runFullScan()
+        .then((result) => {
+          logger.info(`[pending-order-alert] startup scan done: scanned=${result.scanned}, alerted=${result.alerted}`);
+        })
+        .catch((err) => {
+          logger.error("[pending-order-alert] startup scan failed:", err);
+        });
+
+      setInterval(() => {
+        stockAlertService
+          .runFullScan()
+          .then((result) => {
+            logger.info(`[stock-alert] periodic scan done: scanned=${result.scanned}, alerted=${result.alerted}`);
+          })
+          .catch((err) => {
+            logger.error("[stock-alert] periodic scan failed:", err);
+          });
+
+        pendingOrderAlertService
+          .runFullScan()
+          .then((result) => {
+            logger.info(`[pending-order-alert] periodic scan done: scanned=${result.scanned}, alerted=${result.alerted}`);
+          })
+          .catch((err) => {
+            logger.error("[pending-order-alert] periodic scan failed:", err);
+          });
+      }, ALERT_SCAN_INTERVAL_MS);
     });
 
     const gracefulShutdown = (signal) => {

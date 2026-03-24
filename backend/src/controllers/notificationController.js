@@ -60,7 +60,7 @@ const testEmail = asyncHandler(async (req, res) => {
 /**
  * PATCH /api/v1/notifications/force-resend
  * Resets email_sent_at on all unresolved notifications so the next
- * restart (or manual trigger) will resend regardless of the 3-day window.
+ * restart (or manual trigger) will resend regardless of the 1-day window.
  */
 const forceResend = asyncHandler(async (req, res) => {
   await modify(`UPDATE admin_notifications SET email_sent_at = NULL WHERE resolved_at IS NULL`);

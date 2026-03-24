@@ -13,6 +13,7 @@ class AdminNotification {
         title         VARCHAR(255)  NOT NULL,
         message       TEXT,
         product_id    UUID          REFERENCES products(id) ON DELETE CASCADE,
+        order_id      UUID          REFERENCES orders(id) ON DELETE CASCADE,
         stock_at_alert NUMERIC,
         is_read       BOOLEAN       NOT NULL DEFAULT FALSE,
         email_sent_at TIMESTAMPTZ,
@@ -23,7 +24,9 @@ class AdminNotification {
     // Migrate existing tables: make email_sent_at nullable if it wasn't already
     await query(`ALTER TABLE admin_notifications ALTER COLUMN email_sent_at DROP NOT NULL`).catch(() => {});
     await query(`ALTER TABLE admin_notifications ALTER COLUMN email_sent_at DROP DEFAULT`).catch(() => {});
+    await query(`ALTER TABLE admin_notifications ADD COLUMN IF NOT EXISTS order_id UUID REFERENCES orders(id) ON DELETE CASCADE`).catch(() => {});
     await query(`CREATE INDEX IF NOT EXISTS idx_admin_notif_product  ON admin_notifications(product_id)`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_admin_notif_order    ON admin_notifications(order_id)`);
     await query(`CREATE INDEX IF NOT EXISTS idx_admin_notif_unresolved ON admin_notifications(resolved_at) WHERE resolved_at IS NULL`);
     await query(`CREATE INDEX IF NOT EXISTS idx_admin_notif_created  ON admin_notifications(created_at DESC)`);
   }
@@ -38,12 +41,22 @@ class AdminNotification {
     );
   }
 
+  /** Find the most recent unresolved notification for an order + type. */
+  static async findUnresolvedOrder(orderId, type = 'pending_order') {
+    return queryOne(
+      `SELECT * FROM admin_notifications
+       WHERE order_id = $1 AND type = $2 AND resolved_at IS NULL
+       ORDER BY created_at DESC LIMIT 1`,
+      [orderId, type]
+    );
+  }
+
   /** Insert a new notification row (email_sent_at is NULL until email actually sends). */
-  static async create({ type, title, message, productId, stockAtAlert }) {
+  static async create({ type, title, message, productId, orderId, stockAtAlert }) {
     const rows = await query(
-      `INSERT INTO admin_notifications (type, title, message, product_id, stock_at_alert)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [type, title, message || null, productId, stockAtAlert ?? null]
+      `INSERT INTO admin_notifications (type, title, message, product_id, order_id, stock_at_alert)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [type, title, message || null, productId || null, orderId || null, stockAtAlert ?? null]
     );
     return rows[0];
   }
@@ -55,6 +68,7 @@ class AdminNotification {
       title,
       message,
       productId: null,
+      orderId: null,
       stockAtAlert: null,
     });
   }
@@ -75,6 +89,24 @@ class AdminNotification {
       `UPDATE admin_notifications SET resolved_at = NOW()
        WHERE product_id = $1 AND resolved_at IS NULL`,
       [productId]
+    );
+  }
+
+  /** Mark all open notifications for an order as resolved (order moved forward). */
+  static async resolveForOrder(orderId, type = null) {
+    if (!orderId) return;
+    if (type) {
+      await modify(
+        `UPDATE admin_notifications SET resolved_at = NOW()
+         WHERE order_id = $1 AND type = $2 AND resolved_at IS NULL`,
+        [orderId, type]
+      );
+      return;
+    }
+    await modify(
+      `UPDATE admin_notifications SET resolved_at = NOW()
+       WHERE order_id = $1 AND resolved_at IS NULL`,
+      [orderId]
     );
   }
 

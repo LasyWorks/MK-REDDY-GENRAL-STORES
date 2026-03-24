@@ -240,6 +240,11 @@ class OrderService {
       await Order.updateStatus(orderId, status, notes);
     }
 
+    // Close pending-order reminders when order is no longer pending/confirmed.
+    if (!['pending', 'confirmed'].includes(status)) {
+      AdminNotification.resolveForOrder(orderId, 'pending_order').catch(() => {});
+    }
+
     AdminNotification.createOrderNotification({
       type: 'order_status',
       title: `Order ${order.order_number} updated`,
@@ -280,6 +285,9 @@ class OrderService {
       throw ApiError.badRequest('Order cannot be cancelled at this stage');
     }
     await Order.cancel(orderId, reason);
+
+    // Cancelled orders should not keep pending-order reminders open.
+    AdminNotification.resolveForOrder(orderId, 'pending_order').catch(() => {});
 
     AdminNotification.createOrderNotification({
       type: 'order_cancelled',
