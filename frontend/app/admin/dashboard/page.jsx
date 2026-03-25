@@ -276,9 +276,6 @@ function OverviewTab({ onSwitchTab }) {
     else if (key === "customers") onSwitchTab?.("users");
   }
 
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good Morning" : hour < 17 ? "Good Afternoon" : "Good Evening";
-
   if (error && !stats)
     return (
       <div className="text-center py-20">
@@ -291,12 +288,8 @@ function OverviewTab({ onSwitchTab }) {
   return (
     <div className="space-y-8">
 
-      {/* ── Greeting ── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-[22px] font-semibold text-gray-900">{greeting}, Aanu</h1>
-          <p className="text-[14px] text-gray-400 mt-0.5">Here's what's happening with your store today.</p>
-        </div>
+      {/* ── Overview Controls ── */}
+      <div className="flex items-center justify-end">
         <div className="flex items-center gap-3">
           <span className="hidden sm:flex items-center gap-1.5 text-[12px] text-gray-400">
             {refreshing
