@@ -81,9 +81,9 @@ export default function NewArrivals() {
           <div className="flex items-center gap-2">
             <a
               href="/products?sort_by=created_at&sort_order=DESC"
-              className="text-[#7C3AED] text-xs md:text-sm font-semibold hover:underline"
+              className="text-[#16A34A] text-xs md:text-sm font-semibold hover:underline"
             >
-              View All →
+              View All
             </a>
             {!loading && productGroups.length > 0 && (
               <div className="hidden sm:flex gap-2">

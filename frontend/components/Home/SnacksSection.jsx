@@ -139,7 +139,7 @@ export default function SnacksSection() {
               href="/category/snacks-chocolates"
               className="text-xs md:text-sm font-semibold text-[#16A34A] hover:underline"
             >
-              View All →
+              View All
             </Link>
             {!loading && productGroups.length > 0 && (
               <div className="hidden sm:flex gap-2">

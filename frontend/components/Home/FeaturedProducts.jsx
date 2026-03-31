@@ -66,7 +66,7 @@ export default function FeaturedProducts() {
               href="/products"
               className="text-[#16A34A] text-xs md:text-sm font-semibold hover:underline"
             >
-              View All →
+              View All
             </a>
             {!loading && productGroups.length > 0 && (
               <div className="hidden sm:flex gap-2">

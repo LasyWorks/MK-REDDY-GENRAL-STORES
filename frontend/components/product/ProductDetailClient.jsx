@@ -306,28 +306,55 @@ export default function ProductDetailClient({
     let cancelled = false;
     async function fetchPeopleAlsoBought() {
       try {
-        const url = `${API_URL}/products/${product.id}/frequently-bought-together?lang=${lang}&limit=12`;
-        console.log("Fetching people also bought:", url);
+        const baseId = selectedId || localProduct.id || product.id;
+        const url = `${API_URL}/products/${baseId}/frequently-bought-together?lang=${lang}&limit=12`;
         const res = await fetch(url, { cache: "no-store" });
         if (!res.ok || cancelled) {
-          console.log("People also bought fetch failed:", res.status);
           return;
         }
         const json = await res.json();
         const items = json.data || [];
-        console.log("People also bought fetched:", items.length, items);
+
+        // Fallback: if no order co-purchase data yet, show same-category products
+        if (!items.length) {
+          const parentId = localProduct.category_parent_id || product.category_parent_id;
+          const param = parentId
+            ? `parent_category_id=${parentId}`
+            : `category_id=${localProduct.category_id || product.category_id}`;
+          const fallbackRes = await fetch(
+            `${API_URL}/products?${param}&limit=18&is_active=true&lang=${lang}`,
+            { cache: "no-store" },
+          );
+          if (!fallbackRes.ok || cancelled) return;
+          const fallbackJson = await fallbackRes.json();
+          const fallbackItems = (fallbackJson.data || [])
+            .filter((p) => p.id !== selectedId && p.id !== product.id)
+            .slice(0, 12);
+          if (!cancelled) setPeopleAlsoBought(fallbackItems);
+          return;
+        }
+
         if (!cancelled) {
           setPeopleAlsoBought(items);
         }
-      } catch (err) {
-        console.error("People also bought error:", err);
+      } catch {
+        if (!cancelled) setPeopleAlsoBought([]);
       }
     }
     fetchPeopleAlsoBought();
     return () => {
       cancelled = true;
     };
-  }, [lang, product.id]);
+  }, [
+    lang,
+    product.id,
+    product.category_id,
+    product.category_parent_id,
+    localProduct.id,
+    localProduct.category_id,
+    localProduct.category_parent_id,
+    selectedId,
+  ]);
 
   useEffect(() => {
     setSelectedId(product.id);

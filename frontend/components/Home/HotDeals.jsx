@@ -67,7 +67,7 @@ export default function HotDeals() {
               href="/products?has_discount=true"
               className="text-[#16A34A] text-xs md:text-sm font-semibold hover:underline"
             >
-              View All →
+              View All
             </a>
             <div className="hidden md:flex gap-2">
               {!loading && productGroups.length > 0 && (

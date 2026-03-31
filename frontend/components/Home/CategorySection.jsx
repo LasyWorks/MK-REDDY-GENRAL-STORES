@@ -136,7 +136,10 @@ export default function CategorySection() {
         <div className="px-3">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-base font-bold text-gray-900">Shop by Category</h2>
-            <Link href="/categories" className="text-xs text-green-600 font-semibold">
+            <Link
+              href="/categories"
+              className="text-xs text-green-600 font-semibold hover:underline"
+            >
               View all
             </Link>
           </div>

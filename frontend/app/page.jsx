@@ -1,5 +1,4 @@
 import dynamic from "next/dynamic";
-import HeroSection from "@/components/Home/HeroSection";
 import CategorySection from "@/components/Home/CategorySection";
 import MobileBannerCarousel from "@/components/Home/MobileBannerCarousel";
 import LazySection from "@/components/common/LazySection";
@@ -47,13 +46,7 @@ const SnacksSection = dynamic(() => import("@/components/Home/SnacksSection"), {
 export default function Home() {
   return (
     <main className="min-h-screen bg-[#F7F7F7]">
-      {/* Above the fold - load immediately */}
-      {/* Desktop hero (hidden on mobile) */}
-      <div className="hidden md:block">
-        <HeroSection />
-      </div>
-
-      {/* Mobile swipeable banner carousel */}
+      {/* Category carousel hero (mobile + desktop) */}
       <MobileBannerCarousel />
 
       {/* Categories (mobile chip rail + desktop circles) */}

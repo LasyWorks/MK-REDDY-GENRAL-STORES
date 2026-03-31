@@ -11,10 +11,12 @@ process.on("unhandledRejection", (reason) => {
 });
 
 const app = require("./app");
+const config = require("./config");
 const { testConnection, queryOne } = require("./config/database");
 const logger = require("./utils/logger");
 
 const DB_PING_INTERVAL_MS = 60 * 60 * 1000;
+const PORT = process.env.PORT || config.port || 5001;
 
 async function init() {
   try {
@@ -38,6 +40,10 @@ async function init() {
     // Trigger once at startup, then keep the DB connection warm every hour.
     await runDbKeepAlive();
     setInterval(runDbKeepAlive, DB_PING_INTERVAL_MS);
+
+    app.listen(PORT, () => {
+      logger.info(`Server running on port ${PORT} [${config.env}]`);
+    });
   } catch (error) {
     logger.error("Failed to initialize:", error);
     process.exit(1);
@@ -46,4 +52,4 @@ async function init() {
 
 init();
 
-module.exports = app; // Passenger handles port binding
+module.exports = app;

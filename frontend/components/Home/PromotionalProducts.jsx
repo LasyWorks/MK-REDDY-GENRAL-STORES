@@ -614,9 +614,9 @@ export default function PromotionalProducts() {
           <div className="flex items-center gap-3 self-start sm:self-center shrink-0">
             <Link
               href="/products"
-              className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/40 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all duration-150 whitespace-nowrap"
+              className="text-[#86efac] hover:text-[#bbf7d0] text-sm font-bold transition-colors whitespace-nowrap"
             >
-              View All →
+              View All
             </Link>
             <div className="hidden sm:flex gap-2">
               <button

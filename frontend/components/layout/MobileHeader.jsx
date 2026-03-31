@@ -273,10 +273,10 @@ export default function MobileHeader() {
             <MapPinIcon className="w-4 h-4 text-[#16A34A] shrink-0" />
             <div className="text-left leading-tight">
               <p className="text-[10px] text-gray-500 font-medium">
-                Deliver to
+                Pick up at
               </p>
               <p className="text-xs font-semibold text-gray-800 truncate max-w-[80px]">
-                Home
+                Store
               </p>
             </div>
           </button>

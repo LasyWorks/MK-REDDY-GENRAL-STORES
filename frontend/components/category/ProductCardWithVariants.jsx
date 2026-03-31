@@ -65,6 +65,34 @@ function calcPromoPrice(variant, promo) {
   };
 }
 
+function getVariantSizeLabel(variant) {
+  return (
+    variant.variant ||
+    variant.unit_pack_size ||
+    variant.unit_type ||
+    ""
+  ).toString();
+}
+
+function parseSizeToGrams(sizeLabel) {
+  const normalized = sizeLabel.trim().toLowerCase();
+  const match = normalized.match(/(\d+(?:\.\d+)?)\s*(kg|g|ml|l)\b/);
+  if (!match) return null;
+  const value = parseFloat(match[1]);
+  const unit = match[2];
+  if (Number.isNaN(value)) return null;
+  if (unit === "kg" || unit === "l") return value * 1000;
+  return value;
+}
+
+function getSizeGroupKey(variant) {
+  const grams = parseSizeToGrams(getVariantSizeLabel(variant));
+  if (grams == null) return "other";
+  if (grams <= 250) return "small";
+  if (grams <= 1000) return "medium";
+  return "family";
+}
+
 // ─── VariantRow — one row inside the bottom sheet ────────────────────────────
 const VariantRow = memo(function VariantRow({ variant, promo }) {
   const { items, addItem, updateQty } = useCart();
@@ -80,41 +108,41 @@ const VariantRow = memo(function VariantRow({ variant, promo }) {
 
   return (
     <div
-      className={`flex items-center gap-3 rounded-xl border p-3 transition-colors ${
+      className={`group flex items-center gap-4 rounded-2xl border p-4 min-h-[94px] transition-all duration-200 ${
         outOfStock
-          ? "opacity-60 border-gray-100"
-          : "border-gray-200 hover:border-gray-300"
+          ? "opacity-60 border-gray-100 bg-gray-50/70"
+          : "border-[#dfe8d8] bg-white hover:border-[#b7d8a7] hover:shadow-[0_8px_20px_rgba(22,163,74,0.08)]"
       }`}
     >
       {/* Thumbnail */}
-      <div className="w-16 h-16 rounded-lg bg-white flex-shrink-0 overflow-hidden">
+      <div className="w-[68px] h-[68px] rounded-xl bg-[#f5f9f1] flex-shrink-0 overflow-hidden border border-[#e5eddc]">
         <ImageWithFallback
           src={variant.image_url}
           alt={variant.name}
-          className="w-full h-full object-contain"
+          className="w-full h-full object-contain p-1"
           size="sm"
         />
       </div>
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-gray-900 text-sm leading-tight">
+        <p className="font-semibold text-[#0f172a] text-[14px] leading-tight">
           {label}
         </p>
-        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
           {badgePct != null && (
-            <span className="bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+            <span className="bg-[#16a34a] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
               {badgePct}% off
             </span>
           )}
           {flatAmt != null && (
-            <span className="bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+            <span className="bg-[#f97316] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
               ₹{flatAmt} off
             </span>
           )}
           {promo?.badge_text && !badgePct && !flatAmt && (
             <span
-              className="text-white text-[10px] font-bold px-1.5 py-0.5 rounded"
+              className="text-white text-[10px] font-bold px-2 py-0.5 rounded-full"
               style={{ backgroundColor: promo.theme_color || "#FF6B00" }}
             >
               {promo.badge_text}
@@ -132,14 +160,14 @@ const VariantRow = memo(function VariantRow({ variant, promo }) {
       </div>
 
       {/* Price + action */}
-      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-        <div className="flex flex-col items-end">
-          <div className="flex items-baseline gap-1">
-            <span className="font-bold text-gray-900 text-sm">
+      <div className="flex flex-col items-end gap-2.5 flex-shrink-0">
+        <div className="flex flex-col items-end leading-none">
+          <div className="flex items-baseline gap-1.5">
+            <span className="font-extrabold text-[#111827] text-[16px]">
               ₹{Math.round(display)}
             </span>
             {strike != null && strike > display && (
-              <span className="text-[10px] text-gray-400 line-through">
+              <span className="text-[10px] text-gray-400 line-through tracking-tight">
                 MRP ₹{Math.round(strike)}
               </span>
             )}
@@ -150,28 +178,28 @@ const VariantRow = memo(function VariantRow({ variant, promo }) {
         ) : qty === 0 ? (
           <button
             onClick={() => addItem(variant, 1)}
-            className="border-2 border-[#16A34A] text-[#16A34A] text-[12px] font-bold
-              px-4 h-[34px] rounded-full bg-white hover:bg-green-50
-              active:scale-95 transition-all duration-150 min-w-[64px]"
+            className="border-2 border-[#16A34A] text-[#16A34A] text-[12px] font-extrabold
+              px-4 h-[38px] rounded-full bg-white hover:bg-green-50
+              active:scale-95 transition-all duration-150 min-w-[76px]"
           >
             ADD
           </button>
         ) : (
-          <div className="flex items-center bg-[#16A34A] rounded-full overflow-hidden h-[34px]">
+          <div className="flex items-center bg-[#16A34A] rounded-full overflow-hidden h-[38px]">
             <button
               onClick={() => updateQty(variant.id, qty - 1)}
-              className="w-8 h-full flex items-center justify-center text-white hover:bg-green-700 transition-colors"
+              className="w-9 h-full flex items-center justify-center text-white hover:bg-green-700 transition-colors"
               aria-label="Decrease"
             >
               <Minus className="w-3 h-3" />
             </button>
-            <span className="w-6 text-center text-[13px] font-bold text-white select-none">
+            <span className="w-7 text-center text-[14px] font-bold text-white select-none">
               {qty}
             </span>
             <button
               onClick={() => updateQty(variant.id, qty + 1)}
               disabled={qty >= (variant.stock_quantity ?? 99)}
-              className="w-8 h-full flex items-center justify-center text-white hover:bg-green-700 transition-colors disabled:opacity-40"
+              className="w-9 h-full flex items-center justify-center text-white hover:bg-green-700 transition-colors disabled:opacity-40"
               aria-label="Increase"
             >
               <Plus className="w-3 h-3" />
@@ -195,12 +223,26 @@ function BottomSheet({ open, onClose, product, variants, productPromoMap }) {
 
   const { items } = useCart();
   const cartTotal = items.reduce((s, i) => s + i.quantity, 0);
+  const groupedVariants = useMemo(() => {
+    const groups = [
+      { key: "small", title: "Small Packs", items: [] },
+      { key: "medium", title: "Regular Packs", items: [] },
+      { key: "family", title: "Family Packs", items: [] },
+      { key: "other", title: "Other Options", items: [] },
+    ];
+    const byKey = Object.fromEntries(groups.map((g) => [g.key, g]));
+    variants.forEach((variant) => {
+      const key = getSizeGroupKey(variant);
+      (byKey[key] || byKey.other).items.push(variant);
+    });
+    return groups.filter((group) => group.items.length > 0);
+  }, [variants]);
 
   return (
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black/50 z-50 transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-[#0f172a]/50 backdrop-blur-[1px] z-50 transition-opacity duration-300 ${
           open
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none"
@@ -209,48 +251,60 @@ function BottomSheet({ open, onClose, product, variants, productPromoMap }) {
       />
       {/* Sheet */}
       <div
-        className={`fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl
-          flex flex-col max-h-[90vh]
+        className={`fixed bottom-0 left-0 right-0 z-50 bg-[#f8fbf6] rounded-t-[22px] shadow-2xl border-t border-[#dce8d2]
+          flex flex-col max-h-[86dvh]
           transition-transform duration-300 ease-out
           ${open ? "translate-y-0" : "translate-y-full"}`}
       >
         {/* Drag handle */}
-        <div className="flex justify-center pt-2 pb-1 flex-shrink-0">
-          <div className="w-10 h-1 bg-gray-300 rounded-full" />
+        <div className="flex justify-center pt-2.5 pb-1.5 flex-shrink-0">
+          <div className="w-11 h-1.5 bg-[#cfdcc3] rounded-full" />
         </div>
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0">
-          <div>
-            <h3 className="font-bold text-gray-900 text-[15px]">
+        <div className="flex items-start justify-between px-4 py-3.5 border-b border-[#e3ecdb] flex-shrink-0 bg-white/85 backdrop-blur">
+          <div className="min-w-0 pr-3">
+            <h3 className="font-extrabold text-[#0f172a] text-[15px] leading-tight line-clamp-2">
               {product?.name}
             </h3>
-            <p className="text-[12px] text-gray-500 mt-0.5">Select size</p>
+            <p className="text-[12px] text-[#5b6b5e] mt-1">Choose your size</p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-2 hover:bg-[#eef5e8] rounded-full transition-colors border border-[#e1ead8]"
             aria-label="Close"
           >
             <X className="w-5 h-5 text-gray-600" />
           </button>
         </div>
         {/* Variant list */}
-        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
-          {variants.map((variant) => (
-            <VariantRow
-              key={variant.id}
-              variant={variant}
-              promo={productPromoMap[variant.id] || null}
-            />
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+          {groupedVariants.map((group) => (
+            <section key={group.key} className="space-y-2.5">
+              <div className="flex items-center gap-2 px-0.5">
+                <p className="text-[11px] font-bold tracking-[0.08em] uppercase text-[#5e725f]">
+                  {group.title}
+                </p>
+                <div className="h-px flex-1 bg-[#dce8d6]" />
+              </div>
+              <div className="space-y-2.5">
+                {group.items.map((variant) => (
+                  <VariantRow
+                    key={variant.id}
+                    variant={variant}
+                    promo={productPromoMap[variant.id] || null}
+                  />
+                ))}
+              </div>
+            </section>
           ))}
         </div>
         {/* Footer — View Cart */}
-        <div className="border-t px-4 py-3 bg-white flex-shrink-0">
+        <div className="border-t border-[#dfe9d6] px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] bg-gradient-to-b from-[#f8fbf6] to-white flex-shrink-0">
           <Link
             href="/cart"
             onClick={onClose}
             className="flex items-center justify-center gap-2 w-full bg-[#16A34A] text-white
-              font-bold py-3.5 rounded-xl hover:bg-green-700 active:scale-[0.98]
+              font-extrabold py-3.5 rounded-xl hover:bg-green-700 active:scale-[0.98]
               transition-all duration-150 text-[15px]"
           >
             <ShoppingCartIcon className="w-5 h-5" />
