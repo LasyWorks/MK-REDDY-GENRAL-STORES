@@ -19,6 +19,31 @@ const mergeRoutes = require('./mergeRoutes');
 const settingsRoutes = require('./settingsRoutes');
 const notificationRoutes = require('./notificationRoutes');
 const adminManagementRoutes = require('./adminManagementRoutes');
+
+router.get('/ping', async (req, res) => {
+  const startAt = process.hrtime.bigint();
+  try {
+    const result = await pool.query('SELECT 1 AS ok');
+    const latencyMs = Number(process.hrtime.bigint() - startAt) / 1e6;
+
+    res.status(200).json({
+      success: true,
+      route: 'ping',
+      database: result.rows?.[0]?.ok === 1 ? 'ok' : 'unknown',
+      timestamp: new Date().toISOString(),
+      latencyMs: parseFloat(latencyMs.toFixed(2)),
+    });
+  } catch (error) {
+    res.status(503).json({
+      success: false,
+      route: 'ping',
+      database: 'error',
+      timestamp: new Date().toISOString(),
+      error: 'Database ping failed',
+    });
+  }
+});
+
 router.get('/health', async (req, res) => {
   const startAt = process.hrtime.bigint();
   const checks = { database: 'unknown' };

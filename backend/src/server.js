@@ -11,16 +11,10 @@ process.on("unhandledRejection", (reason) => {
 });
 
 const app = require("./app");
-const config = require("./config");
-const { pool, testConnection } = require("./config/database");
+const { testConnection, queryOne } = require("./config/database");
 const logger = require("./utils/logger");
-const stockAlertService = require("./services/stockAlertService");
-const pendingOrderAlertService = require("./services/pendingOrderAlertService");
-const { AdminNotification } = require("./models");
 
-const ALERT_SCAN_INTERVAL_MS = 60 * 60 * 1000;
-
-const PORT = process.env.PORT || config.port || 5001;
+const DB_PING_INTERVAL_MS = 60 * 60 * 1000;
 
 async function init() {
   try {
@@ -32,62 +26,18 @@ async function init() {
     }
     logger.info("Database connection successful");
 
-    await AdminNotification.ensureTable();
-    logger.info("Admin notifications table verified");
-
-    const server = app.listen(PORT, () => {
-      logger.info(`Server running on port ${PORT} [${config.env}]`);
-
-      // Startup backfill: ensure existing low/out-of-stock items create alerts and emails.
-      stockAlertService
-        .runFullScan()
-        .then((result) => {
-          logger.info(`[stock-alert] startup scan done: scanned=${result.scanned}, alerted=${result.alerted}`);
-        })
-        .catch((err) => {
-          logger.error("[stock-alert] startup scan failed:", err);
-        });
-
-      pendingOrderAlertService
-        .runFullScan()
-        .then((result) => {
-          logger.info(`[pending-order-alert] startup scan done: scanned=${result.scanned}, alerted=${result.alerted}`);
-        })
-        .catch((err) => {
-          logger.error("[pending-order-alert] startup scan failed:", err);
-        });
-
-      setInterval(() => {
-        stockAlertService
-          .runFullScan()
-          .then((result) => {
-            logger.info(`[stock-alert] periodic scan done: scanned=${result.scanned}, alerted=${result.alerted}`);
-          })
-          .catch((err) => {
-            logger.error("[stock-alert] periodic scan failed:", err);
-          });
-
-        pendingOrderAlertService
-          .runFullScan()
-          .then((result) => {
-            logger.info(`[pending-order-alert] periodic scan done: scanned=${result.scanned}, alerted=${result.alerted}`);
-          })
-          .catch((err) => {
-            logger.error("[pending-order-alert] periodic scan failed:", err);
-          });
-      }, ALERT_SCAN_INTERVAL_MS);
-    });
-
-    const gracefulShutdown = (signal) => {
-      logger.info(`${signal} received. Shutting down...`);
-      server.close(async () => {
-        if (pool && pool.end) await pool.end();
-        process.exit(0);
-      });
-      setTimeout(() => process.exit(1), 30000);
+    const runDbKeepAlive = async () => {
+      try {
+        await queryOne("SELECT 1 AS ok");
+        logger.info("[db-ping] Hourly database keepalive query completed successfully");
+      } catch (err) {
+        logger.error(`[db-ping] Hourly database keepalive query failed: ${err.message}`);
+      }
     };
-    process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-    process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
+    // Trigger once at startup, then keep the DB connection warm every hour.
+    await runDbKeepAlive();
+    setInterval(runDbKeepAlive, DB_PING_INTERVAL_MS);
   } catch (error) {
     logger.error("Failed to initialize:", error);
     process.exit(1);
@@ -96,4 +46,4 @@ async function init() {
 
 init();
 
-module.exports = app;
+module.exports = app; // Passenger handles port binding
