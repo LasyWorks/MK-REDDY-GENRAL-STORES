@@ -12,21 +12,68 @@ export default function OfflineGate() {
   const [isOnline, setIsOnline] = useState(() =>
     typeof navigator === "undefined" ? true : navigator.onLine,
   );
+  const [isConfirmedOffline, setIsConfirmedOffline] = useState(false);
+
+  async function verifyConnection() {
+    try {
+      const response = await fetch(`/api/v1/health?ts=${Date.now()}`, {
+        method: "GET",
+        cache: "no-store",
+      });
+      const ok = response.ok;
+      setIsOnline(ok);
+      setIsConfirmedOffline(!ok);
+      return ok;
+    } catch {
+      setIsConfirmedOffline(true);
+      return false;
+    }
+  }
 
   useEffect(() => {
-    const setOnline = () => setIsOnline(true);
-    const setOffline = () => setIsOnline(false);
+    let offlineTimer = null;
 
-    window.addEventListener("online", setOnline);
-    window.addEventListener("offline", setOffline);
+    const setOnlineState = () => {
+      setIsOnline(true);
+      setIsConfirmedOffline(false);
+      verifyConnection();
+    };
+
+    const setOfflineState = () => {
+      setIsOnline(false);
+      // Delay confirmation to avoid false negatives from transient browser/offline events.
+      if (offlineTimer) clearTimeout(offlineTimer);
+      offlineTimer = setTimeout(() => {
+        verifyConnection();
+      }, 1200);
+    };
+
+    // Initial check guards against incorrect navigator.onLine values on some browsers.
+    queueMicrotask(() => {
+      verifyConnection();
+    });
+
+    window.addEventListener("online", setOnlineState);
+    window.addEventListener("offline", setOfflineState);
 
     return () => {
-      window.removeEventListener("online", setOnline);
-      window.removeEventListener("offline", setOffline);
+      if (offlineTimer) clearTimeout(offlineTimer);
+      window.removeEventListener("online", setOnlineState);
+      window.removeEventListener("offline", setOfflineState);
     };
   }, []);
 
-  if (isDevOrLocalhost || isOnline) return null;
+  useEffect(() => {
+    if (!isConfirmedOffline) return;
+
+    const intervalId = setInterval(() => {
+      verifyConnection();
+    }, 8000);
+
+    return () => clearInterval(intervalId);
+  }, [isConfirmedOffline]);
+
+  if (isDevOrLocalhost || !isConfirmedOffline) return null;
 
   return (
     <div className="fixed inset-0 z-[9999] bg-gradient-to-b from-slate-50 to-slate-200 flex items-center justify-center px-6">
@@ -40,7 +87,7 @@ export default function OfflineGate() {
         </p>
         <button
           type="button"
-          onClick={() => window.location.reload()}
+          onClick={() => verifyConnection()}
           className="mt-6 inline-flex items-center justify-center rounded-full bg-[#16a34a] px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#15803d]"
         >
           Retry
