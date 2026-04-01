@@ -105,6 +105,10 @@ function CategoryClientView({
   }, [currentPage, activeSubcategory?.id, mainCategory?.id, loadProducts]);
 
   useEffect(() => {
+    productCache.clear();
+  }, [lang]);
+
+  useEffect(() => {
     setDisplayMain(mainCategory);
     const activeSubs = subcategories.filter(
       (s) => parseInt(s.product_count || 0) > 0,
@@ -114,13 +118,12 @@ function CategoryClientView({
       const match = activeSubs.find((s) => s.id === prev?.id);
       return match || activeSubs[0] || null;
     });
-  }, [lang, mainCategory, subcategories]);
+  }, [mainCategory, subcategories]);
 
   useEffect(() => {
     const targetId = activeSubcategory?.id || mainCategory?.id;
     if (targetId) loadProducts(targetId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSubcategory?.id, lang]);
+  }, [activeSubcategory?.id, lang, loadProducts]);
 
   const handleSubcategoryClick = useCallback(
     (subcat) => {
