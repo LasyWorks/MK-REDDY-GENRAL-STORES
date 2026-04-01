@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/exhaustive-deps, @next/next/no-img-element */
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -66,29 +67,49 @@ import UserWiseSales from "@/components/admin/UserWiseSales";
 import CategoriesTab from "@/components/admin/CategoriesTab";
 import { usePromotions } from "@/context/PromotionContext";
 import CustomSelect from "@/components/ui/custom-select";
+import { DatePicker } from "@/components/ui/date-picker";
 function useAdminGuard() {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
-  const [admin, setAdmin] = useState(null);
+  const [hydrated, setHydrated] = useState(false);
+
   useEffect(() => {
-    const token = secureStorage.getItem("token");
-    const raw = secureStorage.getItem("user");
+    setHydrated(true);
+  }, []);
+
+  const token = hydrated ? secureStorage.getItem("token") : null;
+  const raw = hydrated ? secureStorage.getItem("user") : null;
+  const parsedUser = useMemo(() => {
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }, [raw]);
+  const admin =
+    parsedUser && (parsedUser.user_type === "admin" || parsedUser.role === "admin")
+      ? parsedUser
+      : null;
+  const ready = Boolean(hydrated && token && admin);
+
+  useEffect(() => {
+    if (!hydrated) return;
+
     if (!token || !raw) {
       router.replace("/login?redirect=/admin/dashboard");
       return;
     }
-    try {
-      const user = JSON.parse(raw);
-      if (user.user_type !== "admin" && user.role !== "admin") {
-        router.replace("/");
-        return;
-      }
-      setAdmin(user);
-      setReady(true);
-    } catch {
+
+    if (!parsedUser) {
       router.replace("/login?redirect=/admin/dashboard");
+      return;
     }
-  }, [router]);
+
+    if (!admin) {
+      router.replace("/");
+    }
+  }, [router, hydrated, token, raw, parsedUser, admin]);
+
   return { ready, admin, isSuperAdmin: admin?.is_super_admin === true };
 }
 const STATUS_STYLES = {
@@ -2015,6 +2036,7 @@ function ImageZoomPreview({ src, alt, onClose }) {
 function ProductRow({
   p,
   variants,
+  defaultExpanded = false,
   onEdit,
   onDelete,
   deleting,
@@ -2029,7 +2051,7 @@ function ProductRow({
   onSelect,
   onImageZoom,
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const [hovered, setHovered] = useState(false);
@@ -2053,6 +2075,7 @@ function ProductRow({
   const disc = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
   const img = Array.isArray(p.image_urls) ? p.image_urls[0] : p.image_url;
   const hasVariants = variants && variants.length > 0;
+  const effectiveExpanded = defaultExpanded && hasVariants ? true : expanded;
   const stock = p.stock_quantity ?? 0;
   const isOutOfStock = stock <= 0;
   const isLowStock = stock > 0 && stock <= (p.low_stock_threshold ?? 10);
@@ -2115,8 +2138,8 @@ function ProductRow({
               <div className="flex items-center gap-1.5 mt-0.5">
                 {(p.variant || p.unit_pack_size) && <span className="text-[11px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{p.variant || p.unit_pack_size}</span>}
                 {hasVariants && (
-                  <button onClick={() => setExpanded(!expanded)} className="text-[11px] text-blue-500 font-medium hover:text-blue-700">
-                    +{variants.length} sizes {expanded ? "▾" : "▸"}
+                  <button onClick={() => setExpanded(!effectiveExpanded)} className="text-[11px] text-blue-500 font-medium hover:text-blue-700">
+                    +{variants.length} sizes {effectiveExpanded ? "▾" : "▸"}
                   </button>
                 )}
               </div>
@@ -2228,7 +2251,7 @@ function ProductRow({
           </div>
         </td>
       </tr>
-      {hasVariants && expanded && variants.map((v) => (
+      {hasVariants && effectiveExpanded && variants.map((v) => (
         <VariantSubRow key={v.id} p={v} onEdit={onEdit} onDelete={onDelete} onAdjustStock={onAdjustStock} deleting={deleting} selected={selected} onSelect={onSelect} />
       ))}
     </>
@@ -2673,6 +2696,11 @@ function ProductsTab() {
     return result;
   }, [grouped, activeTab, filterCat, filterStock, sortBy]);
 
+  const allFilteredRows = useMemo(
+    () => filteredGrouped.flatMap((g) => g.items.flatMap((p) => [p, ...(Array.isArray(p._variants) ? p._variants : [])])),
+    [filteredGrouped],
+  );
+
   // Flatten for pagination
   const allFilteredProducts = useMemo(() => filteredGrouped.flatMap((g) => g.items), [filteredGrouped]);
   const totalPages = Math.max(1, Math.ceil(allFilteredProducts.length / ITEMS_PER_PAGE));
@@ -2934,8 +2962,13 @@ function ProductsTab() {
       {!loading && paginatedGroups.length > 0 && (
         <div className="flex items-center gap-3 text-[12px] text-[#6B7280] mb-3">
           <span className="font-medium text-gray-700">
-            Showing {((page - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(page * ITEMS_PER_PAGE, allFilteredProducts.length)} of {allFilteredProducts.length} products
+            Showing {((page - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(page * ITEMS_PER_PAGE, allFilteredProducts.length)} of {allFilteredProducts.length} product groups
           </span>
+          {(activeTab === "low_stock" || activeTab === "out_of_stock" || filterStock === "low" || filterStock === "out") && (
+            <span className="font-medium text-gray-700">
+              Visible stock issue rows: {allFilteredRows.length}
+            </span>
+          )}
 
         </div>
       )}
@@ -2984,6 +3017,7 @@ function ProductsTab() {
                       {items.map((p) => (
                         <ProductRow
                           key={p.id} p={p} variants={p._variants}
+                          defaultExpanded={activeTab === "low_stock" || activeTab === "out_of_stock" || filterStock === "low" || filterStock === "out"}
                           onEdit={setModal} onDelete={handleDelete} deleting={deleting}
                           onToggleFeatured={handleToggleFeatured} togglingFeatured={togglingFeatured}
                           onToggleActive={handleToggleActive} togglingActive={togglingActive}
@@ -3426,11 +3460,31 @@ function OrdersTab() {
           <div className="flex flex-wrap items-end gap-3 pt-1 border-t border-gray-100">
             <div>
               <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-1">From Date</label>
-              <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1); load({ dateFrom: e.target.value, page: 1 }); }} className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+              <DatePicker
+                value={dateFrom}
+                onChange={(next) => {
+                  setDateFrom(next);
+                  setPage(1);
+                  load({ dateFrom: next, page: 1 });
+                }}
+                placeholder="Pick start date"
+                maxDate={new Date()}
+                className="w-[180px]"
+              />
             </div>
             <div>
               <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-1">To Date</label>
-              <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1); load({ dateTo: e.target.value, page: 1 }); }} className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+              <DatePicker
+                value={dateTo}
+                onChange={(next) => {
+                  setDateTo(next);
+                  setPage(1);
+                  load({ dateTo: next, page: 1 });
+                }}
+                placeholder="Pick end date"
+                maxDate={new Date()}
+                className="w-[180px]"
+              />
             </div>
             {(dateFrom || dateTo) && (
               <button onClick={() => { setDateFrom(""); setDateTo(""); setPage(1); load({ dateFrom: "", dateTo: "", page: 1 }); }} className="px-3 py-2 text-xs font-semibold text-red-600 hover:text-red-700 border border-red-200 rounded-xl hover:bg-red-50 transition-colors">
@@ -4598,9 +4652,8 @@ function PromoCountdown({ endTime, color, compact = false }) {
       s: Math.floor((diff % 60_000) / 1_000),
     };
   };
-  const [t, setT] = useState({ h: 0, m: 0, s: 0 });
+  const [t, setT] = useState(() => calc());
   useEffect(() => {
-    setT(calc());
     const id = setInterval(() => setT(calc()), 1000);
     return () => clearInterval(id);
   }, [endTime]);
@@ -4636,6 +4689,7 @@ function PromoCountdown({ endTime, color, compact = false }) {
 
 /* ── Live preview panel ──────────────────────────────── */
 function PromoLivePreview({ form, mode, onModeChange }) {
+  const fallbackEndsAtRef = useRef(Date.now() + 12 * 3600_000);
   const accent = form.theme_color || "#FF6B00";
   const title = form.title || "Promotion Title";
   const discountText = form.discount_value
@@ -4647,7 +4701,7 @@ function PromoLivePreview({ form, mode, onModeChange }) {
   const badge = form.badge_text || "SPECIAL OFFER";
   const endsAt = form.ends_at
     ? new Date(form.ends_at).getTime()
-    : Date.now() + 12 * 3600_000;
+    : fallbackEndsAtRef.current;
 
   return (
     <div className="flex flex-col h-full">
@@ -7945,6 +7999,7 @@ const SIDEBAR_ITEMS = [
   { id: "categories", label: "Categories", icon: Tag },
   { id: "orders", label: "Orders", icon: ShoppingCart },
   { id: "pricing", label: "Pricing", icon: Banknotes },
+  { id: "birthday_offers", label: "Birth Day", icon: Gift },
   { id: "promotions", label: "Promotions", icon: Megaphone },
   { id: "users", label: "Customers", icon: Users },
   { id: "billing", label: "Billing", icon: DocumentTextIcon },
@@ -8056,6 +8111,8 @@ export default function AdminDashboard() {
   function handleTabChange(tabId) {
     if (tabId === "billing") {
       router.push("/admin/billing");
+    } else if (tabId === "birthday_offers") {
+      router.push("/admin/birth-day");
     } else if (tabId === "voice_dictionary") {
       router.push("/admin/voice-dictionary");
     } else {

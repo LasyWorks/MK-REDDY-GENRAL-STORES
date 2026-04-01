@@ -112,12 +112,12 @@ export function CartProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    loadAndMergeCart();
+    queueMicrotask(() => loadAndMergeCart());
   }, [loadAndMergeCart]);
 
   // Re-sync cart whenever user logs in on this tab
   useEffect(() => {
-    const handleAuthChange = () => { loadAndMergeCart(); };
+    const handleAuthChange = () => { queueMicrotask(() => loadAndMergeCart()); };
     window.addEventListener("authChange", handleAuthChange);
     return () => window.removeEventListener("authChange", handleAuthChange);
   }, [loadAndMergeCart]);

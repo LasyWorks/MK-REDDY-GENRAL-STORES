@@ -1,6 +1,29 @@
 import api from "../lib/api";
 import secureStorage from "../lib/secureStorage";
 class AuthService {
+  getMissingProfileFields(user = null) {
+    const current = user || this.getCurrentUser();
+    if (!current) return [];
+
+    const isCustomer =
+      current.user_type === "retail" || current.user_type === "wholesale";
+    if (!isCustomer) return [];
+
+    const missing = [];
+    if (!current.display_name) missing.push("display_name");
+    if (!current.date_of_birth) missing.push("date_of_birth");
+    return missing;
+  }
+
+  requiresProfileCompletion(user = null) {
+    return this.getMissingProfileFields(user).length > 0;
+  }
+
+  getProfileCompletionLoginHref(redirect = "/") {
+    const encodedRedirect = encodeURIComponent(redirect || "/");
+    return `/login?redirect=${encodedRedirect}&profile_complete=1`;
+  }
+
   async sendOTP(phone, purpose = "login") {
     return api.post("/auth/otp/send", { phone });
   }
@@ -52,4 +75,6 @@ class AuthService {
     return !!secureStorage.getItem("token");
   }
 }
-export default new AuthService();
+
+const authService = new AuthService();
+export default authService;

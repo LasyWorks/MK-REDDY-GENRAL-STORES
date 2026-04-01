@@ -92,14 +92,39 @@ class Order {
     return { orders: rows.map(r => ({ ...this.formatOrder(r), item_count: parseInt(r.item_count || 0, 10), item_names: r.item_names || [] })), total: parseInt(countRow.total, 10) };
   }
   static async createFromCart(userId, cart, notes = null, promo = {}) {
-    const { promotionId = null, promotionDiscount = 0, promotionTitle = null, freeProductId = null } = promo;
+    const {
+      promotionId = null,
+      promotionDiscount = 0,
+      promotionTitle = null,
+      freeProductId = null,
+      birthdayOfferId = null,
+      birthdayCouponCode = null,
+      birthdayDiscount = 0,
+      birthdayOfferTitle = null,
+    } = promo;
+
     return withTransaction(async (client) => {
       const orderNumber = generateOrderNumber();
-      const finalTotal = parseFloat((cart.total - promotionDiscount).toFixed(2));
+      const totalDiscount = Number(promotionDiscount || 0) + Number(birthdayDiscount || 0);
+      const finalTotal = parseFloat((cart.total - totalDiscount).toFixed(2));
       const oRes = await client.query(
-        `INSERT INTO orders (user_id, order_number, status, subtotal, total_gst, total_amount, notes, promotion_id, promotion_discount, promotion_title)
-         VALUES ($1,$2,'pending',$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
-        [userId, orderNumber, cart.subtotal, cart.total_gst, Math.max(finalTotal, 0), notes, promotionId, promotionDiscount, promotionTitle]
+        `INSERT INTO orders (user_id, order_number, status, subtotal, total_gst, total_amount, notes, promotion_id, promotion_discount, promotion_title, birthday_offer_id, birthday_coupon_code, birthday_discount, birthday_offer_title)
+         VALUES ($1,$2,'pending',$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
+        [
+          userId,
+          orderNumber,
+          cart.subtotal,
+          cart.total_gst,
+          Math.max(finalTotal, 0),
+          notes,
+          promotionId,
+          promotionDiscount,
+          promotionTitle,
+          birthdayOfferId,
+          birthdayCouponCode,
+          Number(birthdayDiscount || 0),
+          birthdayOfferTitle,
+        ]
       );
       const orderId = oRes.rows[0].id;
       for (const item of cart.items) {
@@ -158,6 +183,28 @@ class Order {
           // Do NOT decrement stock — free items are handled manually by the store
         }
       }
+      if (birthdayOfferId && birthdayCouponCode) {
+        const claimedRes = await client.query(
+          `UPDATE birthday_user_offers
+           SET status = 'claimed',
+               claimed_at = NOW(),
+               claimed_order_id = $2,
+               updated_at = NOW()
+           WHERE id = $1
+             AND user_id = $3
+             AND coupon_code = $4
+             AND status = 'revealed'
+             AND claimed_at IS NULL
+             AND valid_from <= NOW()::date
+             AND valid_until >= NOW()::date`,
+          [birthdayOfferId, orderId, userId, birthdayCouponCode]
+        );
+
+        if (claimedRes.rowCount === 0) {
+          throw new Error('Birthday coupon is no longer valid. Please refresh your cart and try again.');
+        }
+      }
+
       // Clean up cart after successful order - user starts fresh
       const cartRow = await client.query('SELECT id FROM carts WHERE user_id = $1', [userId]);
       if (cartRow.rows.length) { await client.query('DELETE FROM cart_items WHERE cart_id = $1', [cartRow.rows[0].id]); }
@@ -302,6 +349,10 @@ class Order {
       promotion_id: order.promotion_id || null,
       promotion_discount: parseFloat(order.promotion_discount || 0),
       promotion_title: order.promotion_title || null,
+      birthday_offer_id: order.birthday_offer_id || null,
+      birthday_coupon_code: order.birthday_coupon_code || null,
+      birthday_discount: parseFloat(order.birthday_discount || 0),
+      birthday_offer_title: order.birthday_offer_title || null,
       notes: order.notes,
       confirmed_at: order.confirmed_at, ready_at: order.ready_at,
       picked_up_at: order.picked_up_at, cancelled_at: order.cancelled_at,

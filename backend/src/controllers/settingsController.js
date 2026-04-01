@@ -2,8 +2,17 @@ const StoreSetting = require("../models/StoreSetting");
 const { asyncHandler } = require("../middlewares");
 const ApiResponse = require("../utils/ApiResponse");
 
+const BIRTHDAY_SETTING_KEYS = [
+  "birthday_campaign_enabled",
+  "birthday_discount_percent",
+  "birthday_discount_code",
+  "birthday_discount_valid_days",
+  "birthday_offer_title",
+];
+
 // Keys that are stored as "1"/"0" booleans — validated separately
-const BOOLEAN_KEYS = new Set(["gst_enabled", "gst_inclusive"]);
+const BOOLEAN_KEYS = new Set(["gst_enabled", "gst_inclusive", "birthday_campaign_enabled"]);
+const TEXT_KEYS = new Set(["birthday_discount_code", "birthday_offer_title"]);
 
 /**
  * GET /api/v1/settings/public
@@ -41,6 +50,22 @@ const updateSettings = asyncHandler(async (req, res) => {
         return ApiResponse.error(
           res,
           `Invalid value for "${key}": must be "0" or "1"`,
+          400,
+        );
+      }
+    } else if (TEXT_KEYS.has(key)) {
+      const textValue = String(value || "").trim();
+      if (!textValue) {
+        return ApiResponse.error(
+          res,
+          `Invalid value for "${key}": must be a non-empty string`,
+          400,
+        );
+      }
+      if (textValue.length > 120) {
+        return ApiResponse.error(
+          res,
+          `Invalid value for "${key}": must be at most 120 characters`,
           400,
         );
       }
@@ -124,10 +149,98 @@ const syncVoiceDictionaryFromDb = asyncHandler(async (_req, res) => {
   );
 });
 
+/**
+ * GET /api/v1/settings/birthday-campaign
+ * Admin — returns birthday campaign settings in typed shape
+ */
+const getBirthdayCampaignSettings = asyncHandler(async (_req, res) => {
+  const rows = await Promise.all(BIRTHDAY_SETTING_KEYS.map((key) => StoreSetting.get(key)));
+  const byKey = Object.fromEntries(rows.filter(Boolean).map((row) => [row.key, row.value]));
+
+  ApiResponse.success(res, {
+    enabled: byKey.birthday_campaign_enabled !== "0",
+    discount_percent: Number(byKey.birthday_discount_percent || 10),
+    discount_code: String(byKey.birthday_discount_code || "BIRTHDAY10"),
+    discount_valid_days: Number(byKey.birthday_discount_valid_days || 7),
+    offer_title: String(byKey.birthday_offer_title || "Birthday Special Offer"),
+  });
+});
+
+/**
+ * PUT /api/v1/settings/birthday-campaign
+ * Admin — updates birthday campaign settings only
+ */
+const updateBirthdayCampaignSettings = asyncHandler(async (req, res) => {
+  const {
+    enabled,
+    discount_percent,
+    discount_code,
+    discount_valid_days,
+    offer_title,
+  } = req.body || {};
+
+  const updates = {};
+
+  if (enabled !== undefined) {
+    updates.birthday_campaign_enabled = enabled ? "1" : "0";
+  }
+
+  if (discount_percent !== undefined) {
+    const value = Number(discount_percent);
+    if (Number.isNaN(value) || value < 0 || value > 100) {
+      return ApiResponse.error(res, "discount_percent must be a number between 0 and 100", 400);
+    }
+    updates.birthday_discount_percent = String(value);
+  }
+
+  if (discount_valid_days !== undefined) {
+    const value = Number(discount_valid_days);
+    if (!Number.isInteger(value) || value < 1 || value > 60) {
+      return ApiResponse.error(res, "discount_valid_days must be an integer between 1 and 60", 400);
+    }
+    updates.birthday_discount_valid_days = String(value);
+  }
+
+  if (discount_code !== undefined) {
+    const code = String(discount_code || "").trim();
+    if (!code || code.length > 40) {
+      return ApiResponse.error(res, "discount_code must be a non-empty string up to 40 characters", 400);
+    }
+    updates.birthday_discount_code = code;
+  }
+
+  if (offer_title !== undefined) {
+    const title = String(offer_title || "").trim();
+    if (!title || title.length > 120) {
+      return ApiResponse.error(res, "offer_title must be a non-empty string up to 120 characters", 400);
+    }
+    updates.birthday_offer_title = title;
+  }
+
+  if (!Object.keys(updates).length) {
+    return ApiResponse.error(res, "At least one birthday campaign field is required", 400);
+  }
+
+  await StoreSetting.bulkSet(updates);
+
+  const rows = await Promise.all(BIRTHDAY_SETTING_KEYS.map((key) => StoreSetting.get(key)));
+  const byKey = Object.fromEntries(rows.filter(Boolean).map((row) => [row.key, row.value]));
+
+  ApiResponse.success(res, {
+    enabled: byKey.birthday_campaign_enabled !== "0",
+    discount_percent: Number(byKey.birthday_discount_percent || 10),
+    discount_code: String(byKey.birthday_discount_code || "BIRTHDAY10"),
+    discount_valid_days: Number(byKey.birthday_discount_valid_days || 7),
+    offer_title: String(byKey.birthday_offer_title || "Birthday Special Offer"),
+  }, "Birthday campaign settings updated");
+});
+
 module.exports = {
   getPublicSettings,
   getAllSettings,
   updateSettings,
+  getBirthdayCampaignSettings,
+  updateBirthdayCampaignSettings,
   getVoiceDictionary,
   updateVoiceDictionary,
   syncVoiceDictionaryFromDb,

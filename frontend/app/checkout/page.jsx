@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -42,6 +43,10 @@ export default function CheckoutPage() {
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [notes, setNotes] = useState("");
+  const [birthdayCode, setBirthdayCode] = useState("");
+  const [birthdayDiscount, setBirthdayDiscount] = useState(0);
+  const [birthdayOfferLabel, setBirthdayOfferLabel] = useState("");
+  const [applyingBirthday, setApplyingBirthday] = useState(false);
   const [placing, setPlacing] = useState(false);
   const [placingStep, setPlacingStep] = useState(0);
   const [error, setError] = useState(null);
@@ -58,7 +63,12 @@ export default function CheckoutPage() {
       router.replace(`/login?redirect=${encodeURIComponent("/checkout")}`);
       return;
     }
-    setUser(authService.getCurrentUser());
+    const currentUser = authService.getCurrentUser();
+    if (authService.requiresProfileCompletion(currentUser)) {
+      router.replace(authService.getProfileCompletionLoginHref("/checkout"));
+      return;
+    }
+    setUser(currentUser);
     setAuthChecked(true);
     // Fetch store settings for charges
     api.get("/settings/public").then((res) => {
@@ -189,8 +199,38 @@ export default function CheckoutPage() {
     }
   }
 
-  const finalTotal = Math.max(totalPrice - promoDiscount + storeSettings.delivery_charge + storeSettings.handling_charge, 0);
-  const totalAllSavings = totalSavings + promoDiscount;
+  const finalTotal = Math.max(
+    totalPrice - promoDiscount - birthdayDiscount + storeSettings.delivery_charge + storeSettings.handling_charge,
+    0,
+  );
+  const totalAllSavings = totalSavings + promoDiscount + birthdayDiscount;
+
+  const applyBirthdayCoupon = async () => {
+    if (!birthdayCode.trim()) {
+      setBirthdayDiscount(0);
+      setBirthdayOfferLabel("");
+      return;
+    }
+
+    setApplyingBirthday(true);
+    setError(null);
+    try {
+      const res = await orderService.previewBirthdayCoupon({
+        coupon_code: birthdayCode.trim().toUpperCase(),
+        cart_subtotal: totalPrice,
+      });
+
+      setBirthdayDiscount(Number(res?.data?.discountAmount || 0));
+      setBirthdayOfferLabel(res?.data?.offerTitle || "Birthday Offer");
+    } catch (e) {
+      setBirthdayDiscount(0);
+      setBirthdayOfferLabel("");
+      setError(e.message || "Birthday coupon is not valid for this order.");
+    } finally {
+      setApplyingBirthday(false);
+    }
+  };
+
   const handlePlaceOrder = async () => {
     setError(null);
     setPlacing(true);
@@ -210,6 +250,7 @@ export default function CheckoutPage() {
       const res = await withMinimumDelay(
         () => orderService.create({
           notes: notes.trim() || undefined,
+          birthday_coupon_code: birthdayDiscount > 0 ? birthdayCode.trim().toUpperCase() : undefined,
         }),
         1200,
       );
@@ -533,13 +574,37 @@ export default function CheckoutPage() {
               ))}
             </div>
             {}
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4">
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-800 mb-2">
-                <FileText className="w-4 h-4 text-gray-500" />
-                Order Notes{" "}
-                <span className="text-gray-400 font-normal">(optional)</span>
-              </label>
-              <textarea
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 space-y-3">
+              <div>
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-800 mb-2">
+                  <Tag className="w-4 h-4 text-gray-500" />
+                  Birth Day Coupon
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    value={birthdayCode}
+                    onChange={(e) => setBirthdayCode(e.target.value.toUpperCase())}
+                    placeholder="Enter birth day coupon code"
+                    className="flex-1 text-sm text-gray-700 border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={applyBirthdayCoupon}
+                    disabled={applyingBirthday}
+                    className="rounded-lg bg-gray-900 px-4 py-2.5 text-xs font-semibold text-white disabled:opacity-60"
+                  >
+                    {applyingBirthday ? "Checking..." : "Apply"}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-800 mb-2">
+                  <FileText className="w-4 h-4 text-gray-500" />
+                  Order Notes{" "}
+                  <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
@@ -547,9 +612,10 @@ export default function CheckoutPage() {
                 placeholder="Any special instructions for the store? (e.g. preferred brand, substitution notes…)"
                 className="w-full text-sm text-gray-700 placeholder-gray-300 border border-gray-200 rounded-lg px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent transition"
               />
-              <p className="text-xs text-gray-400 text-right mt-1">
-                {notes.length}/500
-              </p>
+                <p className="text-xs text-gray-400 text-right mt-1">
+                  {notes.length}/500
+                </p>
+              </div>
             </div>
           </div>
           {}
@@ -613,6 +679,15 @@ export default function CheckoutPage() {
                     <span className="font-semibold">
                       −₹{promoDiscount.toFixed(2)}
                     </span>
+                  </div>
+                )}
+                {birthdayDiscount > 0 && (
+                  <div className="flex justify-between text-violet-600">
+                    <span className="flex items-center gap-1">
+                      <Tag className="w-3.5 h-3.5" />
+                      {birthdayOfferLabel || "Birth Day Coupon"}
+                    </span>
+                    <span className="font-semibold">−₹{birthdayDiscount.toFixed(2)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-gray-500">

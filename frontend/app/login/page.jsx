@@ -21,6 +21,8 @@ import { GoogleLogin } from '@react-oauth/google';
 import api from "@/lib/api";
 import secureStorage from "@/lib/secureStorage";
 import MergeService from "@/services/mergeService";
+import authService from "@/services/authService";
+import { DatePicker } from "@/components/ui/date-picker";
 
 function LoginForm() {
   const router = useRouter();
@@ -53,6 +55,11 @@ function LoginForm() {
   const [isProcessing, setIsProcessing] = useState(false); // Prevent double submission
   const verifyingRef = useRef(false); // Ref-based lock for OTP verification
 
+  // Login-time profile completion for legacy users
+  const [missingProfileFields, setMissingProfileFields] = useState([]);
+  const [profileDisplayName, setProfileDisplayName] = useState("");
+  const [profileDob, setProfileDob] = useState("");
+
   // Account merge flow state
   const [mergeSessionId, setMergeSessionId]   = useState(null);
   const [mergeData, setMergeData]             = useState(null); // { existingMaskedEmail, newMaskedEmail }
@@ -60,14 +67,51 @@ function LoginForm() {
   const [mergeOtp, setMergeOtp]               = useState("");
   const [mergePrimaryDone, setMergePrimaryDone] = useState(false);
 
-  useEffect(() => {
-    if (
-      typeof window !== "undefined" &&
-      secureStorage.getItem("token") &&
-      secureStorage.getItem("user")
-    ) {
-      router.replace("/");
+  const persistAuthSession = (payload) => {
+    secureStorage.setItem("token", payload.accessToken);
+    secureStorage.setItem("refreshToken", payload.refreshToken);
+    secureStorage.setItem("user", JSON.stringify(payload.user));
+    window.dispatchEvent(new Event("authChange"));
+  };
+
+  const handlePostAuthSuccess = (payload, doneMessage = "Login successful! Redirecting...") => {
+    const requiresProfileCompletion = payload?.requiresProfileCompletion === true;
+    const missing = Array.isArray(payload?.missingProfileFields)
+      ? payload.missingProfileFields
+      : [];
+
+    persistAuthSession(payload);
+
+    if (requiresProfileCompletion) {
+      setMissingProfileFields(missing);
+      setProfileDisplayName(payload?.user?.display_name || payload?.user?.name || "");
+      setProfileDob(payload?.user?.date_of_birth ? String(payload.user.date_of_birth).slice(0, 10) : "");
+      setSuccess("Please complete your profile to continue.");
+      setError("");
+      setStep("profile-completion");
+      return;
     }
+
+    setSuccess(doneMessage);
+    setStep("complete");
+    setTimeout(() => router.push(redirectTo), 1000);
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hasSession = secureStorage.getItem("token") && secureStorage.getItem("user");
+    if (!hasSession) return;
+
+    const currentUser = authService.getCurrentUser();
+    if (authService.requiresProfileCompletion(currentUser)) {
+      setMissingProfileFields(authService.getMissingProfileFields(currentUser));
+      setProfileDisplayName(currentUser?.display_name || currentUser?.name || "");
+      setProfileDob(currentUser?.date_of_birth ? String(currentUser.date_of_birth).slice(0, 10) : "");
+      setStep("profile-completion");
+      return;
+    }
+
+    router.replace("/");
   }, [router]);
 
   // Google OAuth Handlers
@@ -93,17 +137,7 @@ function LoginForm() {
         setSuccess("Google authentication successful! Please provide your phone number to complete registration.");
       } else {
         // Existing user - login successful
-        const { user, accessToken, refreshToken } = data;
-        secureStorage.setItem("token", accessToken);
-        secureStorage.setItem("refreshToken", refreshToken);
-        secureStorage.setItem("user", JSON.stringify(user));
-        
-        // Dispatch auth change event for Navbar to update
-        window.dispatchEvent(new Event("authChange"));
-        
-        setSuccess("Login successful! Redirecting...");
-        setStep("complete");
-        setTimeout(() => router.push(redirectTo), 1000);
+        handlePostAuthSuccess(data, "Login successful! Redirecting...");
       }
     } catch (err) {
       console.error("Google login error:", err);
@@ -155,18 +189,10 @@ function LoginForm() {
         return;
       }
 
-      const { user, accessToken, refreshToken, isNewUser } = data;
-      secureStorage.setItem("token", accessToken);
-      secureStorage.setItem("refreshToken", refreshToken);
-      secureStorage.setItem("user", JSON.stringify(user));
-
-      // Dispatch auth change event for Navbar to update
-      window.dispatchEvent(new Event("authChange"));
-
-      setSuccess(isNewUser === false ? "Login successful! Redirecting..." : "Registration completed successfully! Redirecting...");
-      setStep("complete");
-      
-      setTimeout(() => router.push(redirectTo), 2000);
+      const doneMessage = data.isNewUser === false
+        ? "Login successful! Redirecting..."
+        : "Registration completed successfully! Redirecting...";
+      handlePostAuthSuccess(data, doneMessage);
     } catch (err) {
       console.error("Google registration error:", err);
       setError(err.message || err.response?.data?.message || "Registration failed. Please try again.");
@@ -247,23 +273,8 @@ function LoginForm() {
         verifyingRef.current = false;
       } else {
         // Existing user - login successful
-        const { user, accessToken, refreshToken } = data;
         console.log("Login successful, storing tokens...");
-        
-        secureStorage.setItem("token", accessToken);
-        secureStorage.setItem("refreshToken", refreshToken);
-        secureStorage.setItem("user", JSON.stringify(user));
-        
-        // Dispatch auth change event for Navbar to update
-        window.dispatchEvent(new Event("authChange"));
-        
-        setSuccess("Login successful! Redirecting...");
-        setStep("complete");
-        setLoading(false);
-        
-        // Redirect immediately
-        console.log("Redirecting to:", redirectTo);
-        router.push(redirectTo);
+        handlePostAuthSuccess(data, "Login successful! Redirecting...");
       }
     } catch (err) {
       console.error("Verify OTP error:", err);
@@ -312,18 +323,7 @@ function LoginForm() {
         return;
       }
 
-      const { user, accessToken, refreshToken } = data;
-      secureStorage.setItem("token", accessToken);
-      secureStorage.setItem("refreshToken", refreshToken);
-      secureStorage.setItem("user", JSON.stringify(user));
-
-      // Dispatch auth change event for Navbar to update
-      window.dispatchEvent(new Event("authChange"));
-
-      setSuccess("Registration completed successfully! Redirecting...");
-      setStep("complete");
-      
-      setTimeout(() => router.push(redirectTo), 2000);
+      handlePostAuthSuccess(data, "Registration completed successfully! Redirecting...");
     } catch (err) {
       console.error("Email OTP registration error:", err);
       setError(err.message || err.response?.data?.message || "Registration failed. Please try again.");
@@ -369,14 +369,8 @@ function LoginForm() {
     try {
       const result = await MergeService.verifyOTP(mergeSessionId, mergeStep, mergeOtp);
       if (result.bothVerified && result.merged) {
-        // Merge complete — store tokens
-        secureStorage.setItem("token",        result.accessToken);
-        secureStorage.setItem("refreshToken", result.refreshToken);
-        secureStorage.setItem("user",         JSON.stringify(result.user));
-        window.dispatchEvent(new Event("authChange"));
-        setSuccess("Accounts merged! You are now logged in. Redirecting...");
-        setStep("complete");
-        setTimeout(() => router.push(redirectTo), 2000);
+        // Merge complete — login and continue
+        handlePostAuthSuccess(result, "Accounts merged! You are now logged in. Redirecting...");
       } else if (result.verified && mergeStep === "primary") {
         // Primary done — now ask for secondary
         setMergePrimaryDone(true);
@@ -424,6 +418,43 @@ function LoginForm() {
     await handleSendOTP({ preventDefault: () => {} });
   };
 
+  const handleCompleteProfile = async (e) => {
+    e.preventDefault();
+
+    const needsDisplayName = missingProfileFields.includes("display_name");
+    const needsDob = missingProfileFields.includes("date_of_birth");
+
+    if (needsDisplayName && !profileDisplayName.trim()) {
+      setError("Display name is required.");
+      return;
+    }
+    if (needsDob && !profileDob) {
+      setError("Date of birth is required.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const payload = {};
+      if (profileDisplayName.trim()) payload.display_name = profileDisplayName.trim();
+      if (profileDob) payload.date_of_birth = profileDob;
+
+      const { data: updatedUser } = await api.put("/auth/me", payload);
+      secureStorage.setItem("user", JSON.stringify(updatedUser));
+      window.dispatchEvent(new Event("authChange"));
+
+      setSuccess("Profile completed successfully! Redirecting...");
+      setStep("complete");
+      setTimeout(() => router.push(redirectTo), 1000);
+    } catch (err) {
+      setError(err.message || "Failed to update profile. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
@@ -440,6 +471,7 @@ function LoginForm() {
             {step === "phone-collection" && "Complete your profile"}
             {step === "merge-prompt"     && "Phone number conflict"}
             {step === "merge-verify"     && "Verify both accounts"}
+            {step === "profile-completion" && "Complete your profile"}
             {step === "complete"         && "Welcome to MK Reddy Stores!"}
           </p>
         </div>
@@ -467,7 +499,7 @@ function LoginForm() {
                   Welcome Back!
                 </h2>
                 <p className="text-sm text-gray-600">
-                  Choose how you'd like to sign in
+                  Choose how you would like to sign in
                 </p>
               </div>
 
@@ -540,7 +572,7 @@ function LoginForm() {
                   Enter Your Email
                 </h2>
                 <p className="text-sm text-gray-600">
-                  We'll send a 6-digit OTP to verify your email
+                  We will send a 6-digit OTP to verify your email
                 </p>
               </div>
 
@@ -687,6 +719,7 @@ function LoginForm() {
               <div className="text-center mb-4">
                 {loginMethod === "google" && googleData?.picture && (
                   <div className="flex justify-center mb-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={googleData.picture}
                       alt={googleData.name || "Google account"}
@@ -862,7 +895,7 @@ function LoginForm() {
               </div>
 
               <p className="text-sm text-gray-600 leading-relaxed">
-                Would you like to <strong>merge</strong> both accounts? You'll need to verify both email
+                Would you like to <strong>merge</strong> both accounts? You will need to verify both email
                 addresses with a one-time code before the merge is completed.
               </p>
 
@@ -939,7 +972,7 @@ function LoginForm() {
                   Enter the 6-digit code {
                     mergeStep === "primary"
                       ? "sent to your email"
-                      : "sent to the existing account's email"
+                      : "sent to the existing account email"
                   }
                 </p>
               </div>
@@ -999,6 +1032,61 @@ function LoginForm() {
                   Cancel
                 </button>
               </div>
+            </form>
+          )}
+
+          {/* Profile Completion Step */}
+          {step === "profile-completion" && (
+            <form onSubmit={handleCompleteProfile} className="space-y-5">
+              <div className="text-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-900 mb-1">
+                  One Last Step
+                </h2>
+                <p className="text-sm text-gray-600">
+                  Please complete your profile to continue.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Display Name {missingProfileFields.includes("display_name") ? "*" : ""}
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={profileDisplayName}
+                    onChange={(e) => setProfileDisplayName(e.target.value)}
+                    placeholder="How should we address you?"
+                    required={missingProfileFields.includes("display_name")}
+                    className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Date of Birth {missingProfileFields.includes("date_of_birth") ? "*" : ""}
+                </label>
+                <div className="relative">
+                  <DatePicker
+                    value={profileDob}
+                    onChange={setProfileDob}
+                    placeholder="Pick your date of birth"
+                    required={missingProfileFields.includes("date_of_birth")}
+                    maxDate={new Date()}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
+              >
+                {loading ? "Saving..." : "Save and Continue"}
+              </button>
             </form>
           )}
 

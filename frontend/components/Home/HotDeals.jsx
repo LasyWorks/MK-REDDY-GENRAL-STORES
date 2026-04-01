@@ -5,6 +5,7 @@ import {
   ChevronRightIcon as ChevronRight,
   FireIcon as Flame,
 } from "@heroicons/react/24/outline";
+import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import ProductCard from "@/components/category/ProductCard";
 import ProductCardWithVariants from "@/components/category/ProductCardWithVariants";
@@ -63,12 +64,12 @@ export default function HotDeals() {
           </div>
           {}
           <div className="flex items-center gap-2">
-            <a
+            <Link
               href="/products?has_discount=true"
               className="text-[#16A34A] text-xs md:text-sm font-semibold hover:underline"
             >
               View All
-            </a>
+            </Link>
             <div className="hidden md:flex gap-2">
               {!loading && productGroups.length > 0 && (
                 <>

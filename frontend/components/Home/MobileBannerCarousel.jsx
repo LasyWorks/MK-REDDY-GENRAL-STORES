@@ -185,10 +185,6 @@ export default function MobileBannerCarousel() {
     return () => clearInterval(timerRef.current);
   }, [next]);
 
-  useEffect(() => {
-    setCurrent(0);
-  }, [slides.length]);
-
   // Swipe handlers
   const onTouchStart = (e) => {
     if (!e.touches?.length) return;
@@ -275,7 +271,8 @@ export default function MobileBannerCarousel() {
     }
   };
 
-  const banner = slides[current] || FALLBACK_SLIDES[0];
+  const activeCurrent = slides.length ? Math.min(current, slides.length - 1) : 0;
+  const banner = slides[activeCurrent] || FALLBACK_SLIDES[0];
 
   if (loading && !categories.length) {
     return (
@@ -431,7 +428,7 @@ export default function MobileBannerCarousel() {
               key={i}
               onClick={() => goTo(i)}
               className={`rounded-full transition-all duration-300 ${
-                i === current
+                i === activeCurrent
                   ? "w-4 md:w-7 h-1.5 md:h-2 bg-[#16a34a]"
                   : "w-1.5 md:w-2 h-1.5 md:h-2 bg-[#94a3b8]/75"
               }`}

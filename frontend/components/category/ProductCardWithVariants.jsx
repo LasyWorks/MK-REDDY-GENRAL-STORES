@@ -1,5 +1,5 @@
 "use client";
-import { memo, useState, useMemo, useEffect, useCallback } from "react";
+import { memo, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import {
   PlusIcon as Plus,
@@ -328,21 +328,16 @@ function ProductCardWithVariants({ variants }) {
   const [showSheet, setShowSheet] = useState(false);
   const [adding, setAdding] = useState(false);
   const [bounce, setBounce] = useState(false);
-  const [isWholesale, setIsWholesale] = useState(false);
-
-  useEffect(() => {
-    const userRaw = secureStorage.getItem("user");
-    if (userRaw) {
-      try {
-        const user = JSON.parse(userRaw);
-        setIsWholesale(
-          user.user_type === "wholesale" || user.role === "wholesale_customer",
-        );
-      } catch {
-        setIsWholesale(false);
-      }
+  const [isWholesale] = useState(() => {
+    try {
+      const userRaw = secureStorage.getItem("user");
+      if (!userRaw) return false;
+      const user = JSON.parse(userRaw);
+      return user.user_type === "wholesale" || user.role === "wholesale_customer";
+    } catch {
+      return false;
     }
-  }, []);
+  });
 
   const hasAnyPromo = variants.some((v) => productPromoMap[v.id]);
 

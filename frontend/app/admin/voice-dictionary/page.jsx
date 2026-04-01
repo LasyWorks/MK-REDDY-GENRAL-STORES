@@ -31,7 +31,7 @@ function useAdminGuard() {
         router.replace("/");
         return;
       }
-      setReady(true);
+      queueMicrotask(() => setReady(true));
     } catch {
       router.replace("/login?redirect=/admin/voice-dictionary");
     }

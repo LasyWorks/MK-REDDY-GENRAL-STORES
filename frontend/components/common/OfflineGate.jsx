@@ -3,13 +3,20 @@
 import { useEffect, useState } from "react";
 
 export default function OfflineGate() {
-  const [isOnline, setIsOnline] = useState(true);
+  const [isDevOrLocalhost] = useState(() => {
+    if (process.env.NODE_ENV !== "production") return true;
+    if (typeof window === "undefined") return false;
+    const host = window.location.hostname;
+    return host === "localhost" || host === "127.0.0.1";
+  });
+  const [isOnline, setIsOnline] = useState(() =>
+    typeof navigator === "undefined" ? true : navigator.onLine,
+  );
 
   useEffect(() => {
     const setOnline = () => setIsOnline(true);
     const setOffline = () => setIsOnline(false);
 
-    setIsOnline(typeof navigator === "undefined" ? true : navigator.onLine);
     window.addEventListener("online", setOnline);
     window.addEventListener("offline", setOffline);
 
@@ -19,7 +26,7 @@ export default function OfflineGate() {
     };
   }, []);
 
-  if (isOnline) return null;
+  if (isDevOrLocalhost || isOnline) return null;
 
   return (
     <div className="fixed inset-0 z-[9999] bg-gradient-to-b from-slate-50 to-slate-200 flex items-center justify-center px-6">

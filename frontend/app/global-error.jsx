@@ -30,7 +30,6 @@ export default function GlobalError({ error, reset }) {
             textAlign: "center",
           }}
         >
-          {}
           <div
             style={{
               display: "inline-flex",
@@ -61,13 +60,11 @@ export default function GlobalError({ error, reset }) {
               MK Reddy General Store
             </span>
           </div>
-          {}
           <div
             style={{ fontSize: "6rem", lineHeight: 1, marginBottom: "1.5rem", display: "flex", justifyContent: "center" }}
           >
             <BuildingStorefrontIcon style={{ width: "6rem", height: "6rem", color: "#16a34a" }} />
           </div>
-          {}
           <div
             style={{
               display: "inline-block",
@@ -103,10 +100,9 @@ export default function GlobalError({ error, reset }) {
               margin: "0 0 2rem",
             }}
           >
-            We're experiencing an unexpected issue. Our team has been notified
-            and we'll be back up shortly. Thank you for your patience!
+            We&apos;re experiencing an unexpected issue. Our team has been notified
+            and we&apos;ll be back up shortly. Thank you for your patience!
           </p>
-          {}
           {process.env.NODE_ENV === "development" && error?.message && (
             <pre
               style={{
@@ -125,7 +121,6 @@ export default function GlobalError({ error, reset }) {
               {error.message}
             </pre>
           )}
-          {}
           <button
             onClick={reset}
             style={{

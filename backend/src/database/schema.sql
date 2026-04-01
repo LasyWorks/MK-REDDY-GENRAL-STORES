@@ -30,7 +30,7 @@ CREATE TABLE roles (id UUID PRIMARY KEY DEFAULT uuid_generate_v7(), name VARCHAR
 INSERT INTO roles (name, description) VALUES ('admin','System administrator'),('retail_customer','Retail customer'),('wholesale_customer','Wholesale customer');
 
 -- USERS
-CREATE TABLE users (id UUID PRIMARY KEY DEFAULT uuid_generate_v7(), role_id UUID NOT NULL REFERENCES roles(id) ON DELETE RESTRICT, name VARCHAR(100) NOT NULL, phone VARCHAR(15) NOT NULL UNIQUE, email VARCHAR(100) UNIQUE, password_hash VARCHAR(255), user_type VARCHAR(20) NOT NULL DEFAULT 'retail' CHECK (user_type IN ('retail','wholesale','admin')), address TEXT, google_id VARCHAR(255) UNIQUE, profile_picture TEXT, email_verified BOOLEAN DEFAULT FALSE, is_active BOOLEAN DEFAULT TRUE, is_blocked BOOLEAN DEFAULT FALSE, blocked_reason VARCHAR(255), is_super_admin BOOLEAN NOT NULL DEFAULT FALSE, deleted_at TIMESTAMPTZ DEFAULT NULL, last_login_at TIMESTAMPTZ, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW());
+CREATE TABLE users (id UUID PRIMARY KEY DEFAULT uuid_generate_v7(), role_id UUID NOT NULL REFERENCES roles(id) ON DELETE RESTRICT, name VARCHAR(100) NOT NULL, display_name VARCHAR(100), phone VARCHAR(15) NOT NULL UNIQUE, email VARCHAR(100) UNIQUE, password_hash VARCHAR(255), user_type VARCHAR(20) NOT NULL DEFAULT 'retail' CHECK (user_type IN ('retail','wholesale','admin')), address TEXT, date_of_birth DATE, google_id VARCHAR(255) UNIQUE, profile_picture TEXT, email_verified BOOLEAN DEFAULT FALSE, is_active BOOLEAN DEFAULT TRUE, is_blocked BOOLEAN DEFAULT FALSE, blocked_reason VARCHAR(255), is_super_admin BOOLEAN NOT NULL DEFAULT FALSE, deleted_at TIMESTAMPTZ DEFAULT NULL, last_login_at TIMESTAMPTZ, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW());
 CREATE INDEX idx_users_phone ON users(phone); CREATE INDEX idx_users_email ON users(email); CREATE INDEX idx_users_role ON users(role_id); CREATE INDEX idx_users_active ON users(is_active); CREATE INDEX idx_users_google_id ON users(google_id); CREATE INDEX idx_users_not_deleted ON users(id) WHERE deleted_at IS NULL;
 CREATE TRIGGER set_updated_at_users BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();
 
@@ -78,8 +78,9 @@ CREATE INDEX idx_cart_items_cart ON cart_items(cart_id); CREATE INDEX idx_cart_i
 CREATE TRIGGER set_updated_at_cart_items BEFORE UPDATE ON cart_items FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();
 
 -- ORDERS
-CREATE TABLE orders (id UUID PRIMARY KEY DEFAULT uuid_generate_v7(), user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT, order_number VARCHAR(50) NOT NULL UNIQUE, status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','confirmed','ready_for_pickup','picked_up','cancelled')), subtotal DECIMAL(12,2) NOT NULL, total_gst DECIMAL(12,2) NOT NULL, total_amount DECIMAL(12,2) NOT NULL, promotion_id UUID REFERENCES promotions(id) ON DELETE SET NULL, promotion_discount DECIMAL(12,2) NOT NULL DEFAULT 0, promotion_title VARCHAR(300), notes TEXT, confirmed_at TIMESTAMPTZ, ready_at TIMESTAMPTZ, picked_up_at TIMESTAMPTZ, cancelled_at TIMESTAMPTZ, cancellation_reason VARCHAR(500), created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW());
+CREATE TABLE orders (id UUID PRIMARY KEY DEFAULT uuid_generate_v7(), user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT, order_number VARCHAR(50) NOT NULL UNIQUE, status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','confirmed','ready_for_pickup','picked_up','cancelled')), subtotal DECIMAL(12,2) NOT NULL, total_gst DECIMAL(12,2) NOT NULL, total_amount DECIMAL(12,2) NOT NULL, promotion_id UUID REFERENCES promotions(id) ON DELETE SET NULL, promotion_discount DECIMAL(12,2) NOT NULL DEFAULT 0, promotion_title VARCHAR(300), birthday_offer_id UUID, birthday_coupon_code VARCHAR(40), birthday_discount DECIMAL(12,2) NOT NULL DEFAULT 0, birthday_offer_title VARCHAR(200), notes TEXT, confirmed_at TIMESTAMPTZ, ready_at TIMESTAMPTZ, picked_up_at TIMESTAMPTZ, cancelled_at TIMESTAMPTZ, cancellation_reason VARCHAR(500), created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW());
 CREATE INDEX idx_orders_user ON orders(user_id); CREATE INDEX idx_orders_number ON orders(order_number); CREATE INDEX idx_orders_status ON orders(status); CREATE INDEX idx_orders_created ON orders(created_at); CREATE INDEX idx_orders_status_created ON orders(status, created_at);
+CREATE INDEX idx_orders_birthday_offer ON orders(birthday_offer_id);
 CREATE TRIGGER set_updated_at_orders BEFORE UPDATE ON orders FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();
 
 -- ORDER ITEMS
@@ -159,8 +160,78 @@ CREATE TABLE store_settings (
 INSERT INTO store_settings (key, value, label, description) VALUES
   ('min_order_amount', '100', 'Minimum Order Amount', 'Minimum cart value required to place an order.'),
   ('delivery_charge', '0', 'Delivery Charge', 'Flat delivery fee added to every order.'),
-  ('handling_charge', '2', 'Handling Charge', 'Handling/packaging fee added to every order.')
+  ('handling_charge', '2', 'Handling Charge', 'Handling/packaging fee added to every order.'),
+  ('birthday_campaign_enabled', '1', 'Birthday Campaign Enabled', 'Enable or disable automated birthday emails.'),
+  ('birthday_discount_percent', '10', 'Birthday Discount Percent', 'Default birthday offer discount percentage.'),
+  ('birthday_discount_code', 'BIRTHDAY10', 'Birthday Discount Code', 'Coupon code included in birthday campaign emails.'),
+  ('birthday_discount_valid_days', '7', 'Birthday Discount Validity (days)', 'Number of days birthday discount remains valid after issue.'),
+  ('birthday_offer_title', 'Birthday Special Offer', 'Birthday Offer Title', 'Heading text shown in birthday campaign emails.')
 ON CONFLICT (key) DO NOTHING;
+
+-- BIRTHDAY CAMPAIGN TRACKING
+CREATE TABLE IF NOT EXISTS birthday_campaign_logs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  campaign_year INTEGER NOT NULL,
+  stage VARCHAR(30) NOT NULL CHECK (stage IN ('month_start', 'week_before', 'birthday_day')),
+  sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  metadata JSONB,
+  UNIQUE (user_id, campaign_year, stage)
+);
+CREATE INDEX idx_birthday_logs_user ON birthday_campaign_logs(user_id);
+CREATE INDEX idx_birthday_logs_year_stage ON birthday_campaign_logs(campaign_year, stage);
+
+-- BIRTHDAY OFFER TEMPLATES
+CREATE TABLE IF NOT EXISTS birthday_offer_templates (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+  name VARCHAR(120) NOT NULL UNIQUE,
+  description TEXT,
+  discount_type VARCHAR(20) NOT NULL CHECK (discount_type IN ('percentage', 'flat')),
+  discount_value DECIMAL(10,2) NOT NULL,
+  valid_days INTEGER NOT NULL DEFAULT 7,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_bday_tpl_active ON birthday_offer_templates(is_active);
+CREATE TRIGGER set_updated_at_birthday_offer_templates BEFORE UPDATE ON birthday_offer_templates FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();
+
+-- PER-USER BIRTHDAY OFFERS
+CREATE TABLE IF NOT EXISTS birthday_user_offers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  campaign_year INTEGER NOT NULL,
+  birthday_date DATE NOT NULL,
+  offer_template_id UUID REFERENCES birthday_offer_templates(id) ON DELETE SET NULL,
+  discount_type VARCHAR(20) CHECK (discount_type IN ('percentage', 'flat')),
+  discount_value DECIMAL(10,2),
+  valid_days INTEGER,
+  coupon_code VARCHAR(40) UNIQUE,
+  valid_from DATE,
+  valid_until DATE,
+  status VARCHAR(30) NOT NULL DEFAULT 'pending_selection' CHECK (status IN ('pending_selection','selected','ready_hidden','revealed','claimed','expired')),
+  admin_selected_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  selected_at TIMESTAMPTZ,
+  reveal_at TIMESTAMPTZ,
+  claimed_at TIMESTAMPTZ,
+  claimed_order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id, campaign_year)
+);
+CREATE INDEX idx_bday_user_offers_user ON birthday_user_offers(user_id);
+CREATE INDEX idx_bday_user_offers_bday ON birthday_user_offers(birthday_date);
+CREATE INDEX idx_bday_user_offers_status ON birthday_user_offers(status);
+CREATE INDEX idx_bday_user_offers_code ON birthday_user_offers(coupon_code);
+CREATE TRIGGER set_updated_at_birthday_user_offers BEFORE UPDATE ON birthday_user_offers FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();
+
+INSERT INTO birthday_offer_templates (name, description, discount_type, discount_value, valid_days)
+VALUES
+  ('Classic 10%', 'Standard birthday reward for all customers', 'percentage', 10, 7),
+  ('Festive 15%', 'Mid-tier celebratory discount', 'percentage', 15, 7),
+  ('Premium 20%', 'Premium segment birthday discount', 'percentage', 20, 5),
+  ('Flat ₹150', 'Flat value birthday reward', 'flat', 150, 7)
+ON CONFLICT (name) DO NOTHING;
 
 -- ADMIN NOTIFICATIONS
 CREATE TABLE IF NOT EXISTS admin_notifications (

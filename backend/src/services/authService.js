@@ -17,6 +17,37 @@ const { sendSecurityAlert } = require("../utils/alerting");
 // Prevent OTP spam attacks by limiting resend frequency
 const OTP_RESEND_COOLDOWN_SECS = 30;
 class AuthService {
+  static async enrichForProfileCompletion(user) {
+    if (!user) return user;
+
+    // For legacy users, backfill display_name from name once on login.
+    if (!user.display_name && user.name) {
+      await User.update(user.id, { display_name: user.name });
+      user.display_name = user.name;
+    }
+
+    return user;
+  }
+
+  static getProfileCompletionMeta(user) {
+    const isCustomer = user?.user_type === "retail" || user?.user_type === "wholesale";
+    if (!isCustomer) {
+      return {
+        requiresProfileCompletion: false,
+        missingProfileFields: [],
+      };
+    }
+
+    const missingProfileFields = [];
+    if (!user?.display_name) missingProfileFields.push("display_name");
+    if (!user?.date_of_birth) missingProfileFields.push("date_of_birth");
+
+    return {
+      requiresProfileCompletion: missingProfileFields.length > 0,
+      missingProfileFields,
+    };
+  }
+
   // Login user with Google account
   static async googleLogin(idToken, ipAddress = null) {
     // Verify the Google token and get user info
@@ -76,6 +107,8 @@ class AuthService {
       user.profile_picture = googleUser.picture;
     }
 
+    user = await this.enrichForProfileCompletion(user);
+
     // Generate tokens and log login
     const tokens = await this.generateTokens(user, null, ipAddress);
     await User.updateLastLogin(user.id);
@@ -85,13 +118,14 @@ class AuthService {
     return {
       authenticated: true,
       user: this.sanitizeUser(user),
+      ...this.getProfileCompletionMeta(user),
       ...tokens,
     };
   }
 
   // Complete registration for new Google users (needs phone number)
   static async completeGoogleRegistration(userData) {
-    const { name, phone, googleId, picture, user_type, address } = userData;
+    const { name, display_name, date_of_birth, phone, googleId, picture, user_type, address } = userData;
     // Normalize email consistently with the email-OTP registration path
     const email = (userData.email || "").toLowerCase().trim();
 
@@ -123,14 +157,16 @@ class AuthService {
         await User.updateProfilePicture(existingUserByEmail.id, picture);
         existingUserByEmail.profile_picture = picture;
       }
-      const tokens = await this.generateTokens(existingUserByEmail);
+      const enrichedExistingUser = await this.enrichForProfileCompletion(existingUserByEmail);
+      const tokens = await this.generateTokens(enrichedExistingUser);
       await User.updateLastLogin(existingUserByEmail.id);
       logger.info(
         `Linked Google account to existing email user ${existingUserByEmail.id} (${email})`,
       );
       return {
         isNewUser: false,
-        user: this.sanitizeUser(existingUserByEmail),
+        user: this.sanitizeUser(enrichedExistingUser),
+        ...this.getProfileCompletionMeta(enrichedExistingUser),
         ...tokens,
       };
     }
@@ -148,13 +184,15 @@ class AuthService {
         if (picture)
           await User.updateProfilePicture(existingUserByPhone.id, picture);
         const updatedUser = await User.findById(existingUserByPhone.id);
+        const enrichedUpdatedUser = await this.enrichForProfileCompletion(updatedUser);
         const tokens = await this.generateTokens(updatedUser);
         logger.info(
           `Linked Google account to phone-only user ${updatedUser.id} (${phone})`,
         );
         return {
           isNewUser: false,
-          user: this.sanitizeUser(updatedUser),
+          user: this.sanitizeUser(enrichedUpdatedUser),
+          ...this.getProfileCompletionMeta(enrichedUpdatedUser),
           ...tokens,
         };
       }
@@ -170,6 +208,8 @@ class AuthService {
           phone,
           newUserData: {
             name,
+            display_name,
+            date_of_birth,
             googleId,
             picture,
             user_type: user_type || "retail",
@@ -202,6 +242,8 @@ class AuthService {
     // Create user with Google OAuth data
     const userId = await User.create({
       name,
+      display_name,
+      date_of_birth,
       phone,
       email,
       google_id: googleId,
@@ -213,13 +255,20 @@ class AuthService {
     });
 
     const user = await User.findById(userId);
-    const tokens = await this.generateTokens(user);
+    const enrichedUser = await this.enrichForProfileCompletion(user);
+    const tokens = await this.generateTokens(enrichedUser);
+
+    if (user?.email) {
+      EmailService.sendWelcomeEmail(user.email, user.name)
+        .catch((err) => logger.error('Welcome email failed (Google registration):', err));
+    }
 
     logger.info(`New user registered via Google OAuth: ${user.id} (${email})`);
 
     return {
       isNewUser: true,
-      user: this.sanitizeUser(user),
+      user: this.sanitizeUser(enrichedUser),
+      ...this.getProfileCompletionMeta(enrichedUser),
       ...tokens,
     };
   }
@@ -415,19 +464,21 @@ class AuthService {
       );
     }
 
+    user = await this.enrichForProfileCompletion(user);
     const tokens = await this.generateTokens(user);
     await User.updateLastLogin(user.id);
 
     return {
       authenticated: true,
       user: this.sanitizeUser(user),
+      ...this.getProfileCompletionMeta(user),
       ...tokens,
     };
   }
 
   // Complete registration for new email users (needs phone number and name)
   static async completeEmailOTPRegistration(userData) {
-    const { name, phone, email, user_type, address } = userData;
+    const { name, display_name, date_of_birth, phone, email, user_type, address } = userData;
 
     // Validate required fields - phone is mandatory
     if (!email || !phone || !name) {
@@ -453,7 +504,13 @@ class AuthService {
           newEmail: email,
           existingUser: existingUserByPhone,
           phone,
-          newUserData: { name, user_type: user_type || "retail", address },
+          newUserData: {
+            name,
+            display_name,
+            date_of_birth,
+            user_type: user_type || "retail",
+            address,
+          },
         });
         return {
           requiresMerge: true,
@@ -478,6 +535,8 @@ class AuthService {
     // Create the user
     const userId = await User.create({
       name,
+      display_name,
+      date_of_birth,
       phone,
       email,
       user_type: user_type || "retail",
@@ -489,12 +548,19 @@ class AuthService {
     const user = await User.findById(userId);
 
     // Generate tokens
-    const tokens = await this.generateTokens(user);
+    const enrichedUser = await this.enrichForProfileCompletion(user);
+    const tokens = await this.generateTokens(enrichedUser);
+
+    if (user?.email) {
+      EmailService.sendWelcomeEmail(user.email, user.name)
+        .catch((err) => logger.error('Welcome email failed (email OTP registration):', err));
+    }
 
     logger.info(`New user registered via email OTP: ${email} (ID: ${userId})`);
 
     return {
-      user: this.sanitizeUser(user),
+      user: this.sanitizeUser(enrichedUser),
+      ...this.getProfileCompletionMeta(enrichedUser),
       ...tokens,
     };
   }
@@ -535,16 +601,18 @@ class AuthService {
         `Account is blocked: ${user.blocked_reason || "Contact support"}`,
       );
     }
+    user = await this.enrichForProfileCompletion(user);
     const tokens = await this.generateTokens(user);
     await User.updateLastLogin(user.id);
     return {
       authenticated: true,
       user: this.sanitizeUser(user),
+      ...this.getProfileCompletionMeta(user),
       ...tokens,
     };
   }
   static async registerCustomer(userData) {
-    const { name, phone, user_type, address } = userData;
+    const { name, display_name, date_of_birth, phone, user_type, address } = userData;
     const existingUser = await User.findByPhone(phone);
     if (existingUser) {
       throw ApiError.conflict("User with this phone number already exists");
@@ -558,15 +626,19 @@ class AuthService {
     const roleId = await getRoleIdByUserType(user_type);
     const userId = await User.create({
       name,
+      display_name,
+      date_of_birth,
       phone,
       user_type,
       role_id: roleId,
       address,
     });
     const user = await User.findById(userId);
-    const tokens = await this.generateTokens(user);
+    const enrichedUser = await this.enrichForProfileCompletion(user);
+    const tokens = await this.generateTokens(enrichedUser);
     return {
-      user: this.sanitizeUser(user),
+      user: this.sanitizeUser(enrichedUser),
+      ...this.getProfileCompletionMeta(enrichedUser),
       ...tokens,
     };
   }
@@ -739,6 +811,8 @@ class AuthService {
     return {
       id: user.id,
       name: user.name,
+      display_name: user.display_name,
+      date_of_birth: user.date_of_birth,
       first_name: user.first_name,
       last_name: user.last_name,
       phone: user.phone,

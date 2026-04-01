@@ -1,5 +1,5 @@
 "use client";
-import { memo, useState, useEffect } from "react";
+import { memo, useState } from "react";
 import Link from "next/link";
 import {
   PlusIcon as Plus,
@@ -72,21 +72,16 @@ function ProductCard({ product }) {
   const qty = cartItem?.quantity ?? 0;
   const [adding, setAdding] = useState(false);
   const [bounce, setBounce] = useState(false);
-  const [isWholesale, setIsWholesale] = useState(false);
-
-  useEffect(() => {
-    const userRaw = secureStorage.getItem("user");
-    if (userRaw) {
-      try {
-        const user = JSON.parse(userRaw);
-        setIsWholesale(
-          user.user_type === "wholesale" || user.role === "wholesale_customer",
-        );
-      } catch {
-        setIsWholesale(false);
-      }
+  const [isWholesale] = useState(() => {
+    try {
+      const userRaw = secureStorage.getItem("user");
+      if (!userRaw) return false;
+      const user = JSON.parse(userRaw);
+      return user.user_type === "wholesale" || user.role === "wholesale_customer";
+    } catch {
+      return false;
     }
-  }, []);
+  });
 
   const maxQuantity = isWholesale ? 999999 : product.max_order_quantity || 10;
   const atMaxQuantity = !isWholesale && qty >= maxQuantity;

@@ -14,6 +14,9 @@ class OrderService {
   async create(orderData = {}) {
     return api.post("/orders", orderData);
   }
+  async previewBirthdayCoupon(payload = {}) {
+    return api.post("/orders/birthday-coupon/preview", payload);
+  }
   async cancel(id, reasonOrPayload) {
     const payload = typeof reasonOrPayload === "string"
       ? { reason: reasonOrPayload }
@@ -24,4 +27,6 @@ class OrderService {
     return api.get(`/invoices/order/${orderId}`);
   }
 }
-export default new OrderService();
+
+const orderService = new OrderService();
+export default orderService;

@@ -193,19 +193,16 @@ export default function ProductDetailClient({
   const sentinelRef = useRef(null);
   const router = useRouter();
   const [descExpanded, setDescExpanded] = useState(false);
-  const [isWholesale, setIsWholesale] = useState(false);
-
-  useEffect(() => {
-    const userRaw = secureStorage.getItem("user");
-    if (userRaw) {
-      try {
-        const u = JSON.parse(userRaw);
-        setIsWholesale(u.user_type === "wholesale" || u.role === "wholesale_customer");
-      } catch {
-        setIsWholesale(false);
-      }
+  const [isWholesale] = useState(() => {
+    try {
+      const userRaw = secureStorage.getItem("user");
+      if (!userRaw) return false;
+      const u = JSON.parse(userRaw);
+      return u.user_type === "wholesale" || u.role === "wholesale_customer";
+    } catch {
+      return false;
     }
-  }, []);
+  });
 
   const [localProduct, setLocalProduct] = useState(product);
   const [localVariants, setLocalVariants] = useState(initialVariants);
@@ -390,10 +387,6 @@ export default function ProductDetailClient({
     selectedId,
   ]);
 
-  useEffect(() => {
-    setSelectedId(product.id);
-  }, [product.id]);
-
   /* -- Derived state (must come BEFORE effects that use `selected`) -- */
   const selected =
     localVariants.find((v) => v.id === selectedId) || localProduct;
@@ -473,7 +466,7 @@ export default function ProductDetailClient({
 
   useEffect(() => {
     const base = imagesForVariant(selected);
-    setGalleryImages(base);
+    queueMicrotask(() => setGalleryImages(base));
   }, [selectedId, localProduct]);
 
   useEffect(() => {

@@ -33,20 +33,22 @@ export default function Sidebar({
 
   // Initialize filters from URL
   useEffect(() => {
-    const minPrice = searchParams.get("min_price");
-    const maxPrice = searchParams.get("max_price");
-    if (minPrice || maxPrice) {
-      setPriceRange([
-        minPrice ? parseInt(minPrice) : 0,
-        maxPrice ? parseInt(maxPrice) : 5000,
-      ]);
-    }
+    queueMicrotask(() => {
+      const minPrice = searchParams.get("min_price");
+      const maxPrice = searchParams.get("max_price");
+      if (minPrice || maxPrice) {
+        setPriceRange([
+          minPrice ? parseInt(minPrice) : 0,
+          maxPrice ? parseInt(maxPrice) : 5000,
+        ]);
+      }
 
-    const brandParam = searchParams.get("brand");
-    if (brandParam) setSelectedBrands(brandParam.split(","));
+      const brandParam = searchParams.get("brand");
+      if (brandParam) setSelectedBrands(brandParam.split(","));
 
-    setInStockOnly(searchParams.get("in_stock") === "true");
-    setHasDiscount(searchParams.get("has_discount") === "true");
+      setInStockOnly(searchParams.get("in_stock") === "true");
+      setHasDiscount(searchParams.get("has_discount") === "true");
+    });
   }, [searchParams]);
 
   const applyFilters = (newFilters) => {

@@ -92,11 +92,13 @@ async function migrate() {
       \`id\`                    CHAR(36)     NOT NULL,
       \`role_id\`               CHAR(36)     NOT NULL,
       \`name\`                  VARCHAR(100) NOT NULL,
+      \`display_name\`          VARCHAR(100),
       \`phone\`                 VARCHAR(15)  NOT NULL,
       \`email\`                 VARCHAR(100),
       \`password_hash\`         VARCHAR(255),
       \`user_type\`             VARCHAR(20)  NOT NULL DEFAULT 'retail',
       \`address\`               TEXT,
+      \`date_of_birth\`         DATE,
       \`is_active\`             TINYINT(1)   NOT NULL DEFAULT 1,
       \`is_blocked\`            TINYINT(1)   NOT NULL DEFAULT 0,
       \`blocked_reason\`        VARCHAR(255),
@@ -338,6 +340,10 @@ async function migrate() {
       \`promotion_id\`        CHAR(36),
       \`promotion_discount\`  DECIMAL(12,2) NOT NULL DEFAULT 0,
       \`promotion_title\`     VARCHAR(300),
+      \`birthday_offer_id\`   CHAR(36),
+      \`birthday_coupon_code\` VARCHAR(40),
+      \`birthday_discount\`   DECIMAL(12,2) NOT NULL DEFAULT 0,
+      \`birthday_offer_title\` VARCHAR(200),
       \`notes\`               TEXT,
       \`confirmed_at\`        DATETIME,
       \`ready_at\`            DATETIME,
@@ -352,7 +358,8 @@ async function migrate() {
       KEY \`idx_orders_status\`         (\`status\`),
       KEY \`idx_orders_created\`        (\`created_at\`),
       KEY \`idx_orders_status_created\` (\`status\`, \`created_at\`),
-      KEY \`idx_orders_promo\`          (\`promotion_id\`)
+      KEY \`idx_orders_promo\`          (\`promotion_id\`),
+      KEY \`idx_orders_bday_offer\`     (\`birthday_offer_id\`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `, 'orders');
 
@@ -455,6 +462,68 @@ async function migrate() {
   `, 'store_settings');
 
   await createTable(c, `
+    CREATE TABLE IF NOT EXISTS \`birthday_campaign_logs\` (
+      \`id\`            CHAR(36)    NOT NULL,
+      \`user_id\`       CHAR(36)    NOT NULL,
+      \`campaign_year\` INT         NOT NULL,
+      \`stage\`         VARCHAR(30) NOT NULL,
+      \`sent_at\`       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      \`metadata\`      JSON,
+      PRIMARY KEY (\`id\`),
+      UNIQUE KEY \`uniq_bday_user_year_stage\` (\`user_id\`, \`campaign_year\`, \`stage\`),
+      KEY \`idx_bday_logs_user\` (\`user_id\`),
+      KEY \`idx_bday_logs_year_stage\` (\`campaign_year\`, \`stage\`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `, 'birthday_campaign_logs');
+
+  await createTable(c, `
+    CREATE TABLE IF NOT EXISTS \`birthday_offer_templates\` (
+      \`id\`             CHAR(36)      NOT NULL,
+      \`name\`           VARCHAR(120)  NOT NULL,
+      \`description\`    TEXT,
+      \`discount_type\`  VARCHAR(20)   NOT NULL,
+      \`discount_value\` DECIMAL(10,2) NOT NULL,
+      \`valid_days\`     INT           NOT NULL DEFAULT 7,
+      \`is_active\`      TINYINT(1)    NOT NULL DEFAULT 1,
+      \`created_at\`     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      \`updated_at\`     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (\`id\`),
+      UNIQUE KEY \`uniq_bday_offer_templates_name\` (\`name\`),
+      KEY \`idx_bday_offer_templates_active\` (\`is_active\`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `, 'birthday_offer_templates');
+
+  await createTable(c, `
+    CREATE TABLE IF NOT EXISTS \`birthday_user_offers\` (
+      \`id\`                CHAR(36)      NOT NULL,
+      \`user_id\`           CHAR(36)      NOT NULL,
+      \`campaign_year\`     INT           NOT NULL,
+      \`birthday_date\`     DATE          NOT NULL,
+      \`offer_template_id\` CHAR(36),
+      \`discount_type\`     VARCHAR(20),
+      \`discount_value\`    DECIMAL(10,2),
+      \`valid_days\`        INT,
+      \`coupon_code\`       VARCHAR(40),
+      \`valid_from\`        DATE,
+      \`valid_until\`       DATE,
+      \`status\`            VARCHAR(30)   NOT NULL DEFAULT 'pending_selection',
+      \`admin_selected_by\` CHAR(36),
+      \`selected_at\`       DATETIME,
+      \`reveal_at\`         DATETIME,
+      \`claimed_at\`        DATETIME,
+      \`claimed_order_id\`  CHAR(36),
+      \`created_at\`        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      \`updated_at\`        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (\`id\`),
+      UNIQUE KEY \`uniq_bday_user_year\` (\`user_id\`, \`campaign_year\`),
+      UNIQUE KEY \`uniq_bday_coupon_code\` (\`coupon_code\`),
+      KEY \`idx_bday_user_offers_date\` (\`birthday_date\`),
+      KEY \`idx_bday_user_offers_status\` (\`status\`),
+      KEY \`idx_bday_user_offers_template\` (\`offer_template_id\`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `, 'birthday_user_offers');
+
+  await createTable(c, `
     CREATE TABLE IF NOT EXISTS \`linked_identities\` (
       \`id\`              CHAR(36)     NOT NULL,
       \`primary_user_id\` CHAR(36)     NOT NULL,
@@ -538,11 +607,17 @@ async function migrate() {
     ['cart_items',           'fk_cart_items_product',      '`product_id`',        'products',         '`id`',  'ON DELETE CASCADE'],
     ['orders',               'fk_orders_user',             '`user_id`',           'users',            '`id`',  'ON DELETE RESTRICT'],
     ['orders',               'fk_orders_promo',            '`promotion_id`',      'promotions',       '`id`',  'ON DELETE SET NULL'],
+    ['orders',               'fk_orders_bday_offer',       '`birthday_offer_id`', 'birthday_user_offers', '`id`', 'ON DELETE SET NULL'],
     ['order_items',          'fk_order_items_order',       '`order_id`',          'orders',           '`id`',  'ON DELETE CASCADE'],
     ['order_items',          'fk_order_items_product',     '`product_id`',        'products',         '`id`',  'ON DELETE RESTRICT'],
     ['invoices',             'fk_invoices_order',          '`order_id`',          'orders',           '`id`',  'ON DELETE RESTRICT'],
     ['admin_logs',           'fk_admin_logs_admin',        '`admin_id`',          'users',            '`id`',  'ON DELETE CASCADE'],
     ['linked_identities',    'fk_linked_identities_user',  '`primary_user_id`',   'users',            '`id`',  'ON DELETE CASCADE'],
+    ['birthday_campaign_logs','fk_bday_logs_user',         '`user_id`',           'users',            '`id`',  'ON DELETE CASCADE'],
+    ['birthday_user_offers', 'fk_bday_user_offer_user',    '`user_id`',           'users',            '`id`',  'ON DELETE CASCADE'],
+    ['birthday_user_offers', 'fk_bday_user_offer_tpl',     '`offer_template_id`', 'birthday_offer_templates', '`id`', 'ON DELETE SET NULL'],
+    ['birthday_user_offers', 'fk_bday_user_offer_admin',   '`admin_selected_by`', 'users',            '`id`',  'ON DELETE SET NULL'],
+    ['birthday_user_offers', 'fk_bday_user_offer_order',   '`claimed_order_id`',  'orders',           '`id`',  'ON DELETE SET NULL'],
     ['merge_sessions',       'fk_merge_sessions_user',     '`existing_user_id`',  'users',            '`id`',  'ON DELETE CASCADE'],
     ['merge_otps',           'fk_merge_otps_session',      '`merge_session_id`',  'merge_sessions',   '`id`',  'ON DELETE CASCADE'],
   ];
@@ -599,6 +674,11 @@ async function migrate() {
     ['min_order_amount', '100', 'Minimum Order Amount (₹)', 'Minimum cart value required to place an order.'],
     ['delivery_charge',  '0',   'Delivery Charge (₹)',      'Flat delivery fee added to every order.'],
     ['handling_charge',  '2',   'Handling Charge (₹)',      'Small handling/packaging fee per order.'],
+    ['birthday_campaign_enabled', '1', 'Birthday Campaign Enabled', 'Enable or disable automated birthday emails.'],
+    ['birthday_discount_percent', '10', 'Birthday Discount Percent', 'Default birthday offer discount percentage.'],
+    ['birthday_discount_code', 'BIRTHDAY10', 'Birthday Discount Code', 'Coupon code included in birthday campaign emails.'],
+    ['birthday_discount_valid_days', '7', 'Birthday Discount Validity (days)', 'Number of days birthday discount remains valid after issue.'],
+    ['birthday_offer_title', 'Birthday Special Offer', 'Birthday Offer Title', 'Heading text shown in birthday campaign emails.'],
   ];
   for (const [key, val, label, desc] of settingRows) {
     await c.query(
@@ -606,7 +686,21 @@ async function migrate() {
       [key, val, label, desc],
     );
   }
-  console.log('  ✓ store_settings (3 entries)');
+  console.log('  ✓ store_settings (8 entries)');
+
+  const birthdayTemplateRows = [
+    [uuidv4(), 'Classic 10%', 'Standard birthday reward for all customers', 'percentage', '10.00', 7, 1],
+    [uuidv4(), 'Festive 15%', 'Mid-tier celebratory discount', 'percentage', '15.00', 7, 1],
+    [uuidv4(), 'Premium 20%', 'Premium segment birthday discount', 'percentage', '20.00', 5, 1],
+    [uuidv4(), 'Flat ₹150', 'Flat value birthday reward', 'flat', '150.00', 7, 1],
+  ];
+  for (const [id, name, description, discountType, discountValue, validDays, isActive] of birthdayTemplateRows) {
+    await c.query(
+      'INSERT IGNORE INTO `birthday_offer_templates` (`id`, `name`, `description`, `discount_type`, `discount_value`, `valid_days`, `is_active`) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [id, name, description, discountType, discountValue, validDays, isActive],
+    );
+  }
+  console.log('  ✓ birthday_offer_templates (4 entries)');
 
   // ━━━ Step 5: Summary ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   const [tables] = await c.query('SHOW TABLES');

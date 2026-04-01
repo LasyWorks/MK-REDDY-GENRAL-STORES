@@ -1,5 +1,7 @@
 const Promotion = require('../models/Promotion');
-const { AdminLog } = require('../models');
+const { AdminLog, User } = require('../models');
+const emailService = require('./emailService');
+const logger = require('../utils/logger');
 const ApiError = require('../utils/ApiError');
 class PromotionService {
   static async getActive() {
@@ -86,6 +88,21 @@ class PromotionService {
       entityType: 'promotion',
       entityId: id,
     });
+
+    if (newStatus) {
+      setImmediate(async () => {
+        try {
+          const recipients = await User.findCustomerEmailRecipients();
+          if (!recipients.length) return;
+          await Promise.allSettled(
+            recipients.map((r) => emailService.sendPromotionAnnouncement(r.email, r.name || 'Customer', promo)),
+          );
+        } catch (err) {
+          logger.error('[promotion-email] Failed to send promotion announcement emails:', err);
+        }
+      });
+    }
+
     return { ...promo, is_active: newStatus };
   }
 

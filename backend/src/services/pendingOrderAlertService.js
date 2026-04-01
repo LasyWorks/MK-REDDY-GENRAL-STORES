@@ -1,5 +1,6 @@
 const { query: dbQuery } = require('../config/database');
 const { AdminNotification } = require('../models');
+const emailService = require('./emailService');
 const logger = require('../utils/logger');
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -29,6 +30,14 @@ async function checkOrder(order) {
       stockAtAlert: null,
     });
 
+    const customerEmail = typeof order.customer_email === 'string' ? order.customer_email.trim() : '';
+    if (customerEmail) {
+      await emailService.sendPendingOrderReminder(
+        order,
+        { name: order.customer_name || 'Customer', email: customerEmail },
+      ).catch((err) => logger.error('[pending-order-alert] customer reminder email failed:', err));
+    }
+
     if (created?.id) {
       await AdminNotification.markEmailSent(created.id).catch(() => {});
     }
@@ -40,11 +49,13 @@ async function checkOrder(order) {
 async function runFullScan() {
   try {
     const rows = await dbQuery(
-      `SELECT id, order_number, status, created_at
-       FROM orders
-       WHERE status IN ('pending', 'confirmed')
-         AND created_at <= NOW() - INTERVAL '1 day'
-       ORDER BY created_at ASC`
+      `SELECT o.id, o.order_number, o.status, o.created_at, o.total_amount,
+              u.email AS customer_email, u.name AS customer_name
+       FROM orders o
+       LEFT JOIN users u ON u.id = o.user_id
+       WHERE o.status IN ('pending', 'confirmed')
+         AND o.created_at <= NOW() - INTERVAL '1 day'
+       ORDER BY o.created_at ASC`
     );
 
     let alerted = 0;

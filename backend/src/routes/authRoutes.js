@@ -10,7 +10,8 @@ const {
   validateGoogleLogin, 
   validateGoogleRegister, 
   validateAdminLogin, 
-  validateRefreshToken 
+  validateRefreshToken,
+  validateUpdateProfile,
 } = require('../utils/validators');
 
 // Google OAuth 2.0 Routes (Primary Authentication)
@@ -36,7 +37,7 @@ router.post('/logout-all', authenticate, authController.logoutAll);
 
 // User Profile
 router.get('/me', authenticate, authController.getMe);
-router.put('/me', authenticate, authController.updateMe);
+router.put('/me', authenticate, validateUpdateProfile, authController.updateMe);
 router.put('/change-password', authenticate, authController.changePassword);
 
 module.exports = router;

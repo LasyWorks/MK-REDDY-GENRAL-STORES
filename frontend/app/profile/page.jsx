@@ -19,29 +19,26 @@ import {
 import { CheckBadgeIcon } from "@heroicons/react/24/solid";
 import authService from "@/services/authService";
 import orderService from "@/services/orderService";
+import BirthdayOfferCard from "@/components/profile/BirthdayOfferCard";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
+  const user = authService.getCurrentUser();
   const [orderCount, setOrderCount] = useState(null);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    if (!authService.isAuthenticated()) {
-      setAuthChecked(true);
-      router.replace("/login");
-      return;
-    }
-    const u = authService.getCurrentUser();
-    if (!u) {
+    if (!authService.isAuthenticated() || !user) {
       authService.logout().catch(() => {});
-      setAuthChecked(true);
       router.replace("/login");
       return;
     }
-    setUser(u);
-    setAuthChecked(true);
+
+    if (authService.requiresProfileCompletion(user)) {
+      router.replace(authService.getProfileCompletionLoginHref("/profile"));
+      return;
+    }
+
     orderService
       .getAll({ limit: 1 })
       .then((res) => {
@@ -49,7 +46,7 @@ export default function ProfilePage() {
         setOrderCount(total);
       })
       .catch(() => setOrderCount(0));
-  }, [router]);
+  }, [router, user]);
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -59,7 +56,7 @@ export default function ProfilePage() {
     router.replace("/");
   };
 
-  if (!authChecked || !user) return null;
+  if (!user) return null;
 
   const isAdmin = user.user_type === "admin";
   const isWholesale = user.user_type === "wholesale";
@@ -108,10 +105,11 @@ export default function ProfilePage() {
             {/* Avatar */}
             <div className="relative shrink-0">
               <div
-                className={`w-16 h-16 rounded-full bg-linear-to-br ${avatarBg}
+                className={`relative w-16 h-16 overflow-hidden rounded-full bg-linear-to-br ${avatarBg}
                                flex items-center justify-center text-white text-xl font-black select-none shadow-md`}
               >
                 {user.profile_picture ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={user.profile_picture}
                     alt={user.name}
@@ -214,6 +212,14 @@ export default function ProfilePage() {
           />
         </div>
 
+        {/* ── Birthday Offer ──────────────────────────────────── */}
+        {!isAdmin && !isWholesale && (
+          <>
+            <SectionLabel>Special Offers</SectionLabel>
+            <BirthdayOfferCard />
+          </>
+        )}
+
         {/* ── Admin Tools ──────────────────────────────────────── */}
         {isAdmin && (
           <>
@@ -281,7 +287,7 @@ export default function ProfilePage() {
             />
           )}
           <NavRow
-            href="/profile"
+            href="/profile/settings"
             icon={Cog6ToothIcon}
             iconBg="bg-gray-100"
             iconColor="text-gray-600"

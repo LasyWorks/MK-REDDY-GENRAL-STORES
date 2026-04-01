@@ -4,6 +4,7 @@ const logger = require('../utils/logger');
 const emailService = require('./emailService');
 const stockAlertService = require('./stockAlertService');
 const StoreSetting = require('../models/StoreSetting');
+const birthdayOfferService = require('./birthdayOfferService');
 
 const ADMIN_CANCEL_REASON_LABELS = {
   out_of_stock: 'Out of stock',
@@ -91,7 +92,7 @@ class OrderService {
     }
   }
 
-  static async createOrder(userId, notes = null, lang = 'en', userType = 'retail') {
+  static async createOrder(userId, notes = null, lang = 'en', userType = 'retail', birthdayCouponCode = null) {
     const user = await User.findById(userId);
     if (!user) {
       throw ApiError.notFound('User not found');
@@ -230,9 +231,26 @@ class OrderService {
       promoFreeProductId = null;
     }
 
+    let birthdayPromo = null;
+    try {
+      birthdayPromo = await birthdayOfferService.previewCouponDiscount({
+        userId,
+        couponCode: birthdayCouponCode,
+        cartSubtotal: updatedCart.subtotal,
+      });
+    } catch (err) {
+      logger.warn('Birthday coupon preview failed (continuing without birthday discount):', err?.message || err);
+    }
+
     const { orderId, orderNumber } = await Order.createFromCart(userId, updatedCart, notes, {
-      promotionId: promoId, promotionDiscount: promoDiscount, promotionTitle: promoTitle,
+      promotionId: promoId,
+      promotionDiscount: promoDiscount,
+      promotionTitle: promoTitle,
       freeProductId: promoFreeProductId,
+      birthdayOfferId: birthdayPromo?.offerId || null,
+      birthdayCouponCode: birthdayPromo?.couponCode || null,
+      birthdayDiscount: birthdayPromo?.discountAmount || 0,
+      birthdayOfferTitle: birthdayPromo?.offerTitle || null,
     });
     const order = await Order.findById(orderId, lang);
     await Invoice.create(order, user);
@@ -335,13 +353,21 @@ class OrderService {
       AdminNotification.resolveForOrder(orderId, 'pending_order').catch(() => {});
     }
 
-    // Email customer the moment their order is ready for pickup — no matter what
+    // Email customer at key fulfillment milestones.
     if (status === 'ready_for_pickup') {
       const customer = await User.findById(order.user_id);
       if (customer) {
         const readyOrder = await Order.findById(orderId);
         emailService.sendOrderReadyNotification(readyOrder, customer)
           .catch((err) => logger.error('Ready-for-pickup email failed:', err));
+      }
+    }
+    if (status === 'picked_up') {
+      const customer = await User.findById(order.user_id);
+      if (customer) {
+        const pickedOrder = await Order.findById(orderId);
+        emailService.sendOrderPickedUpNotification(pickedOrder, customer)
+          .catch((err) => logger.error('Picked-up confirmation email failed:', err));
       }
     }
     if (adminId) {

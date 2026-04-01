@@ -3,6 +3,8 @@ const { pool } = require("../config/database");
 const config = require("../config");
 const ApiError = require("../utils/ApiError");
 const { getRoleIdByUserType } = require("../utils/helpers");
+const EmailService = require("./emailService");
+const logger = require("../utils/logger");
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -61,6 +63,22 @@ class UserService {
         newValue: userData,
       });
     }
+
+    const oldEmail = typeof user.email === "string" ? user.email.trim() : "";
+    const newEmail = typeof userData.email === "string" ? userData.email.trim() : "";
+    const emailChanged = newEmail && oldEmail.toLowerCase() !== newEmail.toLowerCase();
+
+    if (emailChanged) {
+      const displayName = userData.name || user.name || "Customer";
+      EmailService.sendEmailChangeConfirmation(newEmail, displayName)
+        .catch((err) => logger.error("Email change confirmation failed:", err));
+
+      if (oldEmail) {
+        EmailService.sendEmailChangeSecurityAlert(oldEmail, displayName, newEmail)
+          .catch((err) => logger.error("Email change security alert failed:", err));
+      }
+    }
+
     return this.getById(id);
   }
   static async delete(id, adminId) {
@@ -304,6 +322,8 @@ class UserService {
     return {
       id: user.id,
       name: user.name,
+      display_name: user.display_name,
+      date_of_birth: user.date_of_birth,
       phone: user.phone,
       email: user.email,
       user_type: user.user_type,

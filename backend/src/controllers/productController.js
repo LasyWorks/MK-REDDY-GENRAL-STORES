@@ -138,7 +138,7 @@ const getAllProductsAdmin = asyncHandler(async (req, res) => {
     1000,
   );
   const { category_id, search, sort_by, sort_order, exclude_variants } = req.query;
-  const lang = req.language || "en";
+  // ADMIN DASHBOARD: Always use English, never respect client language
   const result = await ProductService.getAll({
     page,
     limit,
@@ -148,7 +148,7 @@ const getAllProductsAdmin = asyncHandler(async (req, res) => {
     sortOrder: sort_order || "ASC",
     // Show both active and inactive products so admins can manage everything
     isActive: null,
-    lang,
+    lang: "en",
     // Optional: exclude child variants to show only parent products
     excludeVariants: exclude_variants === "true",
   });

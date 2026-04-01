@@ -24,7 +24,9 @@ const getCategories = asyncHandler(async (req, res) => {
 });
 const getCategory = asyncHandler(async (req, res) => {
   const lang = req.language || "en";
-  const category = await CategoryService.getById(req.params.id, lang);
+  // For admin/authenticated users viewing categories: always use English
+  const finalLang = req.user ? "en" : lang;
+  const category = await CategoryService.getById(req.params.id, finalLang);
   ApiResponse.success(res, category);
 });
 const createCategory = asyncHandler(async (req, res) => {
@@ -66,12 +68,12 @@ const getCategoryProducts = asyncHandler(async (req, res) => {
 });
 const getAllCategoriesAdmin = asyncHandler(async (req, res) => {
   const { page, limit } = getPaginationParams(req.query.page, req.query.limit, 500);
-  const lang = req.language || "en";
+  // ADMIN DASHBOARD: Always use English, never respect client language
   const result = await CategoryService.getAll({
     page,
     limit,
     isActive: null,
-    lang,
+    lang: "en",
   });
   ApiResponse.paginated(res, result.categories, {
     page,

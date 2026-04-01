@@ -5,6 +5,7 @@ import {
   ChevronRightIcon as ChevronRight,
   StarIcon as Star,
 } from "@heroicons/react/24/outline";
+import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import ProductCard from "@/components/category/ProductCard";
 import ProductCardWithVariants from "@/components/category/ProductCardWithVariants";
@@ -62,12 +63,12 @@ export default function FeaturedProducts() {
           </div>
           {}
           <div className="flex items-center gap-2">
-            <a
+            <Link
               href="/products"
               className="text-[#16A34A] text-xs md:text-sm font-semibold hover:underline"
             >
               View All
-            </a>
+            </Link>
             {!loading && productGroups.length > 0 && (
               <div className="hidden sm:flex gap-2">
                 <button

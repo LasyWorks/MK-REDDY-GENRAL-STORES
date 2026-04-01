@@ -1,12 +1,19 @@
 const { OrderService } = require('../services');
+const birthdayOfferService = require('../services/birthdayOfferService');
 const { asyncHandler } = require('../middlewares');
 const ApiResponse = require('../utils/ApiResponse');
 const { getPaginationParams } = require('../utils/helpers');
 const createOrder = asyncHandler(async (req, res) => {
-  const { notes } = req.body;
+  const { notes, birthday_coupon_code } = req.body;
   const lang = req.language || 'en';
   const userType = req.user.userType || 'retail';
-  const order = await OrderService.createOrder(req.user.id, notes, lang, userType);
+  const order = await OrderService.createOrder(
+    req.user.id,
+    notes,
+    lang,
+    userType,
+    birthday_coupon_code || null,
+  );
   ApiResponse.created(res, order, 'Order placed successfully');
 });
 const getMyOrders = asyncHandler(async (req, res) => {
@@ -76,6 +83,26 @@ const getStatistics = asyncHandler(async (req, res) => {
   const stats = await OrderService.getStatistics(start_date, end_date);
   ApiResponse.success(res, stats);
 });
+
+const previewBirthdayCoupon = asyncHandler(async (req, res) => {
+  const { coupon_code, cart_subtotal } = req.body || {};
+  if (!coupon_code) {
+    return ApiResponse.error(res, 'coupon_code is required', 400);
+  }
+
+  const preview = await birthdayOfferService.previewCouponDiscount({
+    userId: req.user.id,
+    couponCode: coupon_code,
+    cartSubtotal: Number(cart_subtotal || 0),
+  });
+
+  if (!preview) {
+    return ApiResponse.error(res, 'Invalid or unavailable birthday coupon', 400);
+  }
+
+  ApiResponse.success(res, preview);
+});
+
 module.exports = {
   createOrder,
   getMyOrders,
@@ -85,4 +112,5 @@ module.exports = {
   updateOrderStatus,
   cancelOrder,
   getStatistics,
+  previewBirthdayCoupon,
 };

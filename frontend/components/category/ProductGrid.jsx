@@ -6,6 +6,8 @@ import EmptyState from "./EmptyState";
 import { groupProductsByVariant } from "@/lib/productGrouping";
 
 export default function ProductGrid({ products, loading }) {
+  const groups = useMemo(() => groupProductsByVariant(products), [products]);
+
   if (loading) {
     return (
       <>
@@ -36,9 +38,6 @@ export default function ProductGrid({ products, loading }) {
   if (!products || products.length === 0) {
     return <EmptyState />;
   }
-
-  // Group products that share a parent_product_id (or brand+name fallback)
-  const groups = useMemo(() => groupProductsByVariant(products), [products]);
 
   return (
     <>

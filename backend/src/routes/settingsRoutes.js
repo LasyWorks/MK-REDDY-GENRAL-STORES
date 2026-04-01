@@ -10,6 +10,18 @@ router.get("/voice-dictionary", settingsController.getVoiceDictionary);
 // Admin only — full settings management
 router.get("/", authenticate, authorize("admin"), settingsController.getAllSettings);
 router.put("/", authenticate, authorize("admin"), settingsController.updateSettings);
+router.get(
+	"/birthday-campaign",
+	authenticate,
+	authorize("admin"),
+	settingsController.getBirthdayCampaignSettings,
+);
+router.put(
+	"/birthday-campaign",
+	authenticate,
+	authorize("admin"),
+	settingsController.updateBirthdayCampaignSettings,
+);
 router.put(
 	"/voice-dictionary",
 	authenticate,

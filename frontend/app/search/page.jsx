@@ -22,7 +22,6 @@ function PopularProducts() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
     fetch(`${API_URL}/products/popular?limit=20&lang=${lang}`, {
       cache: "no-store",
     })

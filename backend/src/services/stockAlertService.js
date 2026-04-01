@@ -1,116 +1,94 @@
-/**
- * stockAlertService
- *
- * Central place for all stock-alert logic:
- *   - Deduplication: don't fire a second alert if one was sent < 1 day ago
- *   - Resend: if the product is still low/out after 1 day, send again
- *   - Resolution: when stock is restored above threshold, close open notifications
- *   - In-app: all events are persisted in admin_notifications
- *   - Email: admin emails are gathered from user table and sent via emailService
- */
-const { AdminNotification, User } = require('../models');
-const emailService = require('./emailService');
-const logger = require('../utils/logger');
-const { query: dbQuery } = require('../config/database');
+const { AdminNotification, User, SystemConfig } = require("../models");
+const emailService = require("./emailService");
+const logger = require("../utils/logger");
+const { query: dbQuery } = require("../config/database");
+const stockAlertPolicy = require("../config/stockAlertPolicy");
 
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+function getISTParts() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: stockAlertPolicy.timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date());
+  const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  return {
+    year: map.year,
+    month: map.month,
+    day: map.day,
+    hour: parseInt(map.hour, 10),
+    minute: parseInt(map.minute, 10),
+    dateKey: `${map.year}-${map.month}-${map.day}`,
+  };
+}
 
-/**
- * Check a single product and fire an alert if stock is at or below threshold.
- * Safe to call on every stock change — handles all deduplication internally.
- *
- * @param {object} product  Full product row including stock_quantity, low_stock_threshold, name, etc.
- */
+function getWindowForNow(hour) {
+  return stockAlertPolicy.notificationWindows.find(
+    (w) => hour >= w.startHour && hour < w.endHour,
+  );
+}
+
+async function loadActiveStockIssues() {
+  const rows = await dbQuery(
+    `SELECT p.id, p.sku, p.variant, p.unit_pack_size,
+            p.stock_quantity, p.low_stock_threshold,
+            COALESCE(pt.name, p.sku, 'Unknown') AS name
+     FROM products p
+     LEFT JOIN product_translations pt ON pt.product_id = p.id AND pt.lang_code = 'en'
+     WHERE p.is_active = TRUE
+       AND p.stock_quantity <= COALESCE(p.low_stock_threshold, 10)
+     ORDER BY p.stock_quantity ASC`,
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    sku: row.sku,
+    variant: row.variant,
+    unit_pack_size: row.unit_pack_size,
+    stock_quantity: parseFloat(row.stock_quantity ?? 0),
+    low_stock_threshold: parseFloat(row.low_stock_threshold ?? 10),
+    alertType: parseFloat(row.stock_quantity ?? 0) <= 0 ? "out" : "low",
+  }));
+}
+
+async function hasMarker(key) {
+  const value = await SystemConfig.get(key);
+  return value === "1";
+}
+
+async function setMarker(key, description) {
+  await SystemConfig.set(key, "1", description);
+}
+
+function buildDigestMessage(issues) {
+  const outCount = issues.filter((i) => i.alertType === "out").length;
+  const lowCount = issues.length - outCount;
+  const sample = issues
+    .slice(0, 8)
+    .map((i) => `${i.name} (${i.stock_quantity})`)
+    .join(", ");
+  return `Out of stock: ${outCount}, Low stock: ${lowCount}. Items: ${sample}${issues.length > 8 ? ", ..." : ""}`;
+}
+
 async function checkAndAlert(product) {
   try {
     const stock = parseFloat(product.stock_quantity ?? 0);
-    const thresh = parseFloat(product.low_stock_threshold ?? 10);
+    const threshold = parseFloat(product.low_stock_threshold ?? 10);
 
-    logger.info(`[stock-alert] checkAndAlert: product=${product.id} name="${product.name}" stock=${stock} threshold=${thresh}`);
-
-    // Stock is fine — resolve any open notification and exit
-    if (stock > thresh) {
-      logger.info(`[stock-alert] stock OK (${stock} > ${thresh}), resolving any open notification.`);
+    // We no longer emit immediate stock notifications/emails.
+    // We only resolve stale per-product rows if stock recovered.
+    if (stock > threshold) {
       await AdminNotification.resolveForProduct(product.id).catch(() => {});
-      return;
     }
-
-    const alertType = stock <= 0 ? 'out' : 'low';
-    const productName = product.name || product.name_en || 'Unknown Product';
-    const variant = product.variant || product.unit_pack_size || '';
-    const label = alertType === 'out' ? 'Out of Stock' : 'Low Stock';
-    const title = `${label}: ${productName}${variant ? ` (${variant})` : ''}`;
-    const message = alertType === 'out'
-      ? `${productName} is out of stock (0 units).`
-      : `${productName} has only ${stock} unit(s) left (threshold: ${thresh}).`;
-
-    // Look for an existing unresolved notification for this product
-    const existing = await AdminNotification.findUnresolved(product.id);
-    logger.info(`[stock-alert] existing notification: ${existing ? `id=${existing.id} email_sent_at=${existing.email_sent_at}` : 'none'}`);
-
-    if (existing) {
-      // Notification already exists — check whether to resend the email
-      // email_sent_at is NULL if the previous attempt never sent (e.g. crashed before delivery)
-      const lastSent = existing.email_sent_at ? new Date(existing.email_sent_at).getTime() : 0;
-      const msSinceSent = Date.now() - lastSent;
-      logger.info(`[stock-alert] ms since last email: ${msSinceSent} (1-day window: ${ONE_DAY_MS}, never_sent=${!existing.email_sent_at})`);
-      if (msSinceSent < ONE_DAY_MS && existing.email_sent_at) {
-        logger.info('[stock-alert] within 1-day window — skipping reminder resend.');
-        return;
-      }
-      // 1+ day has passed and still unresolved — rotate to a fresh notification row
-      logger.info('[stock-alert] 1-day window passed — creating a fresh reminder notification.');
-      await AdminNotification.resolveForProduct(product.id).catch(() => {});
-      await AdminNotification.create({
-        type: alertType,
-        title,
-        message,
-        productId: product.id,
-        stockAtAlert: stock,
-      }).catch((err) => logger.error('[stock-alert] create reminder notification failed:', err));
-    } else {
-      // Brand-new alert — create the in-app notification
-      logger.info('[stock-alert] new alert — creating notification row.');
-      await AdminNotification.create({
-        type: alertType,
-        title,
-        message,
-        productId: product.id,
-        stockAtAlert: stock,
-      }).catch((err) => logger.error('[stock-alert] create notification failed:', err));
-    }
-
-    // Get admin emails and send
-    const adminEmails = await User.findAdminEmails();
-    logger.info(`[stock-alert] admin emails found: ${adminEmails.length} — [${adminEmails.join(', ')}]`);
-    if (!adminEmails.length) {
-      logger.warn('[stock-alert] no admin emails found — cannot send stock alert email.');
-      return;
-    }
-
-    // Find the notification row ID so we can mark it sent after delivery
-    const notifRow = await AdminNotification.findUnresolved(product.id);
-
-    const result = await emailService.sendStockAlert(adminEmails, product, alertType);
-    logger.info(`[stock-alert] email result: sent=${result.sent}/${result.total}`);
-
-    if (result.sent > 0 && notifRow) {
-      await AdminNotification.markEmailSent(notifRow.id).catch(() => {});
-    }
-
   } catch (err) {
-    logger.error('[stock-alert] checkAndAlert error:', err);
+    logger.error("[stock-alert] checkAndAlert error:", err);
   }
 }
 
-/**
- * Run checkAndAlert for a list of product IDs.
- * Used by orderService after order creation to check every purchased product.
- * Fetches the latest DB state for each product to get accurate post-deduction stock.
- *
- * @param {string[]} productIds
- * @param {Function} findById  Product.findById function reference
- */
 async function checkAndAlertMany(productIds, findById) {
   const unique = [...new Set(productIds.filter(Boolean))];
   for (const id of unique) {
@@ -123,44 +101,67 @@ async function checkAndAlertMany(productIds, findById) {
   }
 }
 
-/**
- * Scan the full catalog and trigger alerts for every active low/out-of-stock product.
- * Useful for startup backfill and manual admin recheck.
- */
 async function runFullScan() {
   try {
-    const rows = await dbQuery(
-      `SELECT p.id, p.sku, p.variant, p.unit_pack_size,
-              p.stock_quantity, p.low_stock_threshold,
-              COALESCE(pt.name, p.sku, 'Unknown') AS name
-       FROM products p
-       LEFT JOIN product_translations pt ON pt.product_id = p.id AND pt.lang_code = 'en'
-       WHERE p.is_active = TRUE
-         AND p.stock_quantity <= COALESCE(p.low_stock_threshold, 10)
-       ORDER BY p.stock_quantity ASC`
-    );
-
-    let alerted = 0;
-    for (const row of rows) {
-      const product = {
-        id: row.id,
-        name: row.name,
-        sku: row.sku,
-        variant: row.variant,
-        unit_pack_size: row.unit_pack_size,
-        stock_quantity: parseFloat(row.stock_quantity ?? 0),
-        low_stock_threshold: parseFloat(row.low_stock_threshold ?? 10),
-      };
-      await checkAndAlert(product);
-      alerted += 1;
-    }
-
-    logger.info(`[stock-alert] full scan complete: evaluated=${rows.length}, alerted=${alerted}`);
-    return { scanned: rows.length, alerted };
+    const issues = await loadActiveStockIssues();
+    logger.info(`[stock-alert] full scan complete: issues=${issues.length}`);
+    return { scanned: issues.length, alerted: issues.length, issues };
   } catch (err) {
-    logger.error('[stock-alert] runFullScan error:', err);
+    logger.error("[stock-alert] runFullScan error:", err);
     throw err;
   }
 }
 
-module.exports = { checkAndAlert, checkAndAlertMany, runFullScan };
+async function runScheduledDispatch() {
+  try {
+    const now = getISTParts();
+    const issues = await loadActiveStockIssues();
+
+    if (!issues.length) {
+      logger.info("[stock-alert] scheduled dispatch: no active stock issues");
+      return { issues: 0, emailSent: false, notificationSent: false };
+    }
+
+    let emailSent = false;
+    for (const slot of stockAlertPolicy.emailSlots) {
+      if (slot.hour === now.hour && slot.minute === now.minute) {
+        const emailKey = `stock_alert_email_${now.dateKey}_${slot.label}`;
+        if (!(await hasMarker(emailKey))) {
+          const adminEmails = await User.findAdminEmails();
+          if (adminEmails.length) {
+            const result = await emailService.sendStockDigest(adminEmails, issues, slot.label);
+            if (result?.sent > 0) {
+              await setMarker(emailKey, `Stock digest email sent for ${slot.label}`);
+              emailSent = true;
+            }
+          }
+        }
+      }
+    }
+
+    let notificationSent = false;
+    const window = getWindowForNow(now.hour);
+    if (window) {
+      const notifKey = `stock_alert_notif_${now.dateKey}_${window.label}`;
+      if (!(await hasMarker(notifKey))) {
+        await AdminNotification.create({
+          type: "stock_digest",
+          title: `Stock Alert Summary (${window.label})`,
+          message: buildDigestMessage(issues),
+          productId: null,
+          orderId: null,
+          stockAtAlert: null,
+        });
+        await setMarker(notifKey, `Stock digest notification sent for ${window.label}`);
+        notificationSent = true;
+      }
+    }
+
+    return { issues: issues.length, emailSent, notificationSent };
+  } catch (err) {
+    logger.error("[stock-alert] runScheduledDispatch error:", err);
+    return { issues: 0, emailSent: false, notificationSent: false, error: err.message };
+  }
+}
+
+module.exports = { checkAndAlert, checkAndAlertMany, runFullScan, runScheduledDispatch };

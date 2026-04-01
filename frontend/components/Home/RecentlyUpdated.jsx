@@ -5,6 +5,7 @@ import {
   ChevronRightIcon as ChevronRight,
   ArrowPathIcon as RefreshIcon,
 } from "@heroicons/react/24/outline";
+import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import ProductCard from "@/components/category/ProductCard";
 import ProductCardWithVariants from "@/components/category/ProductCardWithVariants";
@@ -79,12 +80,12 @@ export default function RecentlyUpdated() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <a
+            <Link
               href="/products?sort_by=updated_at&sort_order=DESC"
               className="text-[#16A34A] text-xs md:text-sm font-semibold hover:underline"
             >
               View All
-            </a>
+            </Link>
             <div className="hidden md:flex gap-2">
               {!loading && productGroups.length > 0 && (
                 <>

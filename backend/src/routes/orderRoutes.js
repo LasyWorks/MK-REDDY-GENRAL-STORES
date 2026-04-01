@@ -7,6 +7,7 @@ router.use(authenticate);
 // Allow admins to create and view their own orders (for testing or personal purchases)
 router.post('/', authorize('retail_customer', 'wholesale_customer', 'admin'), validateCreateOrder, orderController.createOrder);
 router.get('/my-orders', authorize('retail_customer', 'wholesale_customer', 'admin'), orderController.getMyOrders);
+router.post('/birthday-coupon/preview', authorize('retail_customer', 'wholesale_customer', 'admin'), orderController.previewBirthdayCoupon);
 router.get('/statistics', authorize('admin'), orderController.getStatistics);
 router.get('/', authorize('admin'), orderController.getAllOrders);
 router.get('/number/:orderNumber', orderController.getOrderByNumber);

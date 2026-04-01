@@ -27,8 +27,6 @@ export default function MobileHeader() {
   const { lang, setLang } = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
-  // Category detail pages (/categories/[id]) have their own sticky header
-  if (/^\/(categories|products)\/[^/]+/.test(pathname)) return null;
   const [query, setQuery] = useState("");           // what user sees
   const [searchTerm, setSearchTerm] = useState(""); // English term sent to API
   const [results, setResults] = useState([]);
@@ -186,6 +184,9 @@ export default function MobileHeader() {
       doSearch(term);
     }, DEBOUNCE_MS);
   }, [finalTranscript, langMode, doSearch]);
+
+  const isDetailPage = /^\/(categories|products)\/[^/]+/.test(pathname);
+  if (isDetailPage) return null;
 
   const handleChange = (e) => {
     const val = e.target.value;
@@ -478,7 +479,7 @@ export default function MobileHeader() {
               onClick={() => setSearchOpen(false)}
               className="block text-center text-xs text-[#16A34A] font-semibold py-2.5 bg-green-50 hover:bg-green-100 transition-colors"
             >
-              See all results for "{searchTerm || query}"
+              See all results for &quot;{searchTerm || query}&quot;
             </Link>
           </div>
         )}

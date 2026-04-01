@@ -18,10 +18,12 @@ const googleLogin = asyncHandler(async (req, res) => {
 
 // Complete Google OAuth registration with phone number
 const completeGoogleRegistration = asyncHandler(async (req, res) => {
-  const { name, phone, email, googleId, picture, user_type, address } = req.body;
+  const { name, display_name, date_of_birth, phone, email, googleId, picture, user_type, address } = req.body;
   
   const result = await AuthService.completeGoogleRegistration({
     name,
+    display_name,
+    date_of_birth,
     phone,
     email,
     googleId,
@@ -49,8 +51,8 @@ const verifyOTP = asyncHandler(async (req, res) => {
   }
 });
 const register = asyncHandler(async (req, res) => {
-  const { name, phone, user_type, address } = req.body;
-  const result = await AuthService.registerCustomer({ name, phone, user_type, address });
+  const { name, display_name, date_of_birth, phone, user_type, address } = req.body;
+  const result = await AuthService.registerCustomer({ name, display_name, date_of_birth, phone, user_type, address });
   ApiResponse.created(res, result, 'Registration successful');
 });
 const adminLogin = asyncHandler(async (req, res) => {
@@ -85,9 +87,9 @@ const getMe = asyncHandler(async (req, res) => {
 });
 
 const updateMe = asyncHandler(async (req, res) => {
-  const { name, email, address } = req.body;
+  const { name, display_name, date_of_birth, email, address } = req.body;
   const { UserService } = require('../services');
-  const user = await UserService.update(req.user.id, { name, email, address });
+  const user = await UserService.update(req.user.id, { name, display_name, date_of_birth, email, address });
   ApiResponse.success(res, user, 'Profile updated successfully');
 });
 const changePassword = asyncHandler(async (req, res) => {
@@ -116,9 +118,11 @@ const verifyCustomerEmailOTP = asyncHandler(async (req, res) => {
 });
 
 const completeEmailOTPRegistration = asyncHandler(async (req, res) => {
-  const { name, phone, email, user_type, address } = req.body;
+  const { name, display_name, date_of_birth, phone, email, user_type, address } = req.body;
   const result = await AuthService.completeEmailOTPRegistration({
     name,
+    display_name,
+    date_of_birth,
     phone,
     email,
     user_type,

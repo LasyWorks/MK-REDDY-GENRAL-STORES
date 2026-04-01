@@ -37,12 +37,9 @@ export default function CartSidebar() {
     closeCart,
   } = useCart();
   const overlayRef = useRef(null);
-  const [loggedIn, setLoggedIn] = useState(false);
+  const [loggedIn] = useState(() => !!secureStorage.getItem("token"));
   const pathname = usePathname();
   const loginHref = `/login?redirect=${encodeURIComponent(pathname || "/")}`;
-  useEffect(() => {
-    setLoggedIn(!!secureStorage.getItem("token"));
-  }, [isCartOpen]);
   useEffect(() => {
     if (isCartOpen) {
       document.body.style.overflow = "hidden";

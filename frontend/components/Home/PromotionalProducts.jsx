@@ -212,21 +212,16 @@ function FestiveProductCard({ product, themeColor }) {
   const cartItem = items.find((i) => i.id === product.id);
   const qty = cartItem?.quantity ?? 0;
   const [adding, setAdding] = useState(false);
-  const [isWholesale, setIsWholesale] = useState(false);
-
-  useEffect(() => {
+  const [isWholesale] = useState(() => {
     try {
       const raw = secureStorage.getItem("user");
-      if (raw) {
-        const u = JSON.parse(raw);
-        setIsWholesale(
-          u.user_type === "wholesale" || u.role === "wholesale_customer",
-        );
-      }
+      if (!raw) return false;
+      const u = JSON.parse(raw);
+      return u.user_type === "wholesale" || u.role === "wholesale_customer";
     } catch {
-      setIsWholesale(false);
+      return false;
     }
-  }, []);
+  });
 
   const maxQuantity = isWholesale ? 999999 : product.max_order_quantity || 10;
   const atMaxQuantity = !isWholesale && qty >= maxQuantity;

@@ -176,6 +176,15 @@ const userValidation = {
   ],
   register: [
     commonRules.name("name"),
+    body("display_name")
+      .optional({ nullable: true, checkFalsy: true })
+      .trim()
+      .isLength({ min: 2, max: 100 })
+      .withMessage("display_name must be between 2 and 100 characters"),
+    body("date_of_birth")
+      .optional({ nullable: true, checkFalsy: true })
+      .isISO8601()
+      .withMessage("date_of_birth must be a valid date in YYYY-MM-DD format"),
     commonRules.phone("phone"),
     body("user_type")
       .isIn(["retail", "wholesale"])
@@ -191,6 +200,15 @@ const userValidation = {
   verifyOtp: [commonRules.phone("phone"), commonRules.otp("otp"), validate],
   update: [
     commonRules.name("name").optional(),
+    body("display_name")
+      .optional({ nullable: true, checkFalsy: true })
+      .trim()
+      .isLength({ min: 2, max: 100 })
+      .withMessage("display_name must be between 2 and 100 characters"),
+    body("date_of_birth")
+      .optional({ nullable: true, checkFalsy: true })
+      .isISO8601()
+      .withMessage("date_of_birth must be a valid date in YYYY-MM-DD format"),
     body("address")
       .optional()
       .trim()
@@ -286,6 +304,12 @@ const orderValidation = {
       .trim()
       .isLength({ max: 500 })
       .withMessage("Notes must not exceed 500 characters"),
+    body("birthday_coupon_code")
+      .optional({ nullable: true, checkFalsy: true })
+      .trim()
+      .isLength({ max: 40 })
+      .matches(/^[A-Za-z0-9-]+$/)
+      .withMessage("birthday_coupon_code must be alphanumeric and may include hyphen"),
     validate,
   ],
   updateStatus: [
@@ -321,6 +345,15 @@ const authValidation = {
       .trim()
       .isLength({ min: 2, max: 100 })
       .withMessage("Name must be between 2 and 100 characters"),
+    body("display_name")
+      .optional({ nullable: true, checkFalsy: true })
+      .trim()
+      .isLength({ min: 2, max: 100 })
+      .withMessage("display_name must be between 2 and 100 characters"),
+    body("date_of_birth")
+      .optional({ nullable: true, checkFalsy: true })
+      .isISO8601()
+      .withMessage("date_of_birth must be a valid date in YYYY-MM-DD format"),
     commonRules.phone("phone"),
     commonRules.email("email"),
     body("googleId")
@@ -345,6 +378,15 @@ const authValidation = {
       .trim()
       .isLength({ min: 2, max: 100 })
       .withMessage("Name must be between 2 and 100 characters"),
+    body("display_name")
+      .optional({ nullable: true, checkFalsy: true })
+      .trim()
+      .isLength({ min: 2, max: 100 })
+      .withMessage("display_name must be between 2 and 100 characters"),
+    body("date_of_birth")
+      .optional({ nullable: true, checkFalsy: true })
+      .isISO8601()
+      .withMessage("date_of_birth must be a valid date in YYYY-MM-DD format"),
     commonRules.phone("phone"),
     commonRules.email("email"),
     body("user_type")
@@ -374,6 +416,34 @@ const authValidation = {
     body("newPassword")
       .isLength({ min: 8 })
       .withMessage("New password must be at least 8 characters"),
+    validate,
+  ],
+  updateProfile: [
+    body("name")
+      .optional({ nullable: true, checkFalsy: true })
+      .trim()
+      .isLength({ min: 2, max: 100 })
+      .withMessage("name must be between 2 and 100 characters"),
+    body("display_name")
+      .optional({ nullable: true, checkFalsy: true })
+      .trim()
+      .isLength({ min: 2, max: 100 })
+      .withMessage("display_name must be between 2 and 100 characters"),
+    body("date_of_birth")
+      .optional({ nullable: true, checkFalsy: true })
+      .isISO8601()
+      .withMessage("date_of_birth must be a valid date in YYYY-MM-DD format"),
+    body("email")
+      .optional({ nullable: true, checkFalsy: true })
+      .trim()
+      .isEmail()
+      .normalizeEmail()
+      .withMessage("Invalid email address"),
+    body("address")
+      .optional({ nullable: true, checkFalsy: true })
+      .trim()
+      .isLength({ max: 500 })
+      .withMessage("Address must not exceed 500 characters"),
     validate,
   ],
 };
@@ -413,6 +483,7 @@ const validateGoogleLogin = authValidation.googleLogin;
 const validateGoogleRegister = authValidation.googleRegister;
 const validateAdminLogin = authValidation.adminLogin;
 const validateRefreshToken = authValidation.refreshToken;
+const validateUpdateProfile = authValidation.updateProfile;
 const validateCreateUser = userValidation.create;
 const validateUpdateUser = userValidation.update;
 const validateCreateCategory = categoryValidation.create;
@@ -489,6 +560,7 @@ module.exports = {
   validateGoogleRegister,
   validateAdminLogin,
   validateRefreshToken,
+  validateUpdateProfile,
   validateCreateUser,
   validateUpdateUser,
   validateCreateCategory,

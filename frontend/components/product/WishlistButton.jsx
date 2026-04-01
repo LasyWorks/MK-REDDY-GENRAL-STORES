@@ -1,17 +1,17 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { HeartIcon as Heart } from "@heroicons/react/24/outline";
 
 export default function WishlistButton({ productId, productName }) {
-  const [wished, setWished] = useState(false);
-  const [pop, setPop] = useState(false);
-
-  useEffect(() => {
+  const [wished, setWished] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem("wishlist") || "[]");
-      setWished(saved.includes(productId));
-    } catch {}
-  }, [productId]);
+      return saved.includes(productId);
+    } catch {
+      return false;
+    }
+  });
+  const [pop, setPop] = useState(false);
 
   const toggle = (e) => {
     e.preventDefault();

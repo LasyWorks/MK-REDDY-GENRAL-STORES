@@ -16,27 +16,22 @@ export default function NotFound() {
   ];
   return (
     <main className="min-h-[80vh] bg-gradient-to-b from-blue-50/40 to-white flex flex-col items-center justify-center px-4 py-20 text-center">
-      {}
       <div className="relative mb-8 select-none">
         <ShoppingCart
           className="w-32 sm:w-40 h-32 sm:h-40 text-blue-400 animate-bounce"
           aria-label="Empty shopping cart"
         />
       </div>
-      {}
       <p className="text-sm font-bold tracking-[0.3em] text-blue-400 uppercase mb-2">
         Error 404
       </p>
-      {}
       <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-3">
         Aisle not found!
       </h1>
-      {}
       <p className="text-gray-500 text-base sm:text-lg max-w-md mb-10 leading-relaxed">
-        Looks like this page wandered off to the wrong shelf. Don't worry — our
-        store is fully stocked. Let's get you back on track.
+        Looks like this page wandered off to the wrong shelf. Don&apos;t worry - our
+        store is fully stocked. Let&apos;s get you back on track.
       </p>
-      {}
       <div className="flex flex-col sm:flex-row gap-3 mb-12">
         <Link
           href="/"
@@ -53,7 +48,6 @@ export default function NotFound() {
           Search Products
         </Link>
       </div>
-      {}
       <div className="w-full max-w-md">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">
           Popular categories

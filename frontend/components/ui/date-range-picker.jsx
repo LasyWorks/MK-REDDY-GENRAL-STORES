@@ -61,7 +61,7 @@ export function DateRangePicker({
 
   useEffect(() => {
     if (!open) {
-      setDraftRange(normalizeRange(value));
+      queueMicrotask(() => setDraftRange(normalizeRange(value)));
     }
   }, [value, open]);
 

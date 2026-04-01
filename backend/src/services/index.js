@@ -9,6 +9,7 @@ const EmailService = require('./emailService');
 const AdminService = require('./adminService');
 const PromotionService = require('./promotionService');
 const MergeService = require('./mergeService');
+const BirthdayCampaignService = require('./birthdayCampaignService');
 module.exports = {
   AuthService,
   UserService,
@@ -21,4 +22,5 @@ module.exports = {
   AdminService,
   PromotionService,
   MergeService,
+  BirthdayCampaignService,
 };

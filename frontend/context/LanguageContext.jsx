@@ -13,10 +13,12 @@ export function LanguageProvider({ children }) {
     const saved =
       localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
     if (saved === "te" || saved === "en") {
-      setLangState(saved);
-      localStorage.setItem(STORAGE_KEY, saved);
-      localStorage.setItem(LEGACY_STORAGE_KEY, saved);
-      document.cookie = `${COOKIE_KEY}=${saved}; path=/; max-age=31536000; samesite=lax`;
+      queueMicrotask(() => {
+        setLangState(saved);
+        localStorage.setItem(STORAGE_KEY, saved);
+        localStorage.setItem(LEGACY_STORAGE_KEY, saved);
+        document.cookie = `${COOKIE_KEY}=${saved}; path=/; max-age=31536000; samesite=lax`;
+      });
     }
   }, []);
   const setLang = (code) => {

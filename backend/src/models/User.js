@@ -14,6 +14,22 @@ class User {
     );
     return rows.map((r) => r.email);
   }
+
+  // Returns active customer recipients for announcements (non-admin users).
+  static async findCustomerEmailRecipients() {
+    return query(
+      `SELECT id, name, email
+       FROM users
+       WHERE user_type IN ('retail', 'wholesale')
+         AND email IS NOT NULL
+         AND email <> ''
+         AND is_active = TRUE
+         AND (is_blocked = FALSE OR is_blocked IS NULL)
+         AND deleted_at IS NULL
+       ORDER BY created_at ASC`,
+    );
+  }
+
   static async findById(id) {
     return queryOne(
       `SELECT u.*, r.name AS role_name
@@ -88,8 +104,8 @@ class User {
     );
     const listParams = [...params, limit, offset];
     const users = await query(
-      `SELECT u.id, u.name, u.phone, u.email, u.user_type, u.address,
-              u.is_active, u.is_blocked, u.deleted_at, u.created_at, r.name AS role_name
+      `SELECT u.id, u.name, u.display_name, u.phone, u.email, u.user_type, u.address,
+              u.date_of_birth, u.is_active, u.is_blocked, u.deleted_at, u.created_at, r.name AS role_name
        FROM users u JOIN roles r ON u.role_id = r.id
        WHERE ${where}
        ORDER BY u.deleted_at DESC
@@ -101,26 +117,30 @@ class User {
   static async create(userData) {
     const {
       name,
+      display_name,
       phone,
       email,
       user_type,
       role_id,
       address,
+      date_of_birth,
       password_hash,
       google_id,
       profile_picture,
       email_verified,
     } = userData;
     return insert(
-      `INSERT INTO users (name, phone, email, user_type, role_id, address, password_hash, google_id, profile_picture, email_verified)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
+      `INSERT INTO users (name, display_name, phone, email, user_type, role_id, address, date_of_birth, password_hash, google_id, profile_picture, email_verified)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
       [
         name,
+        display_name || null,
         phone,
         email || null,
         user_type,
         role_id,
         address || null,
+        date_of_birth || null,
         password_hash || null,
         google_id || null,
         profile_picture || null,
@@ -131,9 +151,11 @@ class User {
   static async update(id, userData) {
     const allowed = [
       "name",
+      "display_name",
       "email",
       "phone",
       "address",
+      "date_of_birth",
       "profile_picture",
       "is_active",
       "is_blocked",
@@ -210,8 +232,8 @@ class User {
     );
     const listParams = [...params, limit, offset];
     const users = await query(
-      `SELECT u.id, u.name, u.phone, u.email, u.user_type, u.address,
-              u.is_active, u.is_blocked, u.last_login_at, u.created_at, r.name AS role_name
+      `SELECT u.id, u.name, u.display_name, u.phone, u.email, u.user_type, u.address,
+              u.date_of_birth, u.is_active, u.is_blocked, u.last_login_at, u.created_at, r.name AS role_name
        FROM users u JOIN roles r ON u.role_id = r.id
        WHERE ${where}
        ORDER BY u.created_at DESC

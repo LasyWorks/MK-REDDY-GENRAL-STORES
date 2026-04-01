@@ -16,7 +16,7 @@ router.get('/', asyncHandler(async (req, res) => {
   ApiResponse.success(res, { 
     status: 'healthy',
     timestamp: new Date().toISOString(),
-  }, 'Service is running');
+  }, 'API is running');
 }));
 
 /**

@@ -117,9 +117,8 @@ function useCountdown(endTime) {
     };
   };
   // Start with zeros to match server render — client takes over after mount
-  const [t, setT] = useState({ d: 0, h: 0, m: 0, s: 0 });
+  const [t, setT] = useState(() => calc());
   useEffect(() => {
-    setT(calc());
     const id = setInterval(() => setT(calc()), 1000);
     return () => clearInterval(id);
   }, [endTime]);
@@ -341,18 +340,14 @@ export default function HeroSection() {
     [visibleSlides.length],
   );
 
-  // If visible set shrinks (promotion deactivated) and current is out of bounds, reset
-  useEffect(() => {
-    if (current >= visibleSlides.length) setCurrent(0);
-  }, [visibleSlides.length, current]);
-
   useEffect(() => {
     if (paused) return;
     const t = setInterval(next, 5000);
     return () => clearInterval(t);
   }, [paused, next]);
 
-  const slide = visibleSlides[current] ?? visibleSlides[0];
+  const safeCurrent = visibleSlides.length ? Math.min(current, visibleSlides.length - 1) : 0;
+  const slide = visibleSlides[safeCurrent] ?? visibleSlides[0];
 
   return (
     <section className="px-4 sm:px-6 lg:px-8 py-6">

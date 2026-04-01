@@ -19,6 +19,7 @@ const mergeRoutes = require('./mergeRoutes');
 const settingsRoutes = require('./settingsRoutes');
 const notificationRoutes = require('./notificationRoutes');
 const adminManagementRoutes = require('./adminManagementRoutes');
+const birthdayOfferRoutes = require('./birthdayOfferRoutes');
 
 router.get('/ping', async (req, res) => {
   const startAt = process.hrtime.bigint();
@@ -59,6 +60,7 @@ router.get('/health', async (req, res) => {
   const allOk = Object.values(checks).every(v => v === 'ok');
   res.status(allOk ? 200 : 503).json({
     success: allOk,
+    message: allOk ? 'API is running' : 'API is degraded',
     status: allOk ? 'healthy' : 'degraded',
     timestamp: new Date().toISOString(),
     version: '2.0.0',
@@ -125,6 +127,8 @@ router.use('/invoices', invoiceRoutes);
 router.use('/admin', adminRoutes);
 router.use('/promotions', promotionRoutes);
 router.use('/settings', settingsRoutes);
+router.use('/birthday-offers', birthdayOfferRoutes);
+router.use('/birth-day', birthdayOfferRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/admin-management', adminManagementRoutes);
 router.use('/health-check', healthRoutes);
