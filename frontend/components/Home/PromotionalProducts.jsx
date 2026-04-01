@@ -497,7 +497,7 @@ export default function PromotionalProducts() {
     loading: promoLoading,
   } = usePromotions();
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
   const scrollRef = useRef(null);
@@ -563,7 +563,10 @@ export default function PromotionalProducts() {
     return () => el.removeEventListener("scroll", updateScrollBtns);
   }, [loading]);
 
-  if (!promoLoading && !loading && !productGroups.length) return null;
+  // Do not show the section until we have a confirmed active promo.
+  if (!promo) return null;
+
+  const shouldShowSkeleton = loading && productGroups.length === 0;
 
   const themeColor = promo?.theme_color || "#C2410C";
   const title = promo?.title || "Diwali Mega Sale";
@@ -645,7 +648,7 @@ export default function PromotionalProducts() {
           className="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-2 -mx-4 px-4"
           style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}
         >
-          {loading
+          {shouldShowSkeleton
             ? Array.from({ length: 6 }).map((_, i) => (
                 <div
                   key={i}

@@ -1,5 +1,5 @@
 ﻿"use client";
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -35,6 +35,26 @@ const API_URL =
 
 function variantLabel(v) {
   return v.unit_pack_size || v.variant || `₹${parseFloat(v.price).toFixed(0)}`;
+}
+
+function normalizeBaseName(name = "") {
+  return String(name)
+    .toLowerCase()
+    .replace(/[0-9]+(?:\.[0-9]+)?\s*(kg|g|gm|gms|l|ml|pcs|pc|piece|pieces)\b/g, "")
+    .replace(/\([^)]*\)/g, "")
+    .replace(/[^a-z\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parsePackRank(v) {
+  const s = (v.unit_pack_size || v.variant || "").toLowerCase();
+  const m = s.match(/(\d+(?:\.\d+)?)\s*(kg|g|gm|gms|l|ml|pcs|pc|piece|pieces)\b/);
+  if (!m) return Number.MAX_SAFE_INTEGER;
+  const num = parseFloat(m[1]);
+  const unit = m[2];
+  if (["kg", "l"].includes(unit)) return num * 1000;
+  return num;
 }
 
 /* -- Inline star row -- */
@@ -234,7 +254,19 @@ export default function ProductDetailClient({
           if (!vRes.ok || cancelled) return;
           const vJson = await vRes.json();
           const vs = vJson.data || [];
-          setLocalVariants(vs.length > 0 ? vs : [prod]);
+          const baseName = normalizeBaseName(prod.name || "");
+          const filtered = vs.filter((v) => {
+            if (v.id === prod.id) return true;
+            if (v.parent_product_id && prod.parent_product_id) {
+              return v.parent_product_id === prod.parent_product_id;
+            }
+            if (v.parent_product_id && !prod.parent_product_id) {
+              return v.parent_product_id === prod.id;
+            }
+            const vBase = normalizeBaseName(v.name || "");
+            return !!baseName && baseName === vBase;
+          });
+          setLocalVariants(filtered.length > 0 ? filtered : [prod]);
         } else {
           setLocalVariants([prod]);
         }
@@ -363,6 +395,44 @@ export default function ProductDetailClient({
   /* -- Derived state (must come BEFORE effects that use `selected`) -- */
   const selected =
     localVariants.find((v) => v.id === selectedId) || localProduct;
+
+  const displayVariants = useMemo(() => {
+    const source = Array.isArray(localVariants) && localVariants.length
+      ? localVariants
+      : [selected || localProduct];
+
+    const byLabel = new Map();
+    for (const v of source) {
+      const key = variantLabel(v).toLowerCase().trim() || v.id;
+      const prev = byLabel.get(key);
+      if (!prev) {
+        byLabel.set(key, v);
+        continue;
+      }
+      if (prev.id === selectedId) continue;
+      if (v.id === selectedId) {
+        byLabel.set(key, v);
+        continue;
+      }
+      const prevInStock = (prev.stock_quantity ?? 0) > 0;
+      const currInStock = (v.stock_quantity ?? 0) > 0;
+      if (currInStock && !prevInStock) {
+        byLabel.set(key, v);
+        continue;
+      }
+      if (currInStock === prevInStock && parseFloat(v.price || 0) < parseFloat(prev.price || 0)) {
+        byLabel.set(key, v);
+      }
+    }
+
+    const unique = Array.from(byLabel.values());
+    unique.sort((a, b) => {
+      const bySize = parsePackRank(a) - parsePackRank(b);
+      if (bySize !== 0) return bySize;
+      return parseFloat(a.price || 0) - parseFloat(b.price || 0);
+    });
+    return unique;
+  }, [localVariants, selectedId, selected, localProduct]);
   const retailPrice = parseFloat(selected.price || 0);
   const mrp = parseFloat(selected.mrp || retailPrice);
 
@@ -383,7 +453,7 @@ export default function ProductDetailClient({
   const isOutOfStock = (selected.stock_quantity ?? 0) <= 0;
   const cartItem = items.find((i) => i.id === selected.id);
   const qty = cartItem?.quantity ?? 0;
-  const hasVariants = localVariants.length > 1;
+  const hasVariants = displayVariants.length > 1;
   const rating = parseFloat(selected.rating || selected.avg_rating || 0);
   const reviewCount = parseInt(
     selected.review_count || selected.ratings_count || 0,
@@ -743,7 +813,7 @@ export default function ProductDetailClient({
                     Select Pack Size
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {localVariants.map((v) => {
+                    {displayVariants.map((v) => {
                       const oos = (v.stock_quantity ?? 0) <= 0;
                       const isActive = v.id === selectedId;
                       const vRetail = parseFloat(v.price || 0);
@@ -892,8 +962,11 @@ export default function ProductDetailClient({
 
               {/* Details grid */}
               <div className="pt-4 border-t border-gray-100 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                {selected.unit_pack_size && (
-                  <Detail label="Pack Size" value={selected.unit_pack_size} />
+                {(selected.unit_pack_size || selected.variant) && (
+                  <Detail
+                    label="Pack Size"
+                    value={selected.unit_pack_size || selected.variant}
+                  />
                 )}
                 {selected.unit_type && (
                   <Detail label="Unit" value={selected.unit_type} />

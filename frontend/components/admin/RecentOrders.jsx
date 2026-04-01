@@ -2,11 +2,11 @@
 import { useState } from "react";
 import {
   ShoppingCartIcon as ShoppingCart,
-  ChevronDownIcon as ChevronDown,
   EyeIcon as Eye,
   ArrowPathIcon as Loader2,
   ArrowUpRightIcon as ArrowUpRight,
 } from "@heroicons/react/24/outline";
+import CustomSelect from "@/components/ui/custom-select";
 
 const STATUS_STYLES = {
   pending: "bg-amber-100 text-amber-700 border-amber-200",
@@ -222,24 +222,20 @@ export default function RecentOrders({
                   <td className="px-6 py-4">
                     {VALID_TRANSITIONS[o.status]?.length > 0 ? (
                       <div className="relative">
-                        <select
+                        <CustomSelect
                           value={o.status}
                           disabled={updating === o.id}
-                          onChange={(e) =>
-                            handleStatusChange(o.id, e.target.value)
-                          }
-                          className="appearance-none pr-7 pl-3 py-1.5 text-xs rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 cursor-pointer font-medium"
-                        >
-                          <option value={o.status}>
-                            {STATUS_LABELS[o.status]}
-                          </option>
-                          {VALID_TRANSITIONS[o.status].map((s) => (
-                            <option key={s} value={s}>
-                              → {STATUS_LABELS[s]}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
+                          onChange={(next) => handleStatusChange(o.id, next)}
+                          options={[
+                            { value: o.status, label: STATUS_LABELS[o.status] },
+                            ...VALID_TRANSITIONS[o.status].map((s) => ({
+                              value: s,
+                              label: `→ ${STATUS_LABELS[s]}`,
+                            })),
+                          ]}
+                          buttonClassName="py-1.5 text-xs rounded-lg font-medium"
+                          contentClassName="min-w-[170px]"
+                        />
                         {updating === o.id && (
                           <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 animate-spin text-emerald-600" />
                         )}

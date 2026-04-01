@@ -3,13 +3,13 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, useCallback, useMemo, Suspense } from "react";
 import {
   AdjustmentsHorizontalIcon,
-  ChevronDownIcon,
 } from "@heroicons/react/24/outline";
 import ProductCard from "@/components/category/ProductCard";
 import ProductCardWithVariants from "@/components/category/ProductCardWithVariants";
 import { groupProductsByVariant } from "@/lib/productGrouping";
 import { useLanguage } from "@/context/LanguageContext";
 import Pagination from "@/components/common/Pagination";
+import CustomSelect from "@/components/ui/custom-select";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
@@ -131,20 +131,15 @@ function ProductsPageInner() {
 
         {/* Sort dropdown */}
         <div className="relative">
-          <div className="flex items-center gap-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl px-3 py-2 cursor-pointer select-none hover:border-gray-300 transition-colors">
+          <div className="flex items-center gap-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl px-3 py-2 select-none hover:border-gray-300 transition-colors">
             <AdjustmentsHorizontalIcon className="w-4 h-4 text-gray-400" />
-            <select
-              className="appearance-none bg-transparent pr-5 cursor-pointer outline-none text-gray-700 font-medium"
+            <CustomSelect
               value={activeSort}
-              onChange={(e) => handleSort(e.target.value)}
-            >
-              {SORT_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-            <ChevronDownIcon className="w-3.5 h-3.5 text-gray-400 pointer-events-none absolute right-3" />
+              onChange={handleSort}
+              options={SORT_OPTIONS}
+              buttonClassName="border-0 bg-transparent px-0 py-0 min-w-0 shadow-none focus:ring-0 hover:border-0"
+              contentClassName="min-w-[220px]"
+            />
           </div>
         </div>
       </div>

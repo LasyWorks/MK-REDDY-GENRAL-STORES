@@ -87,6 +87,10 @@ class ApiClient {
       if (token) {
         config.headers["Authorization"] = `Bearer ${token}`;
       }
+
+      if (!navigator.onLine) {
+        throw new Error("No internet connection. Please check your network.");
+      }
     }
     try {
       const response = await fetch(url, config);
@@ -136,6 +140,15 @@ class ApiClient {
       }
       return data;
     } catch (error) {
+      if (
+        typeof window !== "undefined" &&
+        error.name === "TypeError" &&
+        error.message === "Failed to fetch" &&
+        !navigator.onLine
+      ) {
+        throw new Error("No internet connection. Please check your network.");
+      }
+
       if (error.name === "TypeError" && error.message === "Failed to fetch") {
         console.error("API Error: Cannot reach server at", url);
         throw new Error("Cannot connect to server. Please try again later.");

@@ -7,6 +7,7 @@ import CategoryNav from "@/components/layout/CategoryNav";
 import Footer from "@/components/layout/footer";
 import CartSidebar from "@/components/cart/CartSidebar";
 import PublicShell from "@/components/layout/PublicShell";
+import OfflineGate from "@/components/common/OfflineGate";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { CartProvider } from "@/context/CartContext";
 import { PromotionProvider } from "@/context/PromotionContext";
@@ -37,6 +38,7 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} antialiased`}
       >
+        <OfflineGate />
         <GoogleOAuthWrapper clientId={googleClientId}>
           <LanguageProvider>
             <CartProvider>

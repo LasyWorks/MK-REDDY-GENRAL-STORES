@@ -2,10 +2,10 @@
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
-  ChevronDownIcon as ChevronDown,
   AdjustmentsHorizontalIcon as SlidersHorizontal,
   XMarkIcon as X,
 } from "@heroicons/react/24/outline";
+import CustomSelect from "@/components/ui/custom-select";
 
 const SORT_OPTIONS = [
   { value: "popularity", label: "Popularity" },
@@ -42,9 +42,9 @@ export default function CategoryHeader({
       activeFilters.push({ key, label: labelFn(val) });
   }
 
-  const handleSortChange = (e) => {
+  const handleSortChange = (value) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set("sort", e.target.value);
+    params.set("sort", value);
     router.push(`${pathname}?${params.toString()}`);
   };
 
@@ -87,19 +87,13 @@ export default function CategoryHeader({
 
           {/* Sort */}
           <div className="relative">
-            <select
+            <CustomSelect
               value={currentSort}
               onChange={handleSortChange}
-              className="appearance-none bg-white border border-gray-300 text-gray-700 py-2 pl-4 pr-9 rounded-xl text-sm font-medium
-                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer shadow-sm"
-            >
-              {SORT_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              options={SORT_OPTIONS}
+              buttonClassName="bg-white border border-gray-300 text-gray-700 py-2 pl-4 pr-9 rounded-xl text-sm font-medium shadow-sm"
+              contentClassName="min-w-[220px]"
+            />
           </div>
         </div>
       </div>

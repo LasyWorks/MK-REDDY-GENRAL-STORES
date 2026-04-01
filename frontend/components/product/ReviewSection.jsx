@@ -3,10 +3,10 @@ import { useState } from "react";
 import {
   StarIcon as Star,
   HandThumbUpIcon as ThumbsUp,
-  ChevronDownIcon as ChevronDown,
   XMarkIcon as X,
   PaperAirplaneIcon as Send,
 } from "@heroicons/react/24/outline";
+import CustomSelect from "@/components/ui/custom-select";
 
 /* -- Helpers -- */
 function FilledStars({ value = 0, size = "w-4 h-4" }) {
@@ -217,18 +217,13 @@ export default function ReviewSection({
         <div className="flex items-center gap-3">
           {/* Sort dropdown */}
           <div className="relative">
-            <select
+            <CustomSelect
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="appearance-none bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 pr-8 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-200 cursor-pointer"
-            >
-              {SORT_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              onChange={setSortBy}
+              options={SORT_OPTIONS}
+              buttonClassName="bg-gray-50 border-gray-200 rounded-lg py-1.5 text-sm font-medium text-gray-700"
+              contentClassName="min-w-[190px]"
+            />
           </div>
           {/* Write review button */}
           <button

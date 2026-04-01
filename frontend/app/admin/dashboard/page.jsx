@@ -65,6 +65,7 @@ import RecentActivity from "@/components/admin/RecentActivity";
 import UserWiseSales from "@/components/admin/UserWiseSales";
 import CategoriesTab from "@/components/admin/CategoriesTab";
 import { usePromotions } from "@/context/PromotionContext";
+import CustomSelect from "@/components/ui/custom-select";
 function useAdminGuard() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
@@ -924,26 +925,28 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Category</label>
-                    <select
+                    <CustomSelect
                       value={parentCatId}
-                      onChange={(e) => { setParentCatId(e.target.value); set("category_id", ""); }}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
-                    >
-                      <option value="">Select category</option>
-                      {parentCats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
+                      onChange={(next) => { setParentCatId(next); set("category_id", ""); }}
+                      options={[
+                        { value: "", label: "Select category" },
+                        ...parentCats.map((c) => ({ value: c.id, label: c.name })),
+                      ]}
+                      buttonClassName="w-full border-gray-200 rounded-xl px-3 py-2.5 text-sm"
+                    />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Subcategory *</label>
-                    <select
+                    <CustomSelect
                       value={form.category_id}
-                      onChange={(e) => set("category_id", e.target.value)}
+                      onChange={(next) => set("category_id", next)}
                       disabled={!parentCatId}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-50 bg-white"
-                    >
-                      <option value="">Select subcategory</option>
-                      {subCats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
+                      options={[
+                        { value: "", label: "Select subcategory" },
+                        ...subCats.map((c) => ({ value: c.id, label: c.name })),
+                      ]}
+                      buttonClassName="w-full border-gray-200 rounded-xl px-3 py-2.5 text-sm"
+                    />
                   </div>
                 </div>
 
@@ -1201,13 +1204,18 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">GST %</label>
-                      <select value={form.gst_percentage} onChange={(e) => set("gst_percentage", e.target.value)} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white">
-                        <option value="0">0%</option>
-                        <option value="5">5%</option>
-                        <option value="12">12%</option>
-                        <option value="18">18%</option>
-                        <option value="28">28%</option>
-                      </select>
+                      <CustomSelect
+                        value={String(form.gst_percentage ?? "0")}
+                        onChange={(next) => set("gst_percentage", next)}
+                        options={[
+                          { value: "0", label: "0%" },
+                          { value: "5", label: "5%" },
+                          { value: "12", label: "12%" },
+                          { value: "18", label: "18%" },
+                          { value: "28", label: "28%" },
+                        ]}
+                        buttonClassName="w-full border-gray-200 rounded-xl px-3 py-2.5 text-sm"
+                      />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Stock Quantity</label>
@@ -1269,13 +1277,18 @@ function ProductModal({ product, categories, allProducts = [], onClose, onSaved,
                           </div>
                           <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">GST %</label>
-                            <select value={form.gst_percentage} onChange={(e) => set("gst_percentage", e.target.value)} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white">
-                              <option value="0">0%</option>
-                              <option value="5">5%</option>
-                              <option value="12">12%</option>
-                              <option value="18">18%</option>
-                              <option value="28">28%</option>
-                            </select>
+                            <CustomSelect
+                              value={String(form.gst_percentage ?? "0")}
+                              onChange={(next) => set("gst_percentage", next)}
+                              options={[
+                                { value: "0", label: "0%" },
+                                { value: "5", label: "5%" },
+                                { value: "12", label: "12%" },
+                                { value: "18", label: "18%" },
+                                { value: "28", label: "28%" },
+                              ]}
+                              buttonClassName="w-full border-gray-200 rounded-xl px-3 py-2.5 text-sm"
+                            />
                           </div>
                         </div>
                         <div className="px-3 py-2 bg-blue-50 rounded-xl border border-blue-100">
@@ -2792,53 +2805,63 @@ function ProductsTab() {
               <input value={search} onChange={(e) => handleSearch(e.target.value)} placeholder="Search products..."
                 className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-[10px] text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
             </div>
-            <div className="relative">
-              <select value={filterCat} onChange={(e) => { setFilterCat(e.target.value); setPage(1); }}
-                className="pl-3 pr-8 py-2.5 border border-gray-200 rounded-[10px] text-[13px] text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white appearance-none">
-                <option value="">All Categories</option>
-                {grouped.map((g) => <option key={g.name} value={g.name}>{g.name}</option>)}
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-            </div>
-            <div className="relative">
-              <select value={filterStock} onChange={(e) => { setFilterStock(e.target.value); setPage(1); }}
-                className="pl-3 pr-8 py-2.5 border border-gray-200 rounded-[10px] text-[13px] text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white appearance-none">
-                <option value="">Stock Status</option>
-                <option value="in">In Stock</option>
-                <option value="low">Low Stock</option>
-                <option value="out">Out of Stock</option>
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-            </div>
-            <div className="relative">
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
-                className="pl-3 pr-8 py-2.5 border border-gray-200 rounded-[10px] text-[13px] text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white appearance-none">
-                <option value="name_asc">Sort: Name A-Z</option>
-                <option value="name_desc">Sort: Name Z-A</option>
-                <option value="price_asc">Sort: Price Low-High</option>
-                <option value="price_desc">Sort: Price High-Low</option>
-                <option value="stock_asc">Sort: Stock Low-High</option>
-                <option value="stock_desc">Sort: Stock High-Low</option>
-                <option value="newest">Sort: Newest First</option>
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-            </div>
+            <CustomSelect
+              value={filterCat}
+              onChange={(next) => {
+                setFilterCat(next);
+                setPage(1);
+              }}
+              options={[
+                { value: "", label: "All Categories" },
+                ...grouped.map((g) => ({ value: g.name, label: g.name })),
+              ]}
+              placeholder="All Categories"
+            />
+            <CustomSelect
+              value={filterStock}
+              onChange={(next) => {
+                setFilterStock(next);
+                setPage(1);
+              }}
+              options={[
+                { value: "", label: "Stock Status" },
+                { value: "in", label: "In Stock" },
+                { value: "low", label: "Low Stock" },
+                { value: "out", label: "Out of Stock" },
+              ]}
+              placeholder="Stock Status"
+            />
+            <CustomSelect
+              value={sortBy}
+              onChange={setSortBy}
+              options={[
+                { value: "name_asc", label: "Sort: Name A-Z" },
+                { value: "name_desc", label: "Sort: Name Z-A" },
+                { value: "price_asc", label: "Sort: Price Low-High" },
+                { value: "price_desc", label: "Sort: Price High-Low" },
+                { value: "stock_asc", label: "Sort: Stock Low-High" },
+                { value: "stock_desc", label: "Sort: Stock High-Low" },
+                { value: "newest", label: "Sort: Newest First" },
+              ]}
+            />
           </div>
           {/* Right: Bulk Actions */}
           {selected.size > 0 && (
             <div className="flex items-center gap-2 shrink-0">
               <span className="text-[13px] text-gray-600 font-medium">{selected.size} selected</span>
-              <div className="relative">
-                <select value={bulkAction} onChange={(e) => setBulkAction(e.target.value)}
-                  className="pl-3 pr-8 py-2 border border-gray-200 rounded-[10px] text-[13px] text-gray-600 bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="">Bulk Actions</option>
-                  <option value="activate">Activate</option>
-                  <option value="deactivate">Deactivate</option>
-                  <option value="export">Export Selected</option>
-                  <option value="delete">Delete</option>
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-              </div>
+              <CustomSelect
+                value={bulkAction}
+                onChange={setBulkAction}
+                options={[
+                  { value: "", label: "Bulk Actions" },
+                  { value: "activate", label: "Activate" },
+                  { value: "deactivate", label: "Deactivate" },
+                  { value: "export", label: "Export Selected" },
+                  { value: "delete", label: "Delete" },
+                ]}
+                placeholder="Bulk Actions"
+                buttonClassName="py-2"
+              />
               <button onClick={handleBulkAction} disabled={!bulkAction || bulkUpdating}
                 className="px-3 py-2 bg-gray-800 text-white text-[13px] font-medium rounded-[10px] hover:bg-gray-900 disabled:opacity-50 flex items-center gap-1.5">
                 {bulkUpdating && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Apply
@@ -5240,15 +5263,17 @@ function PromotionModal({ promo, onClose, onSaved }) {
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-[13px] font-semibold text-[#374151]">THEN give</span>
-                        <select
+                        <CustomSelect
                           value={form.reward_type}
-                          onChange={(e) => set("reward_type", e.target.value)}
-                          className="border border-[#E5E7EB] rounded-xl px-3 py-2 text-[13px] font-medium bg-white focus:outline-none focus:ring-2 focus:ring-[#047857]/30 focus:border-[#047857]"
-                        >
-                          <option value="cash_off">₹ Cash Off</option>
-                          <option value="percentage">% Percentage Off</option>
-                          <option value="free_item">Free Item</option>
-                        </select>
+                          onChange={(next) => set("reward_type", next)}
+                          options={[
+                            { value: "cash_off", label: "₹ Cash Off" },
+                            { value: "percentage", label: "% Percentage Off" },
+                            { value: "free_item", label: "Free Item" },
+                          ]}
+                          buttonClassName="text-[13px] font-medium"
+                          contentClassName="min-w-[180px]"
+                        />
                         {(form.reward_type === "cash_off" || form.reward_type === "percentage") && (
                           <>
                             <input
@@ -6059,27 +6084,27 @@ function PricingTab() {
               className="w-full pl-9 pr-3 h-9 rounded-lg border border-gray-200 text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-300"
             />
           </div>
-          <select
+          <CustomSelect
             value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="h-9 px-3 rounded-lg border border-gray-200 text-[13px] text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
-          >
-            <option value="all">All Categories</option>
-            {categories.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-          <select
+            onChange={setCategoryFilter}
+            options={[
+              { value: "all", label: "All Categories" },
+              ...categories.map((c) => ({ value: c, label: c })),
+            ]}
+            buttonClassName="h-9 text-[13px] text-gray-700"
+          />
+          <CustomSelect
             value={marginFilter}
-            onChange={(e) => setMarginFilter(e.target.value)}
-            className="h-9 px-3 rounded-lg border border-gray-200 text-[13px] text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
-          >
-            <option value="all">All Margins</option>
-            <option value="high">High (&gt;25%)</option>
-            <option value="medium">Medium (10-25%)</option>
-            <option value="low">Low (&lt;10%)</option>
-            <option value="no_cost">No Cost Price</option>
-          </select>
+            onChange={setMarginFilter}
+            options={[
+              { value: "all", label: "All Margins" },
+              { value: "high", label: "High (>25%)" },
+              { value: "medium", label: "Medium (10-25%)" },
+              { value: "low", label: "Low (<10%)" },
+              { value: "no_cost", label: "No Cost Price" },
+            ]}
+            buttonClassName="h-9 text-[13px] text-gray-700"
+          />
         </div>
         <div className="flex gap-2 flex-wrap">
           {quickFilters.map((f) => (
@@ -6372,16 +6397,12 @@ function PricingTab() {
                         <label className="block text-[11px] font-semibold text-purple-600 uppercase tracking-wider mb-1.5">
                           GST Rate
                         </label>
-                        <select
-                          value={f.gst_percentage ?? "0"}
-                          onChange={(e) => handleFieldChange(p.id, "gst_percentage", e.target.value)}
-                          onBlur={() => isDirty && saveProduct(p.id, true)}
-                          className="w-full h-10 px-3 rounded-xl border border-purple-200 bg-purple-50/40 text-[14px] font-semibold text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-300 transition-colors appearance-none cursor-pointer"
-                        >
-                          {[0, 5, 12, 18, 28].map((g) => (
-                            <option key={g} value={g}>{g}%</option>
-                          ))}
-                        </select>
+                        <CustomSelect
+                          value={String(f.gst_percentage ?? "0")}
+                          onChange={(next) => handleFieldChange(p.id, "gst_percentage", next)}
+                          options={[0, 5, 12, 18, 28].map((g) => ({ value: String(g), label: `${g}%` }))}
+                          buttonClassName="w-full h-10 border-purple-200 bg-purple-50/40 text-[14px] font-semibold text-purple-700"
+                        />
                       </div>
 
                       {/* Retail Price */}
@@ -7368,18 +7389,18 @@ function GSTTab() {
 
                 {/* Bulk GST controls for parent */}
                 <div className="flex items-center gap-2 shrink-0">
-                  <select
-                    value={pendingRate[parent.category_id] ?? ""}
-                    onChange={(e) =>
-                      setPendingRate((prev) => ({ ...prev, [parent.category_id]: e.target.value }))
+                  <CustomSelect
+                    value={String(pendingRate[parent.category_id] ?? "")}
+                    onChange={(next) =>
+                      setPendingRate((prev) => ({ ...prev, [parent.category_id]: next }))
                     }
-                    className="h-8 px-2 rounded-lg border border-gray-200 text-[12px] text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                  >
-                    <option value="">Select GST %</option>
-                    {GST_SLABS.map((r) => (
-                      <option key={r} value={r}>{r}%</option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "", label: "Select GST %" },
+                      ...GST_SLABS.map((r) => ({ value: String(r), label: `${r}%` })),
+                    ]}
+                    buttonClassName="h-8 min-w-[120px] px-2 text-[12px]"
+                    contentClassName="min-w-[120px]"
+                  />
                   <button
                     onClick={() => applyBulkGST(parent.category_id, false)}
                     disabled={isApplying || !pendingRate[parent.category_id]}
@@ -7435,18 +7456,18 @@ function GSTTab() {
                             <div className="mt-1 pl-4">{rateChips(sub.rates)}</div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            <select
-                              value={pendingRate[sub.category_id] ?? ""}
-                              onChange={(e) =>
-                                setPendingRate((prev) => ({ ...prev, [sub.category_id]: e.target.value }))
+                            <CustomSelect
+                              value={String(pendingRate[sub.category_id] ?? "")}
+                              onChange={(next) =>
+                                setPendingRate((prev) => ({ ...prev, [sub.category_id]: next }))
                               }
-                              className="h-7 px-2 rounded-lg border border-gray-200 text-[12px] text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                            >
-                              <option value="">Select GST %</option>
-                              {GST_SLABS.map((r) => (
-                                <option key={r} value={r}>{r}%</option>
-                              ))}
-                            </select>
+                              options={[
+                                { value: "", label: "Select GST %" },
+                                ...GST_SLABS.map((r) => ({ value: String(r), label: `${r}%` })),
+                              ]}
+                              buttonClassName="h-7 min-w-[116px] px-2 text-[12px]"
+                              contentClassName="min-w-[116px]"
+                            />
                             <button
                               onClick={() => applyBulkGST(sub.category_id, false)}
                               disabled={isSubApplying || !pendingRate[sub.category_id]}

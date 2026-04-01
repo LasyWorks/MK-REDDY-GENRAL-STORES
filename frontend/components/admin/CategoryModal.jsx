@@ -9,6 +9,7 @@ import {
   CheckIcon as Check,
 } from "@heroicons/react/24/outline";
 import api from "@/lib/api";
+import CustomSelect from "@/components/ui/custom-select";
 
 /**
  * CategoryModal - Modal for adding/editing categories and subcategories
@@ -183,20 +184,19 @@ export default function CategoryModal({
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Category Type
               </label>
-              <select
+              <CustomSelect
                 value={form.parent_id}
-                onChange={(e) => set("parent_id", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-              >
-                <option value="">New Parent Category</option>
-                <optgroup label="Add as Subcategory of:">
-                  {parentCategories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </optgroup>
-              </select>
+                onChange={(next) => set("parent_id", next)}
+                options={[
+                  { value: "", label: "New Parent Category" },
+                  ...parentCategories.map((c) => ({
+                    value: c.id,
+                    label: `Subcategory of: ${c.name}`,
+                  })),
+                ]}
+                buttonClassName="w-full border-gray-300 rounded-lg px-4 py-2.5 text-sm"
+                contentClassName="w-full"
+              />
               <p className="text-xs text-gray-500 mt-1.5">
                 {form.parent_id
                   ? "This will be added as a subcategory"

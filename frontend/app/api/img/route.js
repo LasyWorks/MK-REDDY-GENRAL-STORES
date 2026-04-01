@@ -7,7 +7,7 @@ const BLOCKED_HOSTS = [
   /^::1$/,
   /^0\.0\.0\.0$/,
 ];
-const CACHE_SECONDS = 60 * 60 * 24 * 7; 
+const CACHE_SECONDS = 60 * 60 * 24 * 30;
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const raw = searchParams.get("url");
@@ -52,7 +52,7 @@ export async function GET(request) {
       status: 200,
       headers: {
         "Content-Type": contentType,
-        "Cache-Control": `public, max-age=${CACHE_SECONDS}, immutable`,
+        "Cache-Control": `public, max-age=${CACHE_SECONDS}, s-maxage=${CACHE_SECONDS}, stale-while-revalidate=86400, immutable`,
         "Cross-Origin-Resource-Policy": "cross-origin",
       },
     });

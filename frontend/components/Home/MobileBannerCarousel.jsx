@@ -139,7 +139,7 @@ export default function MobileBannerCarousel() {
   const [shareMessage, setShareMessage] = useState("");
   const timerRef = useRef(null);
   const pointerActiveRef = useRef(false);
-  const SHARE_URL = "https://mkreddygeneralstore.com/";
+  const SHARE_URL = "mkreddygeneralstore.com";
 
   const parentCategories = categories
     .filter((c) => !c.parent_id)

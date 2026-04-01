@@ -1,6 +1,7 @@
 "use client";
-import { useState, memo } from "react";
+import { useMemo, useState, memo } from "react";
 import proxyImg from "@/lib/imgProxy";
+
 function colorFromString(str = "") {
   const palette = [
     "#16a34a", 
@@ -20,10 +21,30 @@ function colorFromString(str = "") {
   }
   return palette[Math.abs(hash) % palette.length];
 }
-function ImageWithFallback({ src, alt = "", className = "", size = "md", priority = false }) {
+
+function isSlowConnection() {
+  if (typeof navigator === "undefined" || !navigator.connection) return false;
+  const type = navigator.connection.effectiveType;
+  return type === "slow-2g" || type === "2g" || type === "3g";
+}
+
+function ImageWithFallback({
+  src,
+  alt = "",
+  className = "",
+  size = "md",
+  priority = false,
+  width,
+  height,
+  centered = false,
+}) {
   const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const fontSizeMap = { sm: "text-sm", md: "text-lg", lg: "text-2xl" };
   const fontSize = fontSizeMap[size] || "text-lg";
+  const imgSrc = useMemo(() => proxyImg(src), [src]);
+  const fetchPriority = priority ? "high" : isSlowConnection() ? "low" : "auto";
+
   const initials = alt
     .trim()
     .split(/\s+/)
@@ -31,6 +52,7 @@ function ImageWithFallback({ src, alt = "", className = "", size = "md", priorit
     .map((w) => w.charAt(0).toUpperCase())
     .join("");
   const bgColor = colorFromString(alt);
+
   if (!src || failed) {
     return (
       <div
@@ -42,15 +64,27 @@ function ImageWithFallback({ src, alt = "", className = "", size = "md", priorit
       </div>
     );
   }
+
   return (
-    <img
-      src={proxyImg(src)}
-      alt={alt}
-      className={className}
-      loading={priority ? "eager" : "lazy"}
-      fetchPriority={priority ? "high" : "auto"}
-      onError={() => setFailed(true)}
-    />
+    <div
+      className={`relative w-full h-full overflow-hidden ${centered ? "flex items-center justify-center" : ""}`}
+    >
+      {!loaded && (
+        <div className="absolute inset-0 bg-slate-200/80 animate-pulse" aria-hidden="true" />
+      )}
+      <img
+        src={imgSrc}
+        alt={alt}
+        className={`${className} transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+        loading={priority ? "eager" : "lazy"}
+        fetchPriority={fetchPriority}
+        decoding="async"
+        width={width}
+        height={height}
+        onLoad={() => setLoaded(true)}
+        onError={() => setFailed(true)}
+      />
+    </div>
   );
 }
 export default memo(ImageWithFallback);
