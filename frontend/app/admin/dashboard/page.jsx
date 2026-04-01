@@ -2268,12 +2268,19 @@ function ProductsTab() {
   const ITEMS_PER_PAGE = 25;
 
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
+  const LANGUAGE_STORAGE_KEY = "mk-reddy-lang";
+  const LEGACY_LANGUAGE_STORAGE_KEY = "language";
 
   async function authFetch(endpoint, options = {}) {
     const token = secureStorage.getItem("token");
     const headers = { ...(options.headers || {}) };
     if (token) headers["Authorization"] = `Bearer ${token}`;
-    const lang = typeof window !== "undefined" ? localStorage.getItem("language") || "en" : "en";
+    const lang =
+      typeof window !== "undefined"
+        ? localStorage.getItem(LANGUAGE_STORAGE_KEY) ||
+          localStorage.getItem(LEGACY_LANGUAGE_STORAGE_KEY) ||
+          "en"
+        : "en";
     headers["Accept-Language"] = lang;
     return fetch(`${API_BASE}${endpoint}`, { ...options, headers });
   }
@@ -2335,7 +2342,12 @@ function ProductsTab() {
 
     try {
       const token = secureStorage.getItem("token");
-      const lang = typeof window !== "undefined" ? localStorage.getItem("language") || "en" : "en";
+      const lang =
+        typeof window !== "undefined"
+          ? localStorage.getItem(LANGUAGE_STORAGE_KEY) ||
+            localStorage.getItem(LEGACY_LANGUAGE_STORAGE_KEY) ||
+            "en"
+          : "en";
       const formData = new FormData();
       formData.append("file", file);
       const res = await fetch(`${API_BASE}/products/bulk-upload`, {

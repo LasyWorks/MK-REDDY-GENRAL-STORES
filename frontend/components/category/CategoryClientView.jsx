@@ -41,19 +41,6 @@ async function fetchProducts(
   return result;
 }
 
-const categoryCache = new Map();
-async function fetchCategoriesLang(lang) {
-  if (categoryCache.has(lang)) return categoryCache.get(lang);
-  const res = await fetch(
-    `${API_URL}/categories?limit=200&is_active=true&lang=${lang}`,
-    { cache: "no-store" },
-  );
-  if (!res.ok) return null;
-  const json = await res.json();
-  categoryCache.set(lang, json.data || []);
-  return json.data || [];
-}
-
 function CategoryClientView({
   mainCategory,
   subcategories,
@@ -118,40 +105,15 @@ function CategoryClientView({
   }, [currentPage, activeSubcategory?.id, mainCategory?.id, loadProducts]);
 
   useEffect(() => {
-    let cancelled = false;
-    async function localise() {
-      if (lang === "en") {
-        setDisplayMain(mainCategory);
-        const activeSubs = subcategories.filter(
-          (s) => parseInt(s.product_count || 0) > 0,
-        );
-        setDisplaySubs(activeSubs);
-        setActiveSubcategory((prev) => {
-          const match = activeSubs.find((s) => s.id === prev?.id);
-          return match || activeSubs[0] || null;
-        });
-      } else {
-        const all = await fetchCategoriesLang(lang);
-        if (cancelled || !all) return;
-        const newMain =
-          all.find((c) => c.id === mainCategory.id) || mainCategory;
-        const newSubs = all.filter(
-          (c) =>
-            c.parent_id === mainCategory.id &&
-            parseInt(c.product_count || 0) > 0,
-        );
-        setDisplayMain(newMain);
-        setDisplaySubs(newSubs);
-        setActiveSubcategory((prev) => {
-          const match = newSubs.find((s) => s.id === prev?.id);
-          return match || newSubs[0] || null;
-        });
-      }
-    }
-    localise();
-    return () => {
-      cancelled = true;
-    };
+    setDisplayMain(mainCategory);
+    const activeSubs = subcategories.filter(
+      (s) => parseInt(s.product_count || 0) > 0,
+    );
+    setDisplaySubs(activeSubs);
+    setActiveSubcategory((prev) => {
+      const match = activeSubs.find((s) => s.id === prev?.id);
+      return match || activeSubs[0] || null;
+    });
   }, [lang, mainCategory, subcategories]);
 
   useEffect(() => {

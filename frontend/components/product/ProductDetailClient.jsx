@@ -23,6 +23,7 @@ import {
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { usePromotions } from "@/context/PromotionContext";
+import { useCategories } from "@/context/CategoryContext";
 import secureStorage from "@/lib/secureStorage";
 import ProductCard from "@/components/category/ProductCard";
 import CountdownTimer from "@/components/common/CountdownTimer";
@@ -186,6 +187,7 @@ export default function ProductDetailClient({
   variants: initialVariants,
 }) {
   const { lang } = useLanguage();
+  const { categories } = useCategories();
   const { items, addItem, updateQty, openCart, totalCount } = useCart();
   const { wholesaleDiscountPct, productPromoMap } = usePromotions();
   const sentinelRef = useRef(null);
@@ -521,12 +523,32 @@ export default function ProductDetailClient({
     localProduct.category_parent_id ||
     product.category_parent_id ||
     product.category_id;
-  const mobileCatName =
+
+  const categoryNameById = useMemo(() => {
+    const map = new Map();
+    for (const c of categories || []) {
+      map.set(c.id, c.name_en || c.name || "");
+    }
+    return map;
+  }, [categories]);
+
+  const parentCategoryId =
+    localProduct.category_parent_id || product.category_parent_id || "";
+  const subcategoryId = localProduct.category_id || product.category_id || "";
+
+  const parentCategoryLabel =
+    (parentCategoryId && categoryNameById.get(parentCategoryId)) ||
     localProduct.parent_category_name ||
     product.parent_category_name ||
-    localProduct.category_name ||
-    product.category_name ||
     "";
+
+  const subcategoryLabel =
+    (subcategoryId && categoryNameById.get(subcategoryId)) ||
+    localProduct.category_name ||
+    selected.category_name ||
+    "";
+
+  const mobileCatName = parentCategoryLabel || subcategoryLabel;
 
   return (
     <>
@@ -584,26 +606,25 @@ export default function ProductDetailClient({
           <Link href="/" className="hover:text-blue-600 transition-colors">
             Home
           </Link>
-          {(localProduct.category_parent_id || product.category_parent_id) && (
+          {parentCategoryId && (
             <>
               <ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
               <Link
-                href={`/categories/${localProduct.category_parent_id || product.category_parent_id}`}
+                href={`/categories/${parentCategoryId}`}
                 className="hover:text-blue-600 whitespace-nowrap"
               >
-                {localProduct.parent_category_name ||
-                  product.parent_category_name}
+                {parentCategoryLabel}
               </Link>
             </>
           )}
-          {(localProduct.category_name || selected.category_name) && (
+          {subcategoryLabel && (
             <>
               <ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
               <Link
                 href={`/categories/${product.category_id}`}
                 className="hover:text-blue-600 whitespace-nowrap"
               >
-                {localProduct.category_name || selected.category_name}
+                {subcategoryLabel}
               </Link>
             </>
           )}

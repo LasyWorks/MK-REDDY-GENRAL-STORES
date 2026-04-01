@@ -125,7 +125,7 @@ export default function CategoriesPage() {
     try {
       setLoading(true);
       const res = await fetch(
-        `${API_URL}/categories?limit=200&is_active=true&lang=${lang}`,
+        `${API_URL}/categories?limit=200&is_active=true&lang=en`,
         { cache: "no-store" },
       );
       if (!res.ok) throw new Error();
@@ -146,7 +146,7 @@ export default function CategoriesPage() {
   }, [fetchCategories]);
 
   const filtered = categories.filter((c) =>
-    (c.name || "").toLowerCase().includes(search.toLowerCase()),
+    (c.name_en || c.name || "").toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -213,7 +213,7 @@ export default function CategoriesPage() {
                   className="text-[11px] font-semibold text-center leading-tight text-gray-700 line-clamp-2 max-w-[76px]"
                   style={{ color: fg }}
                 >
-                  {category.name}
+                  {category.name_en || category.name}
                 </span>
                 {/* Product count */}
                 {category.product_count && (

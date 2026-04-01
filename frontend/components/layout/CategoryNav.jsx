@@ -71,6 +71,7 @@ export default function CategoryNav() {
     setOpenMenu(parentId);
   };
 
+  const labelOf = (c) => c.name_en || c.name;
   // Always use English name for slug (URL must be stable across languages)
   const slugOf = (c) => toSlug(c.name_en || c.name);
 
@@ -155,7 +156,7 @@ export default function CategoryNav() {
                           : "bg-[#f4f6f8] text-gray-800 hover:bg-gray-200"
                       }`}
                     >
-                      {parent.name}
+                      {labelOf(parent)}
                       {subs.length > 0 && (
                         <ChevronDown
                           className={`w-4 h-4 transition-transform duration-200 ${
@@ -182,7 +183,7 @@ export default function CategoryNav() {
               onMouseLeave={scheduleClose}
             >
               {openSubs.map((sub) => {
-                const subSlug = toSlug(sub.name);
+                const subSlug = slugOf(sub);
                 const subActive = isSubActive(openParent, sub);
                 return (
                   <Link
@@ -195,7 +196,7 @@ export default function CategoryNav() {
                         : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
                     }`}
                   >
-                    {sub.name}
+                    {labelOf(sub)}
                   </Link>
                 );
               })}

@@ -30,32 +30,33 @@ const CategoryContext = createContext({
 
 export function CategoryProvider({ children }) {
   const { lang } = useLanguage();
+  const categoryLang = "en";
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     try {
-      const res = await categoryService.getAll({ limit: 200, lang });
+      const res = await categoryService.getAll({ limit: 200, lang: categoryLang });
       const cats = res.data || [];
       setCategories(cats);
-      writeCache(lang, cats);
+      writeCache(categoryLang, cats);
     } catch {
       // keep whatever we have
     } finally {
       setLoading(false);
     }
-  }, [lang]);
+  }, [categoryLang]);
 
   useEffect(() => {
     setLoading(true);
-    const cached = readCache(lang);
+    const cached = readCache(categoryLang);
     if (cached) {
       setCategories(cached);
       setLoading(false);
     } else {
       refresh();
     }
-  }, [lang, refresh]);
+  }, [lang, categoryLang, refresh]);
 
   return (
     <CategoryContext.Provider value={{ categories, loading }}>

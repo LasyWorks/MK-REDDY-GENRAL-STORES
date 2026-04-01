@@ -286,7 +286,11 @@ export default function MobileHeader() {
         {/* Right: Lang toggle + Profile + Cart */}
         <div className="flex items-center gap-1.5 shrink-0">
           <button
-            onClick={() => setLang(lang === "en" ? "te" : "en")}
+            onClick={() => {
+              const nextLang = lang === "en" ? "te" : "en";
+              setLang(nextLang);
+              router.refresh();
+            }}
             className="w-9 h-9 flex items-center justify-center rounded-full active:bg-gray-100 transition-colors"
             aria-label="Switch language"
           >

@@ -119,6 +119,8 @@ export default function Sidebar({
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");
 
+  const slugSource = (item) => item?.name_en || item?.name || "";
+
   const sidebarContent = (
     <div className="flex flex-col h-full bg-white">
       {/* Mobile Header */}
@@ -157,7 +159,7 @@ export default function Sidebar({
                   return (
                     <Link
                       key={sub.id}
-                      href={`/category/${generateSlug(mainCategory.name)}/${generateSlug(sub.name)}`}
+                      href={`/category/${generateSlug(slugSource(mainCategory))}/${generateSlug(slugSource(sub))}`}
                       className={`flex items-center gap-3 p-2 rounded-lg transition-all duration-200 mt-1 ${
                         isActive
                           ? "bg-blue-50 text-blue-700 font-medium shadow-sm"
@@ -170,18 +172,18 @@ export default function Sidebar({
                         {sub.image_url ? (
                           <ImageWithFallback
                             src={sub.image_url}
-                            alt={sub.name}
+                            alt={sub.name_en || sub.name}
                             width={40}
                             height={40}
                             className="object-cover"
                           />
                         ) : (
                           <span className="text-xs font-bold text-gray-400">
-                            {sub.name.substring(0, 2).toUpperCase()}
+                            {(sub.name_en || sub.name).substring(0, 2).toUpperCase()}
                           </span>
                         )}
                       </div>
-                      <span className="text-sm line-clamp-2">{sub.name}</span>
+                      <span className="text-sm line-clamp-2">{sub.name_en || sub.name}</span>
                     </Link>
                   );
                 })}

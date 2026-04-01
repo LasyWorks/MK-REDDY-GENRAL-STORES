@@ -1,6 +1,8 @@
 import secureStorage from "./secureStorage";
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
+const LANGUAGE_STORAGE_KEY = "mk-reddy-lang";
+const LEGACY_LANGUAGE_STORAGE_KEY = "language";
 
 // Handle session expiry — clear storage and redirect to login
 function handleSessionExpired() {
@@ -79,7 +81,10 @@ class ApiClient {
       },
     };
     if (typeof window !== "undefined") {
-      const lang = localStorage.getItem("language") || "en";
+      const lang =
+        localStorage.getItem(LANGUAGE_STORAGE_KEY) ||
+        localStorage.getItem(LEGACY_LANGUAGE_STORAGE_KEY) ||
+        "en";
       config.headers["Accept-Language"] = lang;
     }
     if (typeof window !== "undefined") {

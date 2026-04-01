@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import { getFreshCategories } from "@/app/data/categories";
 import CategoryLayout from "@/components/category/CategoryLayout";
 import Link from "next/link";
@@ -16,7 +17,7 @@ function generateSlug(name) {
     .replace(/(^-|-$)/g, "");
 }
 
-async function fetchProducts(categoryId, searchParams) {
+async function fetchProducts(categoryId, searchParams, lang = "en") {
   const PAGE_SIZE = 20;
   const page = Math.max(1, parseInt(searchParams.page || "1"));
   const params = new URLSearchParams();
@@ -26,6 +27,7 @@ async function fetchProducts(categoryId, searchParams) {
   params.append("limit", PAGE_SIZE);
   params.append("page", page);
   params.append("is_active", "true");
+  params.append("lang", lang);
 
   if (searchParams.min_price)
     params.append("min_price", searchParams.min_price);
@@ -64,6 +66,7 @@ async function fetchProducts(categoryId, searchParams) {
 
   const res = await fetch(`${API_URL}/products?${params.toString()}`, {
     cache: "no-store",
+    headers: { "Accept-Language": lang },
   });
   if (!res.ok) return { data: [], total: 0, page, pageSize: PAGE_SIZE };
   const json = await res.json();
@@ -78,12 +81,14 @@ async function fetchProducts(categoryId, searchParams) {
 export default async function CategoryPage({ params, searchParams }) {
   const { category: categorySlug } = await params;
   const searchParamsResolved = await searchParams;
+  const cookieStore = await cookies();
+  const lang = cookieStore.get("mk-reddy-lang")?.value === "te" ? "te" : "en";
 
-  const allCategories = await getFreshCategories();
+  const allCategories = await getFreshCategories("en");
 
   // Find main category by slug — also requires at least 1 active product
   const category = allCategories.find(
-    (c) => generateSlug(c.name) === categorySlug && !c.parent_id,
+    (c) => generateSlug(c.name_en || c.name) === categorySlug && !c.parent_id,
   );
 
   if (!category || parseInt(category.product_count || 0) === 0) notFound();
@@ -94,7 +99,7 @@ export default async function CategoryPage({ params, searchParams }) {
   );
 
   // Fetch products
-  const productsData = await fetchProducts(category.id, searchParamsResolved);
+  const productsData = await fetchProducts(category.id, searchParamsResolved, lang);
 
   // Extract unique brands from products for the filter
   const brands = [

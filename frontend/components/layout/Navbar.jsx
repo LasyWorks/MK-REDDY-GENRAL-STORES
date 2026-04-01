@@ -10,12 +10,14 @@ import {
 } from "@heroicons/react/24/outline";
 import Searchbar from "../common/Searchbar";
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
 import authService from "@/services/authService";
 import secureStorage from "@/lib/secureStorage";
 export default function Navbar() {
   const { lang, setLang } = useLanguage();
+  const router = useRouter();
   const { totalCount, openCart } = useCart();
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const languageMenuRef = useRef(null);
@@ -123,6 +125,7 @@ export default function Navbar() {
                       key={l.code}
                       onClick={() => {
                         setLang(l.code);
+                        if (l.code !== lang) router.refresh();
                         setShowLanguageMenu(false);
                       }}
                       className={`w-full px-4 py-2.5 text-left hover:bg-gray-50 transition-colors ${

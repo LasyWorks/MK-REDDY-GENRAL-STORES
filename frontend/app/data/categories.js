@@ -27,11 +27,14 @@ export const getAllCategories = unstable_cache(
  * Use this in force-dynamic pages so product_count reflects
  * product moves / deactivations immediately after a refresh.
  */
-export async function getFreshCategories() {
+export async function getFreshCategories(lang = 'en') {
   try {
     const res = await fetch(
-      `${API_URL}/categories?limit=200&is_active=true`,
-      { cache: 'no-store' },
+      `${API_URL}/categories?limit=200&is_active=true&lang=${lang}`,
+      {
+        cache: 'no-store',
+        headers: { 'Accept-Language': lang },
+      },
     );
     if (!res.ok) return [];
     const json = await res.json();

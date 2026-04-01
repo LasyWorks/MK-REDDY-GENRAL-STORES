@@ -1,6 +1,8 @@
 "use client";
 import { createContext, useContext, useState, useEffect } from "react";
 const STORAGE_KEY = "mk-reddy-lang";
+const LEGACY_STORAGE_KEY = "language";
+const COOKIE_KEY = "mk-reddy-lang";
 const LanguageContext = createContext({
   lang: "en",
   setLang: () => {},
@@ -8,12 +10,20 @@ const LanguageContext = createContext({
 export function LanguageProvider({ children }) {
   const [lang, setLangState] = useState("en");
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === "te" || saved === "en") setLangState(saved);
+    const saved =
+      localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (saved === "te" || saved === "en") {
+      setLangState(saved);
+      localStorage.setItem(STORAGE_KEY, saved);
+      localStorage.setItem(LEGACY_STORAGE_KEY, saved);
+      document.cookie = `${COOKIE_KEY}=${saved}; path=/; max-age=31536000; samesite=lax`;
+    }
   }, []);
   const setLang = (code) => {
     setLangState(code);
     localStorage.setItem(STORAGE_KEY, code);
+    localStorage.setItem(LEGACY_STORAGE_KEY, code);
+    document.cookie = `${COOKIE_KEY}=${code}; path=/; max-age=31536000; samesite=lax`;
   };
   return (
     <LanguageContext.Provider value={{ lang, setLang }}>
@@ -23,4 +33,4 @@ export function LanguageProvider({ children }) {
 }
 export function useLanguage() {
   return useContext(LanguageContext);
-}
+}

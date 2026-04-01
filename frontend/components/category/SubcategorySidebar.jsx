@@ -15,7 +15,7 @@ function SubcategoryItem({ subcat, isActive, onClick }) {
       <div className="w-12 h-12 rounded-lg bg-white overflow-hidden flex-shrink-0 flex items-center justify-center">
         <ImageWithFallback
           src={subcat.image_url}
-          alt={subcat.name}
+          alt={subcat.name_en || subcat.name}
           className="w-full h-full object-contain"
           size="sm"
         />
@@ -25,7 +25,7 @@ function SubcategoryItem({ subcat, isActive, onClick }) {
           isActive ? "text-green-700 font-bold" : "text-gray-600"
         }`}
       >
-        {subcat.name}
+        {subcat.name_en || subcat.name}
       </span>
     </button>
   );
@@ -41,7 +41,7 @@ function SubcategorySidebar({
     <div className="w-full md:w-64 flex-shrink-0">
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sticky top-24">
         <div className="p-4 border-b border-gray-100 bg-gray-50">
-          <h3 className="font-bold text-gray-900">{mainCategory?.name}</h3>
+          <h3 className="font-bold text-gray-900">{mainCategory?.name_en || mainCategory?.name}</h3>
         </div>
         <div className="flex md:flex-col overflow-x-auto md:overflow-y-auto max-h-[calc(100vh-200px)] scrollbar-hide">
           {subcategories.map((subcat) => (
@@ -71,4 +71,4 @@ function SubcategorySidebar({
     </div>
   );
 }
-export default memo(SubcategorySidebar);
+export default memo(SubcategorySidebar);
