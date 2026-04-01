@@ -37,9 +37,28 @@ async function init() {
       }
     };
 
+    // Background job: scan stock levels every 6 hours and send alerts
+    const runStockAlertScan = async () => {
+      try {
+        const stockAlertService = require("./services/stockAlertService");
+        logger.info("[stock-alert-bg] Starting background stock level scan...");
+        const result = await stockAlertService.runFullScan();
+        logger.info(`[stock-alert-bg] Scan completed: scanned=${result.scanned}, alerted=${result.alerted}`);
+      } catch (err) {
+        logger.error("[stock-alert-bg] Background stock scan failed:", err);
+      }
+    };
+
     // Trigger once at startup, then keep the DB connection warm every hour.
     await runDbKeepAlive();
     setInterval(runDbKeepAlive, DB_PING_INTERVAL_MS);
+
+    // Run stock alert scan on startup (after 30s delay to let system settle), then every 6 hours
+    const STOCK_ALERT_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
+    setTimeout(() => {
+      runStockAlertScan();
+      setInterval(runStockAlertScan, STOCK_ALERT_INTERVAL_MS);
+    }, 30000); // 30 second startup delay
 
     app.listen(PORT, () => {
       logger.info(`Server running on port ${PORT} [${config.env}]`);
