@@ -311,8 +311,18 @@ async function getMyBirthdayOffer(userId, now = new Date()) {
   };
 }
 
-async function previewCouponDiscount({ userId, couponCode, cartSubtotal, now = new Date() }) {
-  if (!couponCode) return null;
+async function previewCouponDiscount({
+  userId,
+  couponCode,
+  cartSubtotal,
+  now = new Date(),
+  includeFailureReason = false,
+}) {
+  if (!couponCode) {
+    return includeFailureReason
+      ? { error: "Please enter a birthday coupon code" }
+      : null;
+  }
 
   const today = toDateOnly(now).toISOString().slice(0, 10);
   const row = await dbQueryOne(
@@ -323,13 +333,66 @@ async function previewCouponDiscount({ userId, couponCode, cartSubtotal, now = n
        AND buo.coupon_code = $2
        AND buo.status = 'revealed'
        AND buo.claimed_at IS NULL
-       AND buo.valid_from <= $3::date
-       AND buo.valid_until >= $3::date
+       AND COALESCE(buo.valid_from, buo.birthday_date) <= $3::date
+       AND COALESCE(
+         buo.valid_until,
+         buo.birthday_date + ((COALESCE(buo.valid_days, 1) - 1) * INTERVAL '1 day')
+       ) >= $3::date
      LIMIT 1`,
     [userId, String(couponCode).trim().toUpperCase(), today],
   );
 
-  if (!row) return null;
+  if (!row) {
+    if (!includeFailureReason) return null;
+
+    const raw = await dbQueryOne(
+      `SELECT buo.status, buo.claimed_at, buo.valid_from, buo.valid_until, buo.birthday_date, buo.valid_days
+       FROM birthday_user_offers buo
+       WHERE buo.user_id = $1
+         AND buo.coupon_code = $2
+       LIMIT 1`,
+      [userId, String(couponCode).trim().toUpperCase()],
+    );
+
+    if (!raw) {
+      return { error: "Birthday coupon not found for this account" };
+    }
+
+    if (raw.claimed_at || raw.status === "claimed") {
+      return { error: "This birthday coupon has already been used" };
+    }
+
+    const effectiveValidFrom = raw.valid_from
+      ? String(raw.valid_from).slice(0, 10)
+      : raw.birthday_date
+        ? String(raw.birthday_date).slice(0, 10)
+        : null;
+
+    const effectiveValidUntil = raw.valid_until
+      ? String(raw.valid_until).slice(0, 10)
+      : raw.birthday_date
+        ? (() => {
+            const start = new Date(raw.birthday_date);
+            const days = Math.max(Number(raw.valid_days || 1), 1);
+            start.setUTCDate(start.getUTCDate() + days - 1);
+            return start.toISOString().slice(0, 10);
+          })()
+        : null;
+
+    if (effectiveValidUntil && effectiveValidUntil < today) {
+      return { error: "This birthday coupon has expired" };
+    }
+
+    if (effectiveValidFrom && effectiveValidFrom > today) {
+      return { error: "This birthday coupon is not active yet" };
+    }
+
+    if (raw.status !== "revealed") {
+      return { error: "Birthday offer is assigned but not revealed yet" };
+    }
+
+    return { error: "Invalid or unavailable birthday coupon" };
+  }
 
   const subtotal = Number(cartSubtotal || 0);
   let discount = 0;

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import {
   XMarkIcon as X,
   TrashIcon as Trash2,
@@ -37,7 +37,7 @@ export default function CartSidebar() {
     closeCart,
   } = useCart();
   const overlayRef = useRef(null);
-  const [loggedIn] = useState(() => !!secureStorage.getItem("token"));
+  const loggedIn = !!secureStorage.getItem("token");
   const pathname = usePathname();
   const loginHref = `/login?redirect=${encodeURIComponent(pathname || "/")}`;
   useEffect(() => {

@@ -94,10 +94,15 @@ const previewBirthdayCoupon = asyncHandler(async (req, res) => {
     userId: req.user.id,
     couponCode: coupon_code,
     cartSubtotal: Number(cart_subtotal || 0),
+    includeFailureReason: true,
   });
 
-  if (!preview) {
-    return ApiResponse.error(res, 'Invalid or unavailable birthday coupon', 400);
+  if (!preview || preview.error) {
+    return ApiResponse.error(
+      res,
+      preview?.error || 'Invalid or unavailable birthday coupon',
+      400,
+    );
   }
 
   ApiResponse.success(res, preview);

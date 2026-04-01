@@ -1,5 +1,5 @@
 import secureStorage from "./secureStorage";
-const API_URL =
+export const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
 const LANGUAGE_STORAGE_KEY = "mk-reddy-lang";
 const LEGACY_LANGUAGE_STORAGE_KEY = "language";

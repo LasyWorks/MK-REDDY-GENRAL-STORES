@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { API_URL } from "@/lib/api";
 
 export default function OfflineGate() {
   const [isDevOrLocalhost] = useState(() => {
@@ -16,7 +17,7 @@ export default function OfflineGate() {
 
   async function verifyConnection() {
     try {
-      const response = await fetch(`/api/v1/health?ts=${Date.now()}`, {
+      const response = await fetch(`${API_URL}/health?ts=${Date.now()}`, {
         method: "GET",
         cache: "no-store",
       });

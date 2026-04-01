@@ -195,8 +195,11 @@ class Order {
              AND coupon_code = $4
              AND status = 'revealed'
              AND claimed_at IS NULL
-             AND valid_from <= NOW()::date
-             AND valid_until >= NOW()::date`,
+             AND COALESCE(valid_from, birthday_date) <= NOW()::date
+             AND COALESCE(
+               valid_until,
+               birthday_date + ((COALESCE(valid_days, 1) - 1) * INTERVAL '1 day')
+             ) >= NOW()::date`,
           [birthdayOfferId, orderId, userId, birthdayCouponCode]
         );
 
