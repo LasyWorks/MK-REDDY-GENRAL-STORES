@@ -18,7 +18,7 @@ import { translateToEnglish, normalizeTranscript } from "@/lib/voiceSearch";
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
 const DEBOUNCE_MS = 250;
-const SILENCE_STOP_MS = 1800; // auto-stop mic after 1.8s of silence
+const SILENCE_STOP_MS = 5000; // auto-stop mic after 5s of silence
 
 export default function Searchbar() {
   const { lang } = useLanguage();
@@ -240,31 +240,33 @@ export default function Searchbar() {
   };
 
   const showVoiceUI = mounted && browserSupportsSpeechRecognition;
+  const showLiveState = listening || translating;
 
   return (
     <div ref={wrapperRef} className="relative w-full max-w-2xl">
       {/* Listening banner */}
-      {listening && (
-        <div className="absolute -top-8 left-0 right-0 flex items-center justify-between px-3 py-1 bg-green-50 border border-green-200 rounded-full text-[11px] text-green-700 font-medium z-10 shadow-sm">
+      {showLiveState && (
+        <div className="absolute -top-10 left-0 right-0 flex items-center justify-between px-3 py-1.5 bg-white border border-green-200 rounded-full text-[11px] text-green-700 font-medium z-10 shadow-sm">
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-            Listening in {langMode === "te-IN" ? "తెలుగు" : "English"}... speak
-            now
+            <span className={`w-2 h-2 rounded-full ${listening ? "bg-red-500 animate-pulse" : "bg-blue-500 animate-pulse"}`} />
+            {listening
+              ? `Listening in ${langMode === "te-IN" ? "Telugu" : "English"}`
+              : "Converting speech to search"}
           </div>
           <button
             onClick={cycleLang}
             className="underline text-green-600 font-bold"
           >
-            {langMode === "te-IN" ? "Switch to English" : "Switch to తెలుగు"}
+            {langMode === "te-IN" ? "Use English" : "Use Telugu"}
           </button>
         </div>
       )}
 
       <div
-        className={`flex items-center rounded-lg px-4 py-2.5 w-full gap-2 transition-all ${
+        className={`flex items-center rounded-xl px-4 py-2.5 w-full gap-2 transition-all ${
           listening
-            ? "bg-red-50 ring-2 ring-red-400"
-            : "bg-[#f1f5f9] focus-within:ring-2 focus-within:ring-blue-400"
+            ? "bg-red-50 ring-2 ring-red-300"
+            : "bg-[#f1f5f9] focus-within:ring-2 focus-within:ring-blue-300"
         }`}
       >
         {loading || translating ? (
@@ -282,7 +284,7 @@ export default function Searchbar() {
             onFocus={() => results.length > 0 && setOpen(true)}
             placeholder={
               listening
-                ? `Listening in ${langMode === "te-IN" ? "తెలుగు" : "English"}... speak now`
+                ? `Listening in ${langMode === "te-IN" ? "Telugu" : "English"}...`
                 : "Search for groceries, vegetables, fruits..."
             }
             className="bg-transparent border-none outline-none w-full text-gray-700 placeholder-gray-400 text-[15px]"
@@ -311,7 +313,7 @@ export default function Searchbar() {
                     : "bg-blue-50 text-blue-600 border-blue-200"
                 }`}
               >
-                {langMode === "te-IN" ? "తె" : "EN"}
+                {langMode === "te-IN" ? "TE" : "EN"}
               </button>
               <button
                 onClick={toggleVoice}
@@ -345,11 +347,11 @@ export default function Searchbar() {
             </div>
           ) : (
             <>
-              <p className="px-4 pt-3 pb-2 text-[11px] text-gray-400 uppercase font-semibold tracking-wide">
+              <p className="sticky top-0 bg-white px-4 pt-3 pb-2 text-[11px] text-gray-400 uppercase font-semibold tracking-wide border-b border-gray-50 z-10">
                 {results.length} result{results.length > 1 ? "s" : ""}
                 {translatedLabel && (
                   <span className="ml-2 text-blue-400 normal-case font-normal">
-                    ({translatedLabel})
+                    ({translatedLabel.replace(/^🔍\s*/, "")})
                   </span>
                 )}
               </p>
@@ -406,8 +408,8 @@ function SearchResultItem({ product, query, onSelect }) {
           className="text-sm text-gray-800 line-clamp-1 group-hover:text-blue-600 transition-colors"
           dangerouslySetInnerHTML={{ __html: highlighted }}
         />
-        {product.unit_pack_size && (
-          <p className="text-xs text-gray-400">{product.unit_pack_size}</p>
+        {(product.unit_pack_size || product.variant) && (
+          <p className="text-xs text-gray-400">{product.unit_pack_size || product.variant}</p>
         )}
       </div>
       <div className="text-right flex-shrink-0">

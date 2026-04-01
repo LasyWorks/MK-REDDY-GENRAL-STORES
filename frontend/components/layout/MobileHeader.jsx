@@ -20,7 +20,7 @@ import { translateToEnglish, normalizeTranscript } from "@/lib/voiceSearch";
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
 const DEBOUNCE_MS = 250;
-const SILENCE_STOP_MS = 1800;
+const SILENCE_STOP_MS = 5000;
 
 export default function MobileHeader() {
   const { totalCount, openCart } = useCart();
@@ -247,6 +247,7 @@ export default function MobileHeader() {
   };
 
   const showVoiceUI = mounted && browserSupportsSpeechRecognition;
+  const showLiveState = listening || translating;
 
   return (
     <header className="md:hidden sticky top-0 z-50 bg-white shadow-sm print:hidden">
@@ -332,19 +333,21 @@ export default function MobileHeader() {
       {/* ── Search Bar ── */}
       <div className="px-3 pb-2.5 relative">
         {/* Voice listening banner */}
-        {listening && (
-          <div className="flex items-center justify-between mb-1.5 px-3 py-1 bg-green-50 border border-green-200 rounded-full">
+        {showLiveState && (
+          <div className="flex items-center justify-between mb-1.5 px-3 py-1.5 bg-white border border-green-200 rounded-full shadow-sm">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              <span className={`w-2 h-2 rounded-full ${listening ? "bg-red-500 animate-pulse" : "bg-blue-500 animate-pulse"}`} />
               <span className="text-[11px] text-green-700 font-medium">
-                Listening in {langMode === "te-IN" ? "తెలుగు" : "English"}… speak now
+                {listening
+                  ? `Listening in ${langMode === "te-IN" ? "Telugu" : "English"}`
+                  : "Converting speech to search"}
               </span>
             </div>
             <button
               onClick={cycleLang}
               className="text-[10px] text-green-600 font-bold underline"
             >
-              {langMode === "te-IN" ? "Switch to English" : "Switch to తెలుగు"}
+              {langMode === "te-IN" ? "Use English" : "Use Telugu"}
             </button>
           </div>
         )}
@@ -365,7 +368,7 @@ export default function MobileHeader() {
               onKeyDown={handleKeyDown}
               placeholder={
                 listening
-                  ? `Listening in ${langMode === "te-IN" ? "తెలుగు" : "English"}…`
+                    ? `Listening in ${langMode === "te-IN" ? "Telugu" : "English"}…`
                   : "Search groceries, fruits, snacks…"
               }
               className="bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none w-full"
@@ -404,7 +407,7 @@ export default function MobileHeader() {
                 }`}
                 title={`Voice language: ${langMode === "te-IN" ? "Telugu" : "English"} — tap to switch`}
               >
-                {langMode === "te-IN" ? "తె" : "EN"}
+                {langMode === "te-IN" ? "TE" : "EN"}
               </button>
             )}
             {/* Mic button — only after mount */}
@@ -431,7 +434,7 @@ export default function MobileHeader() {
           <div className="absolute left-3 right-3 top-full mt-1 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 max-h-72 overflow-y-auto">
             {translatedLabel && (
               <p className="px-3 pt-2 pb-1 text-[11px] text-blue-500 font-medium">
-                🔍 {translatedLabel}
+                {translatedLabel.replace(/^🔍\s*/, "")}
               </p>
             )}
             {results.map((product) => (
@@ -455,6 +458,11 @@ export default function MobileHeader() {
                   <p className="text-sm font-medium text-gray-800 truncate">
                     {product.name}
                   </p>
+                  {(product.unit_pack_size || product.variant) && (
+                    <p className="text-[11px] text-gray-400 truncate">
+                      {product.unit_pack_size || product.variant}
+                    </p>
+                  )}
                   <p className="text-xs text-[#16A34A] font-bold">
                     ₹{Math.round(product.price)}
                   </p>
