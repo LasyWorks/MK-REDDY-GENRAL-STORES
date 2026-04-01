@@ -70,6 +70,8 @@ async function ensureBirthdayCampaignSchema() {
   await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS birthday_offer_title VARCHAR(200)`);
   await query(`CREATE INDEX IF NOT EXISTS idx_orders_birthday_offer ON orders(birthday_offer_id)`);
 
+  await query(`ALTER TABLE admin_notifications ALTER COLUMN type TYPE VARCHAR(50)`).catch(() => {});
+
   await query(`
     DO $$ BEGIN
       ALTER TABLE orders

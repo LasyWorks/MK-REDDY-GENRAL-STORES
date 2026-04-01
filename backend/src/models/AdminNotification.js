@@ -9,7 +9,7 @@ class AdminNotification {
     await query(`
       CREATE TABLE IF NOT EXISTS admin_notifications (
         id            UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
-        type          VARCHAR(20)   NOT NULL,
+        type          VARCHAR(50)   NOT NULL,
         title         VARCHAR(255)  NOT NULL,
         message       TEXT,
         product_id    UUID          REFERENCES products(id) ON DELETE CASCADE,
@@ -24,6 +24,7 @@ class AdminNotification {
     // Migrate existing tables: make email_sent_at nullable if it wasn't already
     await query(`ALTER TABLE admin_notifications ALTER COLUMN email_sent_at DROP NOT NULL`).catch(() => {});
     await query(`ALTER TABLE admin_notifications ALTER COLUMN email_sent_at DROP DEFAULT`).catch(() => {});
+    await query(`ALTER TABLE admin_notifications ALTER COLUMN type TYPE VARCHAR(50)`).catch(() => {});
     await query(`ALTER TABLE admin_notifications ADD COLUMN IF NOT EXISTS order_id UUID REFERENCES orders(id) ON DELETE CASCADE`).catch(() => {});
     await query(`CREATE INDEX IF NOT EXISTS idx_admin_notif_product  ON admin_notifications(product_id)`);
     await query(`CREATE INDEX IF NOT EXISTS idx_admin_notif_order    ON admin_notifications(order_id)`);
