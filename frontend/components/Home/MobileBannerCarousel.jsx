@@ -165,9 +165,6 @@ export default function MobileBannerCarousel() {
     });
 
   const slides = parentCategories.length ? parentCategories : FALLBACK_SLIDES;
-  const featureChips = (parentCategories.length ? parentCategories : FALLBACK_SLIDES)
-    .slice(0, 4)
-    .map((c) => c.name);
 
   const next = useCallback(
     () => setCurrent((c) => (c + 1) % slides.length),
@@ -325,7 +322,6 @@ export default function MobileBannerCarousel() {
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerCancel}
       >
-        <div className="hidden md:block absolute inset-0 bg-[linear-gradient(108deg,#f8fbf3_0%,#f2f8ea_45%,#eef9f3_100%)]" />
         <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 82% 18%, rgba(255,255,255,0.72), rgba(255,255,255,0) 48%)" }} />
 
         {/* Mobile Content */}
@@ -380,55 +376,48 @@ export default function MobileBannerCarousel() {
           </div>
         </div>
 
-        {/* Tablet + Laptop Content */}
-        <div className="hidden md:grid carousel-slide absolute inset-0 grid-cols-[1.02fr_0.98fr] items-center px-12 lg:px-16 py-8 lg:py-10 gap-8">
-          <div className="min-w-0 h-full flex flex-col justify-center">
-            <span className="inline-block w-fit text-[#0f172a] text-xs font-semibold bg-white/80 border border-[#e5edd7] px-3 py-1 rounded-full mb-4">
-              GroVest Style, MK Colors
-            </span>
-
-            <h2 className="text-[44px] lg:text-[54px] font-black leading-[1.04] tracking-tight text-[#0f172a] max-w-[720px] pb-[3px]">
-              Best deal for your groceries
-            </h2>
-
-            <p className="mt-3 text-[17px] lg:text-[18px] leading-snug text-[#3b4a5a] max-w-[560px]">
-              Now featuring {banner.name}. Shop handpicked essentials with genuine brands and faster doorstep delivery.
-            </p>
-
-            <div className="mt-6 flex items-center gap-3">
-              <Link
-                href={banner.href}
-                className="inline-flex items-center text-white text-sm font-semibold px-7 py-3 rounded-full bg-[#16a34a] hover:bg-[#14853f] transition-colors"
+        {/* Tablet + Laptop Content (same structure as mobile with responsive scale) */}
+        <div
+          key={`${banner.id}-desktop`}
+          className="hidden md:grid carousel-slide absolute inset-0 grid-cols-[1fr_42%] items-stretch px-7 lg:px-9 py-5 lg:py-6 gap-3 lg:gap-5"
+        >
+          <div className="min-w-0 h-full flex flex-col justify-between py-1 lg:py-2">
+            <div>
+              <span
+                className="inline-block text-white text-[11px] lg:text-xs font-extrabold tracking-[0.12em] px-3 py-1 rounded-full mb-3 lg:mb-4"
+                style={{ backgroundColor: banner.accent }}
               >
-                Shop Now
-              </Link>
-              <Link
-                href="/categories"
-                className="inline-flex items-center text-[#1f2937] text-sm font-semibold px-7 py-3 rounded-full bg-white border border-[#dbe6cc] hover:bg-[#f8fbef] transition-colors"
+                {banner.tag}
+              </span>
+
+              <h2 className="text-[22px] lg:text-[26px] font-black text-[#0f172a] leading-[1.06] tracking-tight max-w-[95%] line-clamp-2 pb-[2px]">
+                {banner.name}
+              </h2>
+              <p
+                className="text-[12px] lg:text-[13px] font-extrabold mb-1.5 line-clamp-1"
+                style={{ color: banner.accent }}
               >
-                Learn More
-              </Link>
+                {banner.productCount > 0 ? `${banner.productCount} products available` : "Fresh picks for your home"}
+              </p>
+              <p className="text-[11px] lg:text-[12px] text-[#374151] leading-snug mb-2.5 lg:mb-3 line-clamp-2 max-w-[95%]">
+                {banner.subline}
+              </p>
             </div>
 
-            <div className="mt-6 flex flex-wrap gap-2.5">
-              {featureChips.map((chip) => (
-                <span
-                  key={chip}
-                  className="inline-flex items-center px-3 py-1.5 rounded-full border border-[#dbe6cc] text-xs font-medium text-[#4b5a37] bg-white/85"
-                >
-                  {chip}
-                </span>
-              ))}
-            </div>
+            <Link
+              href={banner.href}
+              className="inline-flex w-fit items-center gap-1.5 text-white text-xs lg:text-sm font-bold px-5 lg:px-6 py-2.5 rounded-full shadow-[0_8px_20px_rgba(0,0,0,0.15)] hover:brightness-95 transition-all duration-150"
+              style={{ backgroundColor: banner.accent }}
+            >
+              Shop Now
+            </Link>
           </div>
 
-          <div className="relative h-full flex items-start justify-center pt-3 lg:pt-4">
-            <div className="absolute w-[360px] h-[360px] lg:w-[420px] lg:h-[420px] rounded-full bg-[#d9f067]/45 blur-[2px]" />
-            <div className="absolute w-[300px] h-[300px] lg:w-[360px] lg:h-[360px] rounded-full bg-[#8bd2f2]/28 -left-4 top-8" />
+          <div className="h-full flex items-start justify-end pt-3 lg:pt-4">
             <ImageWithFallback
               src={banner.image}
               alt={banner.name}
-              className="relative z-10 w-full max-w-[500px] lg:max-w-[580px] h-[300px] lg:h-[340px] object-contain object-top rounded-[26px] shadow-[0_18px_50px_rgba(22,163,74,0.18)]"
+              className="w-full h-[210px] lg:h-[245px] object-cover object-top rounded-2xl lg:rounded-[22px] shadow-[0_18px_44px_rgba(15,23,42,0.16)]"
               size="lg"
               priority
             />
