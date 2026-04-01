@@ -7915,6 +7915,7 @@ const SIDEBAR_ITEMS = [
   { id: "promotions", label: "Promotions", icon: Megaphone },
   { id: "users", label: "Customers", icon: Users },
   { id: "billing", label: "Billing", icon: DocumentTextIcon },
+  { id: "voice_dictionary", label: "Voice Dictionary", icon: LightBulbIcon },
   { id: "settings", label: "Settings", icon: Cog },
 ];
 
@@ -8022,6 +8023,8 @@ export default function AdminDashboard() {
   function handleTabChange(tabId) {
     if (tabId === "billing") {
       router.push("/admin/billing");
+    } else if (tabId === "voice_dictionary") {
+      router.push("/admin/voice-dictionary");
     } else {
       setTab(tabId);
       localStorage.setItem("adminDashTab", tabId);

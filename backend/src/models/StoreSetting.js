@@ -88,6 +88,59 @@ class StoreSetting {
     }
     return updated;
   }
+
+  /**
+   * Get dynamic voice dictionary for a language.
+   * Stored as JSON string in store_settings key: voice_dict_<lang>
+   */
+  static async getVoiceDictionary(lang = "te") {
+    const key = `voice_dict_${String(lang || "te").toLowerCase()}`;
+    const row = await this.get(key);
+    if (!row || !row.value) return {};
+
+    try {
+      const parsed = JSON.parse(row.value);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  /**
+   * Upsert dynamic voice dictionary for a language.
+   */
+  static async setVoiceDictionary(lang = "te", dict = {}) {
+    const key = `voice_dict_${String(lang || "te").toLowerCase()}`;
+    return this.set(key, JSON.stringify(dict));
+  }
+
+  /**
+   * Build a Telugu->English dictionary from product translation rows.
+   * Uses exact product pairs where both 'te' and 'en' names exist.
+   */
+  static async buildVoiceDictionaryFromProductTranslations() {
+    const rows = await query(
+      `SELECT LOWER(TRIM(pt_te.name)) AS te_name,
+              LOWER(TRIM(pt_en.name)) AS en_name
+       FROM product_translations pt_te
+       JOIN product_translations pt_en
+         ON pt_en.product_id = pt_te.product_id
+        AND pt_en.lang_code = 'en'
+      WHERE pt_te.lang_code = 'te'
+        AND pt_te.name IS NOT NULL
+        AND pt_en.name IS NOT NULL
+        AND LENGTH(TRIM(pt_te.name)) > 0
+        AND LENGTH(TRIM(pt_en.name)) > 0`,
+    );
+
+    const dict = {};
+    for (const row of rows) {
+      if (!row?.te_name || !row?.en_name) continue;
+      dict[row.te_name] = row.en_name;
+    }
+
+    return dict;
+  }
 }
 
 module.exports = StoreSetting;
