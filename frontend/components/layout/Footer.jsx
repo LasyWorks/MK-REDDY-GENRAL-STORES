@@ -65,7 +65,7 @@ export default function Footer() {
               <div className="flex items-start gap-2.5 text-gray-400">
                 <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-blue-400" />
                 <span>
-                  1/05, Mallikarjuna Puram, Sri Potti Sriramulu Nellore, Andhra
+                  1/05, Sri Potti Sriramulu Nellore, Andhra
                   Pradesh – 524311
                 </span>
               </div>
@@ -81,10 +81,10 @@ export default function Footer() {
               <div className="flex items-center gap-2.5 text-gray-400">
                 <Mail className="w-4 h-4 shrink-0 text-blue-400" />
                 <a
-                  href="mailto:anuradhap1784@gmail.com"
+                  href="mailto:mkreddygeneralstore@gmail.com"
                   className="hover:text-white transition-colors"
                 >
-                  anuradhap1784@gmail.com
+                  mkreddygeneralstore@gmail.com
                 </a>
               </div>
               <div className="flex items-center gap-2.5 text-gray-400">
