@@ -7735,6 +7735,23 @@ function StoreSettingsTab() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({});
 
+  const hiddenSettingKeys = useMemo(
+    () => new Set([
+      "birthday_campaign_enabled",
+      "birthday_discount_code",
+      "birthday_discount_percent",
+      "birthday_discount_valid_days",
+      "birthday_offer_title",
+      "voice_dict_te",
+    ]),
+    [],
+  );
+
+  const visibleSettings = useMemo(
+    () => settings.filter((s) => !hiddenSettingKeys.has(s.key)),
+    [settings, hiddenSettingKeys],
+  );
+
   useEffect(() => {
     (async () => {
       try {
@@ -7795,7 +7812,7 @@ function StoreSettingsTab() {
           </p>
         </div>
         <div className="px-6 py-5 space-y-6">
-          {settings.map((s) => (
+          {visibleSettings.map((s) => (
             <div key={s.key}>
               <label className="block text-sm font-semibold text-gray-800 mb-1">
                 {s.label || s.key}
