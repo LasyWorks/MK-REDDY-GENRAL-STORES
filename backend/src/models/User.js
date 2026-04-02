@@ -76,13 +76,33 @@ class User {
   }
   static async softDelete(id) {
     return modify(
-      `UPDATE users SET deleted_at = NOW(), is_active = FALSE WHERE id = $1`,
+      `UPDATE users
+       SET
+         deleted_phone = phone,
+         deleted_email = email,
+         phone = ('D' || substring(replace(id::text, '-', '') from 1 for 14)),
+         email = CASE
+           WHEN email IS NULL THEN NULL
+           ELSE ('deleted+' || substring(replace(id::text, '-', '') from 1 for 20) || '@del.local')
+         END,
+         google_id = NULL,
+         deleted_at = NOW(),
+         is_active = FALSE
+       WHERE id = $1`,
       [id],
     );
   }
   static async restore(id) {
     return modify(
-      `UPDATE users SET deleted_at = NULL, is_active = TRUE WHERE id = $1`,
+      `UPDATE users
+       SET
+         deleted_at = NULL,
+         is_active = TRUE,
+         phone = COALESCE(deleted_phone, phone),
+         email = COALESCE(deleted_email, email),
+         deleted_phone = NULL,
+         deleted_email = NULL
+       WHERE id = $1`,
       [id],
     );
   }

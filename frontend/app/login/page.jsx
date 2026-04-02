@@ -14,8 +14,6 @@ import {
   ExclamationTriangleIcon,
   CheckIcon,
   LinkIcon,
-  ShoppingCartIcon,
-  CubeIcon,
 } from "@heroicons/react/24/outline";
 import { GoogleLogin } from '@react-oauth/google';
 import api from "@/lib/api";
@@ -53,7 +51,8 @@ function LoginForm() {
   // Phone collection form
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
-  const [userType, setUserType] = useState("retail");
+  const [displayName, setDisplayName] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [address, setAddress] = useState("");
   
   const [loading, setLoading] = useState(false);
@@ -139,6 +138,7 @@ function LoginForm() {
         // New user - needs to provide phone number
         setGoogleData(data.googleData);
         setName(data.googleData.name || "");
+        setDisplayName(data.googleData.name || "");
         setEmail(data.googleData.email || "");
         setStep("phone-collection");
         setSuccess("Google authentication successful! Please provide your phone number to complete registration.");
@@ -167,6 +167,14 @@ function LoginForm() {
       setError("Please enter a valid 10-digit phone number");
       return;
     }
+    if (!displayName.trim()) {
+      setError("Please enter display name");
+      return;
+    }
+    if (!dateOfBirth) {
+      setError("Please select date of birth");
+      return;
+    }
 
     setLoading(true);
     setError("");
@@ -174,11 +182,13 @@ function LoginForm() {
     try {
       const { data } = await api.post("/auth/google/register", {
         name,
+        display_name: displayName.trim(),
+        date_of_birth: dateOfBirth,
         phone,
         email: googleData.email,
         googleId: googleData.googleId,
         picture: googleData.picture,
-        user_type: userType,
+        user_type: "retail",
         address,
       });
 
@@ -303,6 +313,14 @@ function LoginForm() {
       setError("Please enter a valid 10-digit phone number");
       return;
     }
+    if (!displayName.trim()) {
+      setError("Please enter display name");
+      return;
+    }
+    if (!dateOfBirth) {
+      setError("Please select date of birth");
+      return;
+    }
 
     setLoading(true);
     setError("");
@@ -310,9 +328,11 @@ function LoginForm() {
     try {
       const { data } = await api.post("/auth/email-otp/register", {
         name,
+        display_name: displayName.trim(),
+        date_of_birth: dateOfBirth,
         phone,
         email,
-        user_type: userType,
+        user_type: "retail",
         address,
       });
 
@@ -802,35 +822,38 @@ function LoginForm() {
                 </p>
               </div>
 
-              {/* Customer Type */}
+              {/* Display Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Customer Type
+                  Display Name *
                 </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setUserType("retail")}
-                    className={`py-3 px-4 rounded-xl font-medium text-sm transition-all ${
-                      userType === "retail"
-                        ? "bg-green-600 text-white shadow-md"
-                        : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    <ShoppingCartIcon className="w-4 h-4 mr-1.5 inline" /> Retail
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setUserType("wholesale")}
-                    className={`py-3 px-4 rounded-xl font-medium text-sm transition-all ${
-                      userType === "wholesale"
-                        ? "bg-green-600 text-white shadow-md"
-                        : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    <CubeIcon className="w-4 h-4 mr-1.5 inline" /> Wholesale
-                  </button>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="How we should call you"
+                    required
+                    className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                  />
                 </div>
+              </div>
+
+              {/* Date of Birth */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Date of Birth *
+                </label>
+                <ChronoSelect
+                  value={dateOfBirth ? new Date(`${dateOfBirth}T00:00:00`) : undefined}
+                  onChange={(date) => {
+                    setDateOfBirth(date ? toLocalDateString(date) : "");
+                  }}
+                  placeholder="Pick your date of birth"
+                  yearRange={[1940, new Date().getFullYear()]}
+                  className="w-full"
+                />
               </div>
 
               {/* Address */}
@@ -853,7 +876,7 @@ function LoginForm() {
               {/* Submit */}
               <button
                 type="submit"
-                disabled={loading || !phone || phone.length !== 10}
+                disabled={loading || !phone || phone.length !== 10 || !displayName.trim() || !dateOfBirth}
                 className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
               >
                 {loading ? (
