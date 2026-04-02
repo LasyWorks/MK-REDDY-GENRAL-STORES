@@ -3,7 +3,13 @@ const { generateOrderNumber, parseVariantToKg } = require('../utils/helpers');
 class Order {
   static async findById(id, lang = 'en') {
     const order = await queryOne(
-      `SELECT o.*, u.name AS customer_name, u.phone AS customer_phone, u.email AS customer_email, u.user_type
+      `SELECT o.*, u.name AS customer_name, u.phone AS customer_phone, u.email AS customer_email, u.user_type,
+              EXISTS (
+                SELECT 1 FROM admin_logs al
+                WHERE al.entity_type = 'order'
+                  AND al.entity_id = o.id
+                  AND al.action = 'CANCEL_ORDER'
+              ) AS cancelled_by_admin
        FROM orders o JOIN users u ON o.user_id = u.id WHERE o.id = $1`,
       [id]
     );
@@ -12,7 +18,13 @@ class Order {
   }
   static async findByOrderNumber(orderNumber, lang = 'en') {
     const order = await queryOne(
-      `SELECT o.*, u.name AS customer_name, u.phone AS customer_phone, u.email AS customer_email, u.user_type
+      `SELECT o.*, u.name AS customer_name, u.phone AS customer_phone, u.email AS customer_email, u.user_type,
+              EXISTS (
+                SELECT 1 FROM admin_logs al
+                WHERE al.entity_type = 'order'
+                  AND al.entity_id = o.id
+                  AND al.action = 'CANCEL_ORDER'
+              ) AS cancelled_by_admin
        FROM orders o JOIN users u ON o.user_id = u.id WHERE o.order_number = $1`,
       [orderNumber]
     );
@@ -50,6 +62,12 @@ class Order {
     const countRow = await queryOne(`SELECT COUNT(*) AS total FROM orders o WHERE ${where}`, params);
     const rows = await query(
       `SELECT o.*, u.name AS customer_name, u.phone AS customer_phone, u.user_type,
+              EXISTS (
+                SELECT 1 FROM admin_logs al
+                WHERE al.entity_type = 'order'
+                  AND al.entity_id = o.id
+                  AND al.action = 'CANCEL_ORDER'
+              ) AS cancelled_by_admin,
               (SELECT COUNT(*) FROM order_items WHERE order_id = o.id) AS item_count,
               ARRAY(
                 SELECT p.image_url FROM order_items oi
@@ -83,6 +101,12 @@ class Order {
     const countRow = await queryOne(`SELECT COUNT(*) AS total FROM orders o JOIN users u ON o.user_id = u.id WHERE ${where}`, params);
     const rows = await query(
       `SELECT o.*, u.name AS customer_name, u.phone AS customer_phone, u.email AS customer_email, u.user_type,
+              EXISTS (
+                SELECT 1 FROM admin_logs al
+                WHERE al.entity_type = 'order'
+                  AND al.entity_id = o.id
+                  AND al.action = 'CANCEL_ORDER'
+              ) AS cancelled_by_admin,
               (SELECT COUNT(*) FROM order_items WHERE order_id = o.id) AS item_count,
               ARRAY(SELECT oi.product_name_en FROM order_items oi WHERE oi.order_id = o.id LIMIT 3) AS item_names
        FROM orders o JOIN users u ON o.user_id = u.id
@@ -360,6 +384,10 @@ class Order {
       confirmed_at: order.confirmed_at, ready_at: order.ready_at,
       picked_up_at: order.picked_up_at, cancelled_at: order.cancelled_at,
       cancellation_reason: order.cancellation_reason,
+      cancelled_by:
+        order.status === 'cancelled'
+          ? (order.cancelled_by_admin ? 'admin' : 'customer')
+          : null,
       created_at: order.created_at, updated_at: order.updated_at,
     };
   }

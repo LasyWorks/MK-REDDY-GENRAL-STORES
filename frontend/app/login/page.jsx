@@ -22,12 +22,19 @@ import api from "@/lib/api";
 import secureStorage from "@/lib/secureStorage";
 import MergeService from "@/services/mergeService";
 import authService from "@/services/authService";
-import { DatePicker } from "@/components/ui/date-picker";
+import { ChronoSelect } from "@/components/ui/chrono-select";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/";
+
+  const toLocalDateString = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
   
   // Login method: 'select', 'google', 'email'
   const [loginMethod, setLoginMethod] = useState("select");
@@ -1069,12 +1076,13 @@ function LoginForm() {
                   Date of Birth {missingProfileFields.includes("date_of_birth") ? "*" : ""}
                 </label>
                 <div className="relative">
-                  <DatePicker
-                    value={profileDob}
-                    onChange={setProfileDob}
+                  <ChronoSelect
+                    value={profileDob ? new Date(`${profileDob}T00:00:00`) : undefined}
+                    onChange={(date) => {
+                      setProfileDob(date ? toLocalDateString(date) : "");
+                    }}
                     placeholder="Pick your date of birth"
-                    required={missingProfileFields.includes("date_of_birth")}
-                    maxDate={new Date()}
+                    yearRange={[1940, new Date().getFullYear()]}
                     className="w-full"
                   />
                 </div>

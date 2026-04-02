@@ -329,6 +329,8 @@ function ProductCard({ product }) {
             alt={product.name}
             className={`max-w-full max-h-full object-contain transition-transform duration-300 group-hover:scale-105 ${isOutOfStock ? "grayscale" : ""}`}
             size="lg"
+            centered
+            centered
           />
         </div>
       </div>

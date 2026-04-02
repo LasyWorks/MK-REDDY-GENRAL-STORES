@@ -3232,12 +3232,12 @@ function OrdersTab() {
 
       setOrders((prev) => prev.map((o) => (
         cancelTargetIds.includes(o.id)
-          ? { ...o, status: "cancelled", cancellation_reason: appliedReason }
+          ? { ...o, status: "cancelled", cancellation_reason: appliedReason, cancelled_by: "admin" }
           : o
       )));
 
       if (drawerOrder?.id && cancelTargetIds.includes(drawerOrder.id)) {
-        setDrawerOrder((d) => d ? { ...d, status: "cancelled", cancellation_reason: appliedReason } : d);
+        setDrawerOrder((d) => d ? { ...d, status: "cancelled", cancellation_reason: appliedReason, cancelled_by: "admin" } : d);
       }
 
       toast(`${cancelTargetIds.length} order${cancelTargetIds.length !== 1 ? "s" : ""} cancelled`, "success");
@@ -3416,6 +3416,9 @@ function OrdersTab() {
   };
 
   function inferCancelledActor(order) {
+    const explicitActor = String(order?.cancelled_by || "").toLowerCase();
+    if (explicitActor === "admin" || explicitActor === "customer") return explicitActor;
+
     const reason = String(order?.cancellation_reason || "").toLowerCase();
 
     if (/customer|requested by customer/.test(reason)) return "customer";

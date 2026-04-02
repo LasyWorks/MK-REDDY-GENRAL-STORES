@@ -59,7 +59,7 @@ CREATE TABLE category_translations (id UUID PRIMARY KEY DEFAULT uuid_generate_v7
 CREATE INDEX idx_cat_trans_category ON category_translations(category_id); CREATE INDEX idx_cat_trans_lang ON category_translations(lang_code);
 
 -- PRODUCTS
-CREATE TABLE products (id UUID PRIMARY KEY DEFAULT uuid_generate_v7(), category_id UUID NOT NULL REFERENCES categories(id) ON DELETE RESTRICT, sku VARCHAR(50) UNIQUE, brand VARCHAR(100), variant VARCHAR(100), unit_type VARCHAR(50), unit_pack_size VARCHAR(100), hsn_code VARCHAR(20), mrp DECIMAL(10,2), purchase_price DECIMAL(10,2), price DECIMAL(10,2) NOT NULL, wholesale_price DECIMAL(10,2), gst_percentage DECIMAL(5,2) NOT NULL DEFAULT 18.00, discount DECIMAL(5,2), margin DECIMAL(5,2), stock_quantity NUMERIC(10,3) NOT NULL DEFAULT 0, min_order_quantity INT DEFAULT 1, max_order_quantity INT, low_stock_threshold INTEGER NOT NULL DEFAULT 10, image_url VARCHAR(500), is_active BOOLEAN DEFAULT TRUE, is_featured BOOLEAN DEFAULT FALSE, parent_product_id UUID REFERENCES products(id) ON DELETE SET NULL, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW());
+CREATE TABLE products (id UUID PRIMARY KEY DEFAULT uuid_generate_v7(), category_id UUID NOT NULL REFERENCES categories(id) ON DELETE RESTRICT, sku VARCHAR(50) UNIQUE, brand VARCHAR(100), variant VARCHAR(100), unit_type VARCHAR(50), unit_pack_size VARCHAR(100), hsn_code VARCHAR(20), mrp DECIMAL(10,2), purchase_price DECIMAL(10,2), price DECIMAL(10,2) NOT NULL, wholesale_price DECIMAL(10,2), gst_percentage DECIMAL(5,2) NOT NULL DEFAULT 18.00, discount DECIMAL(5,2), margin DECIMAL(5,2), stock_quantity NUMERIC(10,3) NOT NULL DEFAULT 0, min_order_quantity INT DEFAULT 1, max_order_quantity INT, low_stock_threshold INTEGER NOT NULL DEFAULT 10, image_url VARCHAR(500), image_urls TEXT[], is_active BOOLEAN DEFAULT TRUE, is_featured BOOLEAN DEFAULT FALSE, parent_product_id UUID REFERENCES products(id) ON DELETE SET NULL, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW());
 CREATE INDEX idx_products_category ON products(category_id); CREATE INDEX idx_products_active ON products(is_active); CREATE INDEX idx_products_featured ON products(is_featured); CREATE INDEX idx_products_sku ON products(sku); CREATE INDEX idx_products_price ON products(price); CREATE INDEX idx_products_stock ON products(stock_quantity); CREATE INDEX idx_products_brand ON products(brand); CREATE INDEX idx_products_parent ON products(parent_product_id);
 CREATE TRIGGER set_updated_at_products BEFORE UPDATE ON products FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();
 
@@ -88,7 +88,7 @@ CREATE TABLE order_items (id UUID PRIMARY KEY DEFAULT uuid_generate_v7(), order_
 CREATE INDEX idx_order_items_order ON order_items(order_id); CREATE INDEX idx_order_items_product ON order_items(product_id);
 
 -- INVOICES
-CREATE TABLE invoices (id UUID PRIMARY KEY DEFAULT uuid_generate_v7(), order_id UUID NOT NULL UNIQUE REFERENCES orders(id) ON DELETE RESTRICT, invoice_number VARCHAR(50) NOT NULL UNIQUE, store_name VARCHAR(200) NOT NULL, store_gst_number VARCHAR(50) NOT NULL, store_address TEXT NOT NULL, store_phone VARCHAR(20) NOT NULL, customer_name VARCHAR(100) NOT NULL, customer_phone VARCHAR(15) NOT NULL, customer_address TEXT, subtotal DECIMAL(12,2) NOT NULL, cgst DECIMAL(12,2) NOT NULL, sgst DECIMAL(12,2) NOT NULL, total_gst DECIMAL(12,2) NOT NULL, total_amount DECIMAL(12,2) NOT NULL, is_paid BOOLEAN DEFAULT FALSE, paid_at TIMESTAMPTZ, payment_method VARCHAR(50), email_sent BOOLEAN DEFAULT FALSE, email_sent_at TIMESTAMPTZ, email_attempts INT DEFAULT 0, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW());
+CREATE TABLE invoices (id UUID PRIMARY KEY DEFAULT uuid_generate_v7(), order_id UUID NOT NULL UNIQUE REFERENCES orders(id) ON DELETE RESTRICT, invoice_number VARCHAR(50) NOT NULL UNIQUE, store_name VARCHAR(200) NOT NULL, store_gst_number VARCHAR(50) NOT NULL, store_address TEXT NOT NULL, store_phone VARCHAR(20) NOT NULL, customer_name VARCHAR(100) NOT NULL, customer_phone VARCHAR(15) NOT NULL, customer_address TEXT, subtotal DECIMAL(12,2) NOT NULL, cgst DECIMAL(12,2) NOT NULL, sgst DECIMAL(12,2) NOT NULL, total_gst DECIMAL(12,2) NOT NULL, total_amount DECIMAL(12,2) NOT NULL, is_paid BOOLEAN DEFAULT FALSE, paid_at TIMESTAMPTZ, payment_method VARCHAR(50), email_sent BOOLEAN DEFAULT FALSE, email_sent_at TIMESTAMPTZ, email_attempts INT DEFAULT 0, sms_sent BOOLEAN DEFAULT FALSE, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW());
 CREATE INDEX idx_invoices_order ON invoices(order_id); CREATE INDEX idx_invoices_number ON invoices(invoice_number); CREATE INDEX idx_invoices_created ON invoices(created_at);
 CREATE TRIGGER set_updated_at_invoices BEFORE UPDATE ON invoices FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();
 
@@ -239,12 +239,19 @@ CREATE TABLE IF NOT EXISTS admin_notifications (
   type VARCHAR(50) NOT NULL,
   title VARCHAR(200) NOT NULL,
   message TEXT,
+  product_id UUID REFERENCES products(id) ON DELETE CASCADE,
+  order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
+  stock_at_alert NUMERIC,
   data JSONB,
   is_read BOOLEAN DEFAULT FALSE,
+  email_sent_at TIMESTAMPTZ,
+  resolved_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 CREATE INDEX idx_admin_notif_read ON admin_notifications(is_read);
 CREATE INDEX idx_admin_notif_created ON admin_notifications(created_at);
+CREATE INDEX idx_admin_notif_product ON admin_notifications(product_id);
+CREATE INDEX idx_admin_notif_order ON admin_notifications(order_id);
 
 -- MERGE SESSIONS (account merge flow)
 CREATE TABLE IF NOT EXISTS merge_sessions (

@@ -138,6 +138,7 @@ export default function ProductImages({
             alt={productName}
             className="w-full h-full object-contain"
             size="lg"
+            centered
           />
         </div>
       </div>
@@ -180,6 +181,7 @@ export default function ProductImages({
                     alt={label}
                     className="w-full h-full object-contain p-1"
                     size="sm"
+                    centered
                   />
                 </div>
                 <span

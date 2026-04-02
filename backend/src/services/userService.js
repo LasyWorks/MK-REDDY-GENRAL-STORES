@@ -10,6 +10,16 @@ const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 class UserService {
+  static normalizeDateOnly(value) {
+    if (value === undefined || value === null || value === "") return null;
+    if (value instanceof Date && !Number.isNaN(value.getTime())) {
+      return value.toISOString().slice(0, 10);
+    }
+    const str = String(value).trim();
+    if (!str) return null;
+    return str.slice(0, 10);
+  }
+
   static async hasIsSuperAdminColumn() {
     const result = await pool.query(
       `SELECT 1
@@ -51,6 +61,18 @@ class UserService {
     if (!user) {
       throw ApiError.notFound("User not found");
     }
+
+    const incomingDob = this.normalizeDateOnly(userData.date_of_birth);
+    const currentDob = this.normalizeDateOnly(user.date_of_birth);
+
+    // DOB can be set only once by the user. After initial set, only idempotent same-value updates are allowed.
+    if (userData.date_of_birth !== undefined && currentDob) {
+      if (!incomingDob || incomingDob !== currentDob) {
+        throw ApiError.badRequest("Date of birth can only be updated once");
+      }
+      userData.date_of_birth = currentDob;
+    }
+
     const oldData = { ...user };
     await User.update(id, userData);
     if (adminId && adminId !== id) {

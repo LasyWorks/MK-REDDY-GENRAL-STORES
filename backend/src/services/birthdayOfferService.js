@@ -52,7 +52,7 @@ async function ensureMonthStartAssignments(today) {
        AND is_active = TRUE
        AND (is_blocked = FALSE OR is_blocked IS NULL)
        AND deleted_at IS NULL
-       AND created_at <= NOW() - INTERVAL '3 months'`,
+        AND created_at <= NOW() - INTERVAL '1 month'`,
   );
 
   let created = 0;

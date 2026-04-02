@@ -131,6 +131,7 @@ export default function StickyCartBar({ product, sentinelRef, effectivePrice }) 
                 alt={product.name}
                 className="w-full h-full object-contain p-0.5"
                 size="sm"
+                centered
               />
             </div>
           )}

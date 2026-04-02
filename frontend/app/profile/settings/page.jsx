@@ -12,10 +12,17 @@ import {
 import authService from "@/services/authService";
 import secureStorage from "@/lib/secureStorage";
 import api from "@/lib/api";
-import { DatePicker } from "@/components/ui/date-picker";
+import { ChronoSelect } from "@/components/ui/chrono-select";
 
 export default function ProfileSettingsPage() {
   const router = useRouter();
+
+  const toLocalDateString = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
 
   const user = authService.getCurrentUser();
 
@@ -126,12 +133,13 @@ export default function ProfileSettingsPage() {
           </Field>
 
           <Field label="Date of Birth">
-            <DatePicker
-              value={dateOfBirth}
-              onChange={setDateOfBirth}
+            <ChronoSelect
+              value={dateOfBirth ? new Date(`${dateOfBirth}T00:00:00`) : undefined}
+              onChange={(date) => {
+                setDateOfBirth(date ? toLocalDateString(date) : "");
+              }}
               placeholder="Pick date of birth"
-              required
-              maxDate={new Date()}
+              yearRange={[1940, new Date().getFullYear()]}
               className="w-full"
             />
           </Field>

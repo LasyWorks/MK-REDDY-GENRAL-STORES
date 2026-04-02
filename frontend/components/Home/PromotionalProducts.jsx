@@ -296,6 +296,7 @@ function FestiveProductCard({ product, themeColor }) {
             alt={product.name}
             className={`w-full h-full object-contain ${isOutOfStock ? "opacity-40 grayscale" : ""}`}
             size="lg"
+            centered
           />
         </div>
       </div>
