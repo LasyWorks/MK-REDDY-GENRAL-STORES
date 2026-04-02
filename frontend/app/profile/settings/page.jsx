@@ -16,6 +16,8 @@ import { ChronoSelect } from "@/components/ui/chrono-select";
 
 export default function ProfileSettingsPage() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+  const [user, setUser] = useState(null);
 
   const toLocalDateString = (date) => {
     const y = date.getFullYear();
@@ -23,8 +25,6 @@ export default function ProfileSettingsPage() {
     const d = String(date.getDate()).padStart(2, "0");
     return `${y}-${m}-${d}`;
   };
-
-  const user = authService.getCurrentUser();
 
   const [name, setName] = useState(user?.name || "");
   const [displayName, setDisplayName] = useState(user?.display_name || "");
@@ -38,6 +38,13 @@ export default function ProfileSettingsPage() {
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
+    setMounted(true);
+    setUser(authService.getCurrentUser());
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     if (!authService.isAuthenticated() || !user) {
       router.replace("/login?redirect=%2Fprofile%2Fsettings");
       return;
@@ -46,7 +53,16 @@ export default function ProfileSettingsPage() {
     if (authService.requiresProfileCompletion(user)) {
       router.replace(authService.getProfileCompletionLoginHref("/profile/settings"));
     }
-  }, [router, user]);
+  }, [mounted, router, user]);
+
+  useEffect(() => {
+    if (!mounted || !user) return;
+    setName(user.name || "");
+    setDisplayName(user.display_name || "");
+    setDateOfBirth(user.date_of_birth ? String(user.date_of_birth).slice(0, 10) : "");
+    setEmail(user.email || "");
+    setAddress(user.address || "");
+  }, [mounted, user]);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -75,6 +91,17 @@ export default function ProfileSettingsPage() {
       setSaving(false);
     }
   };
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block h-10 w-10 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
+          <p className="mt-3 text-sm text-gray-500">Loading account settings...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!authService.isAuthenticated() || !user) return null;
 

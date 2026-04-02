@@ -23,11 +23,19 @@ import BirthdayOfferCard from "@/components/profile/BirthdayOfferCard";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const user = authService.getCurrentUser();
+  const [mounted, setMounted] = useState(false);
+  const [user, setUser] = useState(null);
   const [orderCount, setOrderCount] = useState(null);
   const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+    setUser(authService.getCurrentUser());
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     if (!authService.isAuthenticated() || !user) {
       authService.logout().catch(() => {});
       router.replace("/login");
@@ -46,7 +54,7 @@ export default function ProfilePage() {
         setOrderCount(total);
       })
       .catch(() => setOrderCount(0));
-  }, [router, user]);
+  }, [mounted, router, user]);
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -55,6 +63,17 @@ export default function ProfilePage() {
     } catch {}
     router.replace("/");
   };
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block h-10 w-10 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
+          <p className="mt-3 text-sm text-gray-500">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) return null;
 
