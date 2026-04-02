@@ -25,12 +25,17 @@ const authenticate = async (req, res, next) => {
     req.user = {
       id: user[0].id,
       name: user[0].name,
+      display_name: user[0].display_name,
+      date_of_birth: user[0].date_of_birth,
       phone: user[0].phone,
       email: user[0].email,
+      address: user[0].address,
+      profile_picture: user[0].profile_picture,
       role: user[0].role_name,
       roleId: user[0].role_id,
       userType: user[0].user_type,
       user_type: user[0].user_type,
+      email_verified: user[0].email_verified,
       is_super_admin: user[0].is_super_admin === true || user[0].is_super_admin === 1,
     };
     next();
@@ -67,12 +72,17 @@ const optionalAuth = async (req, res, next) => {
       req.user = {
         id: user[0].id,
         name: user[0].name,
+        display_name: user[0].display_name,
+        date_of_birth: user[0].date_of_birth,
         phone: user[0].phone,
         email: user[0].email,
+        address: user[0].address,
+        profile_picture: user[0].profile_picture,
         role: user[0].role_name,
         roleId: user[0].role_id,
         userType: user[0].user_type,
         user_type: user[0].user_type,
+        email_verified: user[0].email_verified,
       };
     }
     next();

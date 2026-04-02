@@ -45,6 +45,39 @@ export default function ProfileSettingsPage() {
   useEffect(() => {
     if (!mounted) return;
 
+    const token = secureStorage.getItem("token");
+    if (!token) return;
+
+    let cancelled = false;
+
+    const loadFreshUser = async () => {
+      try {
+        const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
+        const res = await fetch(`${base}/auth/me`, {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const payload = await res.json();
+        const freshUser = payload?.data;
+        if (!freshUser || cancelled) return;
+        setUser(freshUser);
+        secureStorage.setItem("user", JSON.stringify(freshUser));
+      } catch {
+        // Keep existing user state as fallback if profile refresh fails.
+      }
+    };
+
+    loadFreshUser();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mounted]);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     if (!authService.isAuthenticated() || !user) {
       router.replace("/login?redirect=%2Fprofile%2Fsettings");
       return;

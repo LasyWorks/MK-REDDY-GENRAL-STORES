@@ -83,7 +83,9 @@ const logoutAll = asyncHandler(async (req, res) => {
   ApiResponse.success(res, null, 'Logged out from all devices');
 });
 const getMe = asyncHandler(async (req, res) => {
-  ApiResponse.success(res, req.user, 'User profile retrieved');
+  const { UserService } = require('../services');
+  const user = await UserService.getById(req.user.id);
+  ApiResponse.success(res, user, 'User profile retrieved');
 });
 
 const updateMe = asyncHandler(async (req, res) => {

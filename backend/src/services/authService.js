@@ -17,6 +17,19 @@ const { sendSecurityAlert } = require("../utils/alerting");
 // Prevent OTP spam attacks by limiting resend frequency
 const OTP_RESEND_COOLDOWN_SECS = 30;
 class AuthService {
+  static normalizeDateOnly(value) {
+    if (value === undefined || value === null || value === "") return null;
+    if (value instanceof Date && !Number.isNaN(value.getTime())) {
+      const y = value.getFullYear();
+      const m = String(value.getMonth() + 1).padStart(2, "0");
+      const d = String(value.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+    const str = String(value).trim();
+    if (!str) return null;
+    return str.slice(0, 10);
+  }
+
   static async enrichForProfileCompletion(user) {
     if (!user) return user;
 
@@ -812,7 +825,7 @@ class AuthService {
       id: user.id,
       name: user.name,
       display_name: user.display_name,
-      date_of_birth: user.date_of_birth,
+      date_of_birth: this.normalizeDateOnly(user.date_of_birth),
       first_name: user.first_name,
       last_name: user.last_name,
       phone: user.phone,

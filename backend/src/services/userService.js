@@ -13,7 +13,10 @@ class UserService {
   static normalizeDateOnly(value) {
     if (value === undefined || value === null || value === "") return null;
     if (value instanceof Date && !Number.isNaN(value.getTime())) {
-      return value.toISOString().slice(0, 10);
+      const y = value.getFullYear();
+      const m = String(value.getMonth() + 1).padStart(2, "0");
+      const d = String(value.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
     }
     const str = String(value).trim();
     if (!str) return null;
@@ -345,7 +348,7 @@ class UserService {
       id: user.id,
       name: user.name,
       display_name: user.display_name,
-      date_of_birth: user.date_of_birth,
+      date_of_birth: this.normalizeDateOnly(user.date_of_birth),
       phone: user.phone,
       email: user.email,
       user_type: user.user_type,
