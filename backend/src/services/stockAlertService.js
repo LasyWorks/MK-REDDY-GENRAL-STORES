@@ -1,8 +1,11 @@
 const { AdminNotification, User, SystemConfig } = require("../models");
 const emailService = require("./emailService");
 const logger = require("../utils/logger");
-const { query: dbQuery } = require("../config/database");
 const stockAlertPolicy = require("../config/stockAlertPolicy");
+const {
+  getActiveStockIssues,
+  buildStockDigestMessage,
+} = require("./stockIssueService");
 
 function getISTParts() {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -31,30 +34,6 @@ function getWindowForNow(hour) {
   );
 }
 
-async function loadActiveStockIssues() {
-  const rows = await dbQuery(
-    `SELECT p.id, p.sku, p.variant, p.unit_pack_size,
-            p.stock_quantity, p.low_stock_threshold,
-            COALESCE(pt.name, p.sku, 'Unknown') AS name
-     FROM products p
-     LEFT JOIN product_translations pt ON pt.product_id = p.id AND pt.lang_code = 'en'
-     WHERE p.is_active = TRUE
-       AND p.stock_quantity <= COALESCE(p.low_stock_threshold, 10)
-     ORDER BY p.stock_quantity ASC`,
-  );
-
-  return rows.map((row) => ({
-    id: row.id,
-    name: row.name,
-    sku: row.sku,
-    variant: row.variant,
-    unit_pack_size: row.unit_pack_size,
-    stock_quantity: parseFloat(row.stock_quantity ?? 0),
-    low_stock_threshold: parseFloat(row.low_stock_threshold ?? 10),
-    alertType: parseFloat(row.stock_quantity ?? 0) <= 0 ? "out" : "low",
-  }));
-}
-
 async function hasMarker(key) {
   const value = await SystemConfig.get(key);
   return value === "1";
@@ -62,16 +41,6 @@ async function hasMarker(key) {
 
 async function setMarker(key, description) {
   await SystemConfig.set(key, "1", description);
-}
-
-function buildDigestMessage(issues) {
-  const outCount = issues.filter((i) => i.alertType === "out").length;
-  const lowCount = issues.length - outCount;
-  const sample = issues
-    .slice(0, 8)
-    .map((i) => `${i.name} (${i.stock_quantity})`)
-    .join(", ");
-  return `Out of stock: ${outCount}, Low stock: ${lowCount}. Items: ${sample}${issues.length > 8 ? ", ..." : ""}`;
 }
 
 async function checkAndAlert(product) {
@@ -103,7 +72,7 @@ async function checkAndAlertMany(productIds, findById) {
 
 async function runFullScan() {
   try {
-    const issues = await loadActiveStockIssues();
+    const issues = await getActiveStockIssues();
     logger.info(`[stock-alert] full scan complete: issues=${issues.length}`);
     return { scanned: issues.length, alerted: issues.length, issues };
   } catch (err) {
@@ -115,7 +84,7 @@ async function runFullScan() {
 async function runScheduledDispatch() {
   try {
     const now = getISTParts();
-    const issues = await loadActiveStockIssues();
+    const issues = await getActiveStockIssues();
 
     if (!issues.length) {
       logger.info("[stock-alert] scheduled dispatch: no active stock issues");
@@ -147,7 +116,7 @@ async function runScheduledDispatch() {
         await AdminNotification.create({
           type: "stock_digest",
           title: `Stock Alert Summary (${window.label})`,
-          message: buildDigestMessage(issues),
+          message: buildStockDigestMessage(issues),
           productId: null,
           orderId: null,
           stockAtAlert: null,

@@ -2701,16 +2701,57 @@ function ProductsTab() {
     [filteredGrouped],
   );
 
-  // Flatten for pagination
+  // Flatten for summary counts
   const allFilteredProducts = useMemo(() => filteredGrouped.flatMap((g) => g.items), [filteredGrouped]);
-  const totalPages = Math.max(1, Math.ceil(allFilteredProducts.length / ITEMS_PER_PAGE));
-  const paginatedProducts = useMemo(() => allFilteredProducts.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE), [allFilteredProducts, page]);
+  // Build smart pagination by category so a category does not split across pages.
+  const categoryPages = useMemo(() => {
+    const pages = [];
+    let currentPageGroups = [];
+    let currentPageCount = 0;
 
-  // Build paginated groups for table rendering
-  const paginatedGroups = useMemo(() => {
-    const pIds = new Set(paginatedProducts.map((p) => p.id));
-    return filteredGrouped.map((g) => ({ ...g, items: g.items.filter((p) => pIds.has(p.id)) })).filter((g) => g.items.length > 0);
-  }, [filteredGrouped, paginatedProducts]);
+    for (const group of filteredGrouped) {
+      const groupCount = group.items.length;
+
+      if (currentPageGroups.length === 0) {
+        currentPageGroups.push(group);
+        currentPageCount = groupCount;
+        continue;
+      }
+
+      if (currentPageCount + groupCount <= ITEMS_PER_PAGE) {
+        currentPageGroups.push(group);
+        currentPageCount += groupCount;
+      } else {
+        pages.push(currentPageGroups);
+        currentPageGroups = [group];
+        currentPageCount = groupCount;
+      }
+    }
+
+    if (currentPageGroups.length > 0) pages.push(currentPageGroups);
+    return pages;
+  }, [filteredGrouped]);
+
+  const totalPages = Math.max(1, categoryPages.length);
+  const paginatedGroups = useMemo(() => categoryPages[page - 1] || [], [categoryPages, page]);
+  const pageGroupCount = useMemo(
+    () => paginatedGroups.reduce((sum, group) => sum + group.items.length, 0),
+    [paginatedGroups],
+  );
+  const pageStartIndex = useMemo(() => {
+    if (!allFilteredProducts.length || !pageGroupCount) return 0;
+    const previousCount = categoryPages
+      .slice(0, Math.max(0, page - 1))
+      .reduce((sum, groups) => sum + groups.reduce((acc, g) => acc + g.items.length, 0), 0);
+    return previousCount + 1;
+  }, [allFilteredProducts.length, pageGroupCount, categoryPages, page]);
+  const pageEndIndex = pageStartIndex > 0 ? pageStartIndex + pageGroupCount - 1 : 0;
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
 
 
@@ -2962,7 +3003,7 @@ function ProductsTab() {
       {!loading && paginatedGroups.length > 0 && (
         <div className="flex items-center gap-3 text-[12px] text-[#6B7280] mb-3">
           <span className="font-medium text-gray-700">
-            Showing {((page - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(page * ITEMS_PER_PAGE, allFilteredProducts.length)} of {allFilteredProducts.length} product groups
+            Showing {pageStartIndex}-{pageEndIndex} of {allFilteredProducts.length} product groups
           </span>
           {(activeTab === "low_stock" || activeTab === "out_of_stock" || filterStock === "low" || filterStock === "out") && (
             <span className="font-medium text-gray-700">
@@ -3037,10 +3078,10 @@ function ProductsTab() {
       </div>
 
       {/* ── Pagination ── */}
-      {!loading && allFilteredProducts.length > ITEMS_PER_PAGE && (
+      {!loading && totalPages > 1 && (
         <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100">
           <p className="text-[13px] text-[#6B7280]">
-            Showing {((page - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(page * ITEMS_PER_PAGE, allFilteredProducts.length)} of {allFilteredProducts.length} products
+            Showing {pageStartIndex}-{pageEndIndex} of {allFilteredProducts.length} product groups
           </p>
           <div className="flex items-center gap-1">
             <button onClick={() => { setPage(Math.max(1, page - 1)); tableTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }} disabled={page <= 1}
@@ -8027,6 +8068,8 @@ export default function AdminDashboard() {
   const [notifications, setNotifications] = useState([]);
   const [notifUnread, setNotifUnread] = useState(0);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [expandedNotifIds, setExpandedNotifIds] = useState(new Set());
+  const [notifFilter, setNotifFilter] = useState("all");
   const notifRef = useRef(null);
   const NOTIF_API = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1") + "/notifications";
 
@@ -8057,6 +8100,11 @@ export default function AdminDashboard() {
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
+  }, [notifOpen]);
+
+  useEffect(() => {
+    if (notifOpen) return;
+    setExpandedNotifIds(new Set());
   }, [notifOpen]);
 
   async function markNotifRead(id) {
@@ -8108,6 +8156,15 @@ export default function AdminDashboard() {
     }
   }
 
+  function toggleNotifExpanded(id) {
+    setExpandedNotifIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   function handleTabChange(tabId) {
     if (tabId === "billing") {
       router.push("/admin/billing");
@@ -8151,6 +8208,16 @@ export default function AdminDashboard() {
   const visibleNotifications = notifications.filter(
     (n) => !(["low", "out", "pending_order"].includes(n.type) && !!n.resolved_at)
   );
+  const filteredNotifications = (() => {
+    if (notifFilter === "all") return visibleNotifications;
+    if (notifFilter === "stock") {
+      return visibleNotifications.filter((n) => ["low", "out", "stock_digest", "pending_order"].includes(n.type));
+    }
+    if (notifFilter === "orders") {
+      return visibleNotifications.filter((n) => ["new_order", "order_cancelled_by_customer", "order_cancelled_by_admin", "order_cancelled"].includes(n.type));
+    }
+    return visibleNotifications;
+  })();
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex">
@@ -8312,20 +8379,72 @@ export default function AdminDashboard() {
                           Mark all read
                         </button>
                       )}
+                      {expandedNotifIds.size > 0 && (
+                        <button
+                          onClick={() => setExpandedNotifIds(new Set())}
+                          className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-gray-700 bg-gray-100 border border-gray-200 hover:bg-gray-200 transition-colors"
+                        >
+                          Collapse all
+                        </button>
+                      )}
+                    </div>
+                    <div className="mt-2 flex items-center gap-1.5">
+                      <button
+                        onClick={() => setNotifFilter("all")}
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors ${notifFilter === "all" ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}
+                      >
+                        All ({visibleNotifications.length})
+                      </button>
+                      <button
+                        onClick={() => setNotifFilter("stock")}
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors ${notifFilter === "stock" ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}
+                      >
+                        Stock
+                      </button>
+                      <button
+                        onClick={() => setNotifFilter("orders")}
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors ${notifFilter === "orders" ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}
+                      >
+                        Orders
+                      </button>
                     </div>
                   </div>
                   {/* List */}
                   <div className="overflow-y-auto" style={{ maxHeight: "380px" }}>
-                    {visibleNotifications.length === 0 ? (
+                    {filteredNotifications.length === 0 ? (
                       <div className="px-4 py-10 text-center text-[13px] text-gray-400">No notifications</div>
                     ) : (
-                      visibleNotifications.map((n) => {
+                      filteredNotifications.map((n) => {
                         const cleanTitle = String(n.title || "").replace(/\s+[—-]\s+/g, " ");
                         const isOut = n.type === "out";
+                        const isStockDigest = n.type === "stock_digest";
                         const isOrderNotif = ["new_order", "order_cancelled_by_customer", "order_cancelled_by_admin", "order_cancelled"].includes(n.type);
                         const isCustomerCancelled = n.type === "order_cancelled_by_customer";
                         const isAdminCancelled = n.type === "order_cancelled_by_admin";
                         const isResolved = !!n.resolved_at;
+                        const detailMessage = String(n.message || "").trim();
+                        const hasDetails = detailMessage.length > 0;
+                        const isExpanded = expandedNotifIds.has(n.id);
+                        const digestCounts = (() => {
+                          if (!isStockDigest || !hasDetails) return null;
+                          const outMatch = detailMessage.match(/Out of stock:\s*(\d+)/i);
+                          const lowMatch = detailMessage.match(/Low stock:\s*(\d+)/i);
+                          if (!outMatch && !lowMatch) return null;
+                          return {
+                            out: outMatch ? Number(outMatch[1]) : 0,
+                            low: lowMatch ? Number(lowMatch[1]) : 0,
+                          };
+                        })();
+                        const digestItems = (() => {
+                          if (!isStockDigest || !hasDetails) return [];
+                          const parts = detailMessage.split("Items:");
+                          if (parts.length < 2) return [];
+                          return parts[1]
+                            .split(",")
+                            .map((p) => p.trim())
+                            .filter(Boolean)
+                            .slice(0, 8);
+                        })();
                         const timeAgo = (() => {
                           const d = new Date(n.created_at);
                           const diff = Math.floor((Date.now() - d) / 60000);
@@ -8335,35 +8454,85 @@ export default function AdminDashboard() {
                           return `${Math.floor(diff / 1440)}d ago`;
                         })();
                         return (
-                          <button
+                          <div
                             key={n.id}
-                            onClick={() => {
-                              if (!n.is_read) markNotifRead(n.id);
-                              setTab(isOrderNotif ? "orders" : "products");
-                              setNotifOpen(false);
-                            }}
-                            className={`w-full text-left px-4 py-3 flex gap-3 items-start border-b border-gray-50 transition-colors ${n.is_read || isResolved ? "bg-white hover:bg-gray-50" : "bg-amber-50 hover:bg-amber-100"}`}
+                            className={`border-b border-gray-50 ${n.is_read || isResolved ? "bg-white" : "bg-amber-50"}`}
                           >
-                            <div className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isResolved ? "bg-green-100" : isOrderNotif ? "bg-blue-100" : isOut ? "bg-red-100" : "bg-amber-100"}`}>
-                              {isResolved
-                                ? <Check className={`w-4 h-4 text-green-600`} />
-                                : isOrderNotif
-                                  ? <Bell className="w-4 h-4 text-blue-500" />
-                                  : isOut
-                                  ? <X className="w-4 h-4 text-red-500" />
-                                  : <AlertTriangle className="w-4 h-4 text-amber-500" />}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className={`text-[13px] font-semibold leading-tight truncate ${isResolved ? "text-gray-500" : "text-gray-800"}`}>{cleanTitle}</p>
-                              <p className="text-[11px] text-gray-400 mt-0.5">
-                                {timeAgo}
-                                {isCustomerCancelled ? " Customer cancelled" : ""}
-                                {isAdminCancelled ? " Admin cancelled" : ""}
-                                {isResolved ? " Resolved" : n.stock_at_alert != null ? ` ${n.stock_at_alert} units` : ""}
-                              </p>
-                            </div>
-                            {!n.is_read && !isResolved && <div className="mt-1.5 w-2 h-2 bg-red-400 rounded-full shrink-0" />}
-                          </button>
+                            <button
+                              onClick={() => {
+                                if (!n.is_read) markNotifRead(n.id);
+                                if (isStockDigest && hasDetails) {
+                                  toggleNotifExpanded(n.id);
+                                  return;
+                                }
+                                setTab(isOrderNotif ? "orders" : "products");
+                                setNotifOpen(false);
+                              }}
+                              className={`w-full text-left px-4 py-3 flex gap-3 items-start transition-colors ${n.is_read || isResolved ? "hover:bg-gray-50" : "hover:bg-amber-100"}`}
+                            >
+                              <div className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isResolved ? "bg-green-100" : isOrderNotif ? "bg-blue-100" : isOut ? "bg-red-100" : "bg-amber-100"}`}>
+                                {isResolved
+                                  ? <Check className={`w-4 h-4 text-green-600`} />
+                                  : isOrderNotif
+                                    ? <Bell className="w-4 h-4 text-blue-500" />
+                                    : isOut
+                                    ? <X className="w-4 h-4 text-red-500" />
+                                    : <AlertTriangle className="w-4 h-4 text-amber-500" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-[13px] font-semibold leading-tight truncate ${isResolved ? "text-gray-500" : "text-gray-800"}`}>{cleanTitle}</p>
+                                <p className="text-[11px] text-gray-400 mt-0.5">
+                                  {timeAgo}
+                                  {isCustomerCancelled ? " Customer cancelled" : ""}
+                                  {isAdminCancelled ? " Admin cancelled" : ""}
+                                  {isResolved ? " Resolved" : n.stock_at_alert != null ? ` ${n.stock_at_alert} units` : ""}
+                                  {isStockDigest && hasDetails ? " Tap to view details" : ""}
+                                </p>
+                              </div>
+                              <div className="mt-1.5 flex items-center gap-2 shrink-0">
+                                {isStockDigest && hasDetails && (
+                                  isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />
+                                )}
+                                {!n.is_read && !isResolved && <div className="w-2 h-2 bg-red-400 rounded-full" />}
+                              </div>
+                            </button>
+
+                            {isStockDigest && hasDetails && isExpanded && (
+                              <div className="px-4 pb-3 pl-[60px]">
+                                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+                                  <p className="text-[11px] text-amber-800 leading-relaxed">{detailMessage}</p>
+                                  {digestCounts && (
+                                    <div className="mt-2 flex flex-wrap gap-1.5">
+                                      <span className="inline-flex items-center rounded-full bg-red-100 text-red-700 px-2 py-0.5 text-[10px] font-semibold">
+                                        Out: {digestCounts.out}
+                                      </span>
+                                      <span className="inline-flex items-center rounded-full bg-orange-100 text-orange-700 px-2 py-0.5 text-[10px] font-semibold">
+                                        Low: {digestCounts.low}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {digestItems.length > 0 && (
+                                    <div className="mt-2 flex flex-wrap gap-1.5">
+                                      {digestItems.map((item, idx) => (
+                                        <span key={`${n.id}-item-${idx}`} className="inline-flex items-center rounded-full bg-white border border-amber-200 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                                          {item}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                  <button
+                                    onClick={() => {
+                                      setTab("products");
+                                      setNotifOpen(false);
+                                    }}
+                                    className="mt-2 text-[11px] font-semibold text-indigo-700 hover:text-indigo-800"
+                                  >
+                                    Open products
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         );
                       })
                     )}

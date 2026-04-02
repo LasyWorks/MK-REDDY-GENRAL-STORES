@@ -7,7 +7,11 @@ const {
   AdminLog,
   SystemConfig,
 } = require("../models");
-const { query, queryOne, modify: dbModify } = require("../config/database");
+const { query, modify: dbModify } = require("../config/database");
+const {
+  getActiveStockIssues,
+  summarizeStockIssues,
+} = require("./stockIssueService");
 const PROD_TRANS_JOIN = `
   LEFT JOIN product_translations  pt_en ON p.id = pt_en.product_id  AND pt_en.lang_code = 'en'
   LEFT JOIN category_translations ct_en ON c.id = ct_en.category_id AND ct_en.lang_code = 'en'
@@ -28,12 +32,12 @@ class AdminService {
         logErr.message,
       );
     }
-    const [productCountResult, pendingOrders, lowStockResult, outOfStockResult] = await Promise.all([
+    const [productCountResult, pendingOrders, stockIssues] = await Promise.all([
       query(`SELECT COUNT(*) as count FROM products`),
       query(`SELECT COUNT(*) as count FROM orders WHERE status IN ('pending', 'confirmed')`),
-      query(`SELECT COUNT(*) as count FROM products WHERE stock_quantity > 0 AND stock_quantity <= COALESCE(low_stock_threshold, 10)`),
-      query(`SELECT COUNT(*) as count FROM products WHERE stock_quantity <= 0`),
+      getActiveStockIssues(),
     ]);
+    const stockSummary = summarizeStockIssues(stockIssues);
     const productCount = parseInt(productCountResult[0]?.count || 0);
     return {
       customers: {
@@ -59,8 +63,8 @@ class AdminService {
         orders: todayOrders.total_orders || 0,
         revenue: parseFloat(todayOrders.total_revenue || 0),
       },
-      lowStock: parseInt(lowStockResult[0]?.count || 0),
-      outOfStock: parseInt(outOfStockResult[0]?.count || 0),
+      lowStock: stockSummary.lowCount,
+      outOfStock: stockSummary.outCount,
       recentActivity,
     };
   }
@@ -322,17 +326,17 @@ class AdminService {
        GROUP BY c.id, ct_en.name
        ORDER BY stock_value DESC`,
     );
-    const lowStock = await query(
-      `SELECT p.id, pt_en.name AS name, p.sku, p.stock_quantity, ct_en.name AS category
-       FROM products p
-       JOIN categories c ON p.category_id = c.id
-       ${PROD_TRANS_JOIN}
-       WHERE p.stock_quantity > 0 AND p.stock_quantity <= COALESCE(p.low_stock_threshold, 10) AND p.is_active = TRUE
-       ORDER BY p.stock_quantity ASC`,
-    );
-    const outOfStock = await queryOne(
-      `SELECT COUNT(*) AS count FROM products WHERE stock_quantity <= 0 AND is_active = TRUE`,
-    );
+    const stockIssues = await getActiveStockIssues();
+    const stockSummary = summarizeStockIssues(stockIssues);
+    const lowStock = stockIssues
+      .filter((p) => p.alertType === "low")
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        sku: p.sku,
+        stock_quantity: p.stock_quantity,
+        category: p.category,
+      }));
     return {
       byCategory: byCategory.map((r) => ({
         category: r.category,
@@ -341,7 +345,7 @@ class AdminService {
         stockValue: parseFloat(r.stock_value || 0),
       })),
       lowStockProducts: lowStock,
-      outOfStockCount: parseInt(outOfStock.count, 10),
+      outOfStockCount: stockSummary.outCount,
     };
   }
   static async getGSTConfig() {

@@ -773,6 +773,7 @@ class EmailService {
     const rows = items.slice(0, 40).map((i) => `
       <tr>
         <td>${i.name || 'Unknown'}</td>
+        <td>${i.unit_pack_size || i.variant || '-'}</td>
         <td class="num">${i.stock_quantity ?? 0}</td>
         <td class="num">${i.low_stock_threshold ?? 10}</td>
         <td class="num ${(i.stock_quantity ?? 0) <= 0 ? 'danger' : 'warn'}">${(i.stock_quantity ?? 0) <= 0 ? 'OUT' : 'LOW'}</td>
@@ -786,7 +787,7 @@ class EmailService {
       tone: 'warning',
       content: `
         <table>
-          <thead><tr><th>Product</th><th class="num">Stock</th><th class="num">Threshold</th><th class="num">Status</th></tr></thead>
+          <thead><tr><th>Product</th><th>Unit / Pack Size</th><th class="num">Stock</th><th class="num">Threshold</th><th class="num">Status</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       `,

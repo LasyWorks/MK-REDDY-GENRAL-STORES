@@ -3,6 +3,7 @@ const { asyncHandler } = require('../middlewares');
 const ApiResponse = require('../utils/ApiResponse');
 const emailService = require('../services/emailService');
 const { modify } = require('../config/database');
+const { getActiveStockIssues } = require('../services/stockIssueService');
 
 const getNotifications = asyncHandler(async (req, res) => {
   await AdminNotification.resolveCompletedIssues().catch(() => {});
@@ -69,24 +70,14 @@ const forceResend = asyncHandler(async (req, res) => {
   
   // Now immediately re-check all low/out-of-stock products
   const stockAlertService = require('../services/stockAlertService');
-  const { query: dbQuery } = require('../config/database');
-  const rows = await dbQuery(
-    `SELECT p.id, p.sku, p.variant, p.unit_pack_size,
-            p.stock_quantity, p.low_stock_threshold,
-            COALESCE(pt.name, p.sku, 'Unknown') AS name
-     FROM products p
-     LEFT JOIN product_translations pt ON pt.product_id = p.id AND pt.lang_code = 'en'
-     WHERE p.is_active = TRUE
-       AND p.stock_quantity <= COALESCE(p.low_stock_threshold, 10)
-     ORDER BY p.stock_quantity ASC`
-  );
+  const rows = await getActiveStockIssues();
 
   const results = [];
   for (const row of rows) {
     const product = {
       id: row.id, name: row.name, sku: row.sku,
       variant: row.variant, unit_pack_size: row.unit_pack_size,
-      stock_quantity: parseFloat(row.stock_quantity),
+      stock_quantity: parseFloat(row.stock_quantity ?? 0),
       low_stock_threshold: parseFloat(row.low_stock_threshold ?? 10),
     };
     await stockAlertService.checkAndAlert(product);
