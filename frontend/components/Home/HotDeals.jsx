@@ -47,17 +47,17 @@ export default function HotDeals() {
   };
   if (!loading && productGroups.length === 0) return null;
   return (
-    <section className="py-4 md:py-10">
+    <section className="py-0 md:py-0">
       <div className="max-w-7xl mx-auto px-3 md:px-4 sm:px-6 lg:px-8">
         {}
         <div className="flex items-center justify-between mb-3 md:mb-6">
           <div className="flex items-center gap-2">
             <Flame className="w-5 h-5 text-[#FF6B00] shrink-0" />
             <div>
-              <h2 className="text-base md:text-2xl md:text-3xl font-bold text-gray-900 leading-tight">
+              <h2 className="text-base md:text-xl font-semibold text-gray-800 leading-snug">
                 Hot Deals
               </h2>
-              <p className="text-[11px] md:text-sm text-gray-500 mt-0 md:mt-0.5">
+              <p className="text-sm md:text-base text-gray-500 leading-relaxed mt-0.5 md:mt-1 max-w-[24ch]">
                 Limited time offers
               </p>
             </div>
@@ -65,8 +65,8 @@ export default function HotDeals() {
           {}
           <div className="flex items-center gap-2">
             <Link
-              href="/products?has_discount=true"
-              className="text-[#16A34A] text-xs md:text-sm font-semibold hover:underline"
+              href="/hot-deals"
+              className="text-[#16A34A] text-xs md:text-sm font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22c55e]/60 rounded-md px-1 py-0.5"
             >
               View All
             </Link>
@@ -75,14 +75,14 @@ export default function HotDeals() {
                 <>
                   <button
                     onClick={() => scroll("left")}
-                    className="p-2 rounded-full border border-gray-200 hover:bg-gray-100 transition-colors"
+                    className="p-2 rounded-full border border-gray-200 hover:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22c55e]/60"
                     aria-label="Scroll left"
                   >
                     <ChevronLeft className="w-5 h-5 text-gray-600" />
                   </button>
                   <button
                     onClick={() => scroll("right")}
-                    className="p-2 rounded-full border border-gray-200 hover:bg-gray-100 transition-colors"
+                    className="p-2 rounded-full border border-gray-200 hover:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22c55e]/60"
                     aria-label="Scroll right"
                   >
                     <ChevronRight className="w-5 h-5 text-gray-600" />

@@ -1,7 +1,56 @@
 const { query, queryOne, insert, modify } = require('../config/database');
-const { generateInvoiceNumber } = require('../utils/helpers');
 const config = require('../config');
 class Invoice {
+  static getInvoiceSequenceWidth() {
+    return 5;
+  }
+
+  static getInvoiceNumberFromOrderNumber(orderNumber) {
+    if (typeof orderNumber !== 'string') return null;
+    const trimmed = orderNumber.trim();
+    const match = trimmed.match(/^ORD-(\d{8})-(\d{5})$/);
+    if (!match) return null;
+
+    const [, datePart, suffix] = match;
+    return `INV-${datePart}-${suffix}`;
+  }
+
+  static getISTDatePart() {
+    const now = new Date();
+    const dateParts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(now);
+
+    const year = dateParts.find((part) => part.type === 'year')?.value;
+    const month = dateParts.find((part) => part.type === 'month')?.value;
+    const day = dateParts.find((part) => part.type === 'day')?.value;
+
+    if (!year || !month || !day) {
+      throw new Error('Unable to derive IST date for invoice numbering');
+    }
+
+    return `${year}${month}${day}`;
+  }
+
+  static async generateSequentialInvoiceNumber() {
+    const dateStr = this.getISTDatePart();
+    const prefix = `INV-${dateStr}-`;
+
+    const countForToday = await queryOne(
+      `SELECT COUNT(*)::int AS total
+       FROM invoices
+       WHERE invoice_number LIKE $1`,
+      [`${prefix}%`]
+    );
+
+    const nextSequence = (countForToday?.total || 0) + 1;
+
+    return `${prefix}${String(nextSequence).padStart(this.getInvoiceSequenceWidth(), '0')}`;
+  }
+
   static async findById(id) {
     return queryOne('SELECT * FROM invoices WHERE id = $1', [id]);
   }
@@ -12,10 +61,11 @@ class Invoice {
     return queryOne('SELECT * FROM invoices WHERE invoice_number = $1', [invoiceNumber]);
   }
   static async create(order, customer) {
-    const invoiceNumber = generateInvoiceNumber();
     const cgst = parseFloat((order.total_gst / 2).toFixed(2));
     const sgst = parseFloat((order.total_gst / 2).toFixed(2));
-    return insert(
+    const preferredInvoiceNumber = this.getInvoiceNumberFromOrderNumber(order.order_number);
+
+    const createWithNumber = async (invoiceNumber) => insert(
       `INSERT INTO invoices (
          order_id, invoice_number,
          store_name, store_gst_number, store_address, store_phone,
@@ -29,6 +79,29 @@ class Invoice {
         order.subtotal, cgst, sgst, order.total_gst, order.total_amount,
       ]
     );
+
+    // Keep invoice and order numbers aligned when order number follows ORD-YYYYMMDD-00001.
+    if (preferredInvoiceNumber) {
+      return createWithNumber(preferredInvoiceNumber);
+    }
+
+    // Always keep invoice numbers on a daily serial sequence: INV-YYYYMMDD-00001.
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const fallbackInvoiceNumber = await this.generateSequentialInvoiceNumber();
+      try {
+        return await createWithNumber(fallbackInvoiceNumber);
+      } catch (error) {
+        const duplicateInvoiceNumber =
+          error?.code === '23505' &&
+          (error?.constraint?.includes('invoice') || error?.message?.includes('invoice_number'));
+
+        if (!duplicateInvoiceNumber) {
+          throw error;
+        }
+      }
+    }
+
+    throw new Error('Could not generate a unique fallback invoice number after retries');
   }
   static async findAll(options = {}) {
     const { page = 1, limit = 10, startDate = null, endDate = null, isPaid = null, customerId = null } = options;

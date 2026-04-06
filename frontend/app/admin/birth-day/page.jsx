@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeftIcon, ArrowPathIcon, CheckCircleIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import api from "@/lib/api";
 import secureStorage from "@/lib/secureStorage";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 function useAdminGuard() {
   const router = useRouter();
@@ -57,6 +58,12 @@ export default function BirthDayAdminPage() {
   const [showBulkDialog, setShowBulkDialog] = useState(false);
   const [bulkTemplateId, setBulkTemplateId] = useState("");
   const [bulkAssigning, setBulkAssigning] = useState(false);
+
+  const yearOptions = useMemo(() => {
+    const start = 2000;
+    const end = now.getFullYear() + 1;
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  }, [now]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -169,23 +176,26 @@ export default function BirthDayAdminPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <select
-                value={month}
-                onChange={(e) => setMonth(Number(e.target.value))}
-                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
-              >
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-              <input
-                type="number"
-                min="2000"
-                max="3000"
-                value={year}
-                onChange={(e) => setYear(Number(e.target.value || now.getFullYear()))}
-                className="w-28 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
-              />
+              <Select value={String(month)} onValueChange={(value) => setMonth(Number(value))}>
+                <SelectTrigger className="w-28 bg-white">
+                  <SelectValue placeholder="Month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                    <SelectItem key={m} value={String(m)}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={String(year)} onValueChange={(value) => setYear(Number(value))}>
+                <SelectTrigger className="w-28 bg-white">
+                  <SelectValue placeholder="Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {yearOptions.map((y) => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <button
                 onClick={loadData}
                 disabled={loading}
@@ -234,18 +244,21 @@ export default function BirthDayAdminPage() {
                     <td className="px-4 py-3 text-gray-700">{new Date(row.birthday_date).toLocaleDateString("en-IN")}</td>
                     <td className="px-4 py-3 text-gray-700">{row.status}</td>
                     <td className="px-4 py-3">
-                      <select
+                      <Select
                         value={selectedTemplate[row.id] || ""}
-                        onChange={(e) => setSelectedTemplate((prev) => ({ ...prev, [row.id]: e.target.value }))}
-                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2"
+                        onValueChange={(value) => setSelectedTemplate((prev) => ({ ...prev, [row.id]: value }))}
                       >
-                        <option value="">Select template</option>
-                        {templates.map((tpl) => (
-                          <option key={tpl.id} value={tpl.id}>
-                            {tpl.name} ({tpl.discount_type === "percentage" ? `${tpl.discount_value}%` : `Rs ${tpl.discount_value}`})
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger className="w-full bg-white">
+                          <SelectValue placeholder="Select template" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {templates.map((tpl) => (
+                            <SelectItem key={tpl.id} value={tpl.id}>
+                              {tpl.name} ({tpl.discount_type === "percentage" ? `${tpl.discount_value}%` : `Rs ${tpl.discount_value}`})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
@@ -289,18 +302,18 @@ export default function BirthDayAdminPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Select Template
                   </label>
-                  <select
-                    value={bulkTemplateId}
-                    onChange={(e) => setBulkTemplateId(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
-                  >
-                    <option value="">Choose a template...</option>
-                    {templates.map((tpl) => (
-                      <option key={tpl.id} value={tpl.id}>
-                        {tpl.name} ({tpl.discount_type === "percentage" ? `${tpl.discount_value}%` : `Rs ${tpl.discount_value}`}) - {tpl.valid_days} day(s)
-                      </option>
-                    ))}
-                  </select>
+                  <Select value={bulkTemplateId} onValueChange={setBulkTemplateId}>
+                    <SelectTrigger className="w-full bg-white">
+                      <SelectValue placeholder="Choose a template..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {templates.map((tpl) => (
+                        <SelectItem key={tpl.id} value={tpl.id}>
+                          {tpl.name} ({tpl.discount_type === "percentage" ? `${tpl.discount_value}%` : `Rs ${tpl.discount_value}`}) - {tpl.valid_days} day(s)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="rounded-lg bg-blue-50 border border-blue-100 p-3">

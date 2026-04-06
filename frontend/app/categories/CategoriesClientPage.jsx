@@ -115,7 +115,7 @@ function getCategoryStyle(name = "") {
   return { emoji: "🛒", bg: "#f3f4f6", fg: "#6b7280" };
 }
 
-export default function CategoriesPage() {
+export default function CategoriesClientPage() {
   const { lang } = useLanguage();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -151,11 +151,9 @@ export default function CategoriesPage() {
 
   return (
     <main className="min-h-screen bg-[#F7F7F7] pb-6">
-      {/* Header */}
       <div className="bg-white px-4 pt-4 pb-3 sticky top-0 z-10 shadow-sm">
         <h1 className="text-lg font-bold text-gray-900 mb-3">All Categories</h1>
 
-        {/* Search */}
         <div className="relative flex items-center bg-[#F7F7F7] rounded-full border border-gray-200 focus-within:border-[#16A34A] transition-colors">
           <MagnifyingGlassIcon className="absolute left-3 w-4 h-4 text-gray-400" />
           <input
@@ -176,7 +174,6 @@ export default function CategoriesPage() {
         </div>
       </div>
 
-      {/* Skeleton */}
       {loading && (
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 px-4 pt-4">
           {[...Array(12)].map((_, i) => (
@@ -188,7 +185,6 @@ export default function CategoriesPage() {
         </div>
       )}
 
-      {/* Grid */}
       {!loading && filtered.length > 0 && (
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-x-3 gap-y-5 px-4 pt-4">
           {filtered.map((category) => {
@@ -198,43 +194,27 @@ export default function CategoriesPage() {
             return (
               <Link
                 key={category.id}
-                href={`/categories/${category.id}`}
-                className="flex flex-col items-center gap-2 active:scale-90 transition-transform duration-150"
+                href={`/category/${category.id}`}
+                className="flex flex-col items-center text-center group"
               >
-                {/* Emoji tile */}
                 <div
-                  className="w-20 h-20 rounded-2xl flex items-center justify-center text-4xl shadow-sm"
-                  style={{ backgroundColor: bg }}
+                  className="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl shadow-sm transition-transform duration-200 group-active:scale-95"
+                  style={{ backgroundColor: bg, color: fg }}
                 >
                   {emoji}
                 </div>
-                {/* Label */}
-                <span
-                  className="text-[11px] font-semibold text-center leading-tight text-gray-700 line-clamp-2 max-w-[76px]"
-                  style={{ color: fg }}
-                >
+                <span className="mt-2 text-xs font-medium text-gray-800 leading-tight line-clamp-2 px-1">
                   {category.name_en || category.name}
                 </span>
-                {/* Product count */}
-                {category.product_count && (
-                  <span className="text-[10px] text-gray-400 -mt-1">
-                    {category.product_count} items
-                  </span>
-                )}
               </Link>
             );
           })}
         </div>
       )}
 
-      {/* Empty state */}
       {!loading && filtered.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-center px-8">
-          <span className="text-5xl mb-3">🔍</span>
-          <p className="text-gray-700 font-semibold text-base mb-1">
-            No categories found
-          </p>
-          <p className="text-gray-400 text-sm">Try a different search term</p>
+        <div className="px-4 py-12 text-center text-sm text-gray-500">
+          No categories found.
         </div>
       )}
     </main>

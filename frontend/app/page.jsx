@@ -2,6 +2,25 @@ import dynamic from "next/dynamic";
 import CategorySection from "@/components/Home/CategorySection";
 import MobileBannerCarousel from "@/components/Home/MobileBannerCarousel";
 import LazySection from "@/components/common/LazySection";
+import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/seo";
+
+export const metadata = {
+  title: SITE_NAME,
+  description: SITE_DESCRIPTION,
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    url: "/",
+  },
+  twitter: {
+    card: "summary",
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+  },
+};
 
 // Lazy load below-the-fold components for better initial page load
 const PromotionalProducts = dynamic(
@@ -46,66 +65,69 @@ const SnacksSection = dynamic(() => import("@/components/Home/SnacksSection"), {
 export default function Home() {
   return (
     <main className="min-h-screen bg-[#F7F7F7]">
-      {/* Category carousel hero (mobile + desktop) */}
+      {/* ─── PRIMARY ZONE: Hero + Categories ─── */}
       <MobileBannerCarousel />
-
-      {/* Categories (mobile chip rail + desktop circles) */}
       <CategorySection />
 
-      {/* Below the fold - lazy load with IntersectionObserver */}
-      <LazySection
-        fallback={
-          <div className="h-96 bg-gray-100 animate-pulse rounded-lg mx-4" />
-        }
-        rootMargin="100px"
-      >
-        <PromotionalProducts />
-      </LazySection>
+      {/* ─── TIER 1: Primary featured products (highest priority) ─── */}
+      <div className="pt-8 md:pt-12 pb-10 md:pb-14">
+        <LazySection
+          fallback={
+            <div className="h-96 bg-gray-100 animate-pulse rounded-lg mx-4" />
+          }
+          rootMargin="100px"
+        >
+          <FeaturedProducts />
+        </LazySection>
+      </div>
 
-      <LazySection
-        fallback={
-          <div className="h-96 bg-gray-100 animate-pulse rounded-lg mx-4" />
-        }
-        rootMargin="100px"
-      >
-        <HotDeals />
-      </LazySection>
+      {/* ─── TIER 2: Secondary discovery sections ─── */}
+      <div className="pt-2 md:pt-4 space-y-3 md:space-y-5 pb-8 md:pb-12">
+        <LazySection
+          fallback={
+            <div className="h-96 bg-gray-100 animate-pulse rounded-lg mx-4" />
+          }
+          rootMargin="100px"
+        >
+          <PromotionalProducts />
+        </LazySection>
 
-      <LazySection
-        fallback={
-          <div className="h-96 bg-gray-100 animate-pulse rounded-lg mx-4" />
-        }
-        rootMargin="100px"
-      >
-        <RecentlyUpdated />
-      </LazySection>
+        <LazySection
+          fallback={
+            <div className="h-96 bg-gray-100 animate-pulse rounded-lg mx-4" />
+          }
+          rootMargin="100px"
+        >
+          <HotDeals />
+        </LazySection>
 
-      <LazySection
-        fallback={
-          <div className="h-96 bg-gray-100 animate-pulse rounded-lg mx-4" />
-        }
-        rootMargin="100px"
-      >
-        <NewArrivals />
-      </LazySection>
+        <LazySection
+          fallback={
+            <div className="h-96 bg-gray-100 animate-pulse rounded-lg mx-4" />
+          }
+          rootMargin="100px"
+        >
+          <RecentlyUpdated />
+        </LazySection>
 
-      <LazySection
-        fallback={
-          <div className="h-96 bg-gray-100 animate-pulse rounded-lg mx-4" />
-        }
-        rootMargin="100px"
-      >
-        <FeaturedProducts />
-      </LazySection>
+        <LazySection
+          fallback={
+            <div className="h-96 bg-gray-100 animate-pulse rounded-lg mx-4" />
+          }
+          rootMargin="100px"
+        >
+          <NewArrivals />
+        </LazySection>
 
-      <LazySection
-        fallback={
-          <div className="h-96 bg-gray-100 animate-pulse rounded-lg mx-4" />
-        }
-        rootMargin="100px"
-      >
-        <SnacksSection />
-      </LazySection>
+        <LazySection
+          fallback={
+            <div className="h-96 bg-gray-100 animate-pulse rounded-lg mx-4" />
+          }
+          rootMargin="100px"
+        >
+          <SnacksSection />
+        </LazySection>
+      </div>
     </main>
   );
 }

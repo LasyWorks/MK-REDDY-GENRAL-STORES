@@ -603,7 +603,7 @@ export default function PromotionalProducts() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-5">
           {/* Left: title + countdown */}
           <div className="flex flex-col gap-2">
-            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight drop-shadow leading-tight flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl font-semibold text-white tracking-tight drop-shadow leading-snug flex items-center gap-2">
               <GiftIcon className="w-7 h-7 shrink-0" /> {title}
             </h2>
             {endsAt && <LiveCountdown endsAt={endsAt} />}
@@ -612,7 +612,7 @@ export default function PromotionalProducts() {
           {/* Right: View All + arrow buttons */}
           <div className="flex items-center gap-3 self-start sm:self-center shrink-0">
             <Link
-              href="/products"
+              href="/hot-deals"
               className="text-[#86efac] hover:text-[#bbf7d0] text-sm font-bold transition-colors whitespace-nowrap"
             >
               View All

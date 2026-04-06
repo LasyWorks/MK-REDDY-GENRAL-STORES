@@ -530,9 +530,7 @@ function ProductCardWithVariants({ variants }) {
             </div>
             <div className="mt-2 md:mt-0 md:shrink-0">
               {isOutOfStock ? (
-                <span className="text-[11px] text-gray-400 font-medium">
-                  N/A
-                </span>
+                <span className="text-[11px] text-gray-400 font-medium">N/A</span>
               ) : qty === 0 ? (
                 <button
                   onClick={handleAdd}

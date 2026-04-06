@@ -351,6 +351,7 @@ class UserService {
       date_of_birth: this.normalizeDateOnly(user.date_of_birth),
       phone: user.phone,
       email: user.email,
+      profile_picture: user.profile_picture,
       user_type: user.user_type,
       role: user.role_name,
       address: user.address,

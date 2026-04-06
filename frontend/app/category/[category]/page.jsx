@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getFreshCategories } from "@/app/data/categories";
 import CategoryLayout from "@/components/category/CategoryLayout";
@@ -84,19 +84,41 @@ export default async function CategoryPage({ params, searchParams }) {
   const cookieStore = await cookies();
   const lang = cookieStore.get("mk-reddy-lang")?.value === "te" ? "te" : "en";
 
+  const legacySlugMap = {
+    "snacks-chocolates": "snacks-packaged-food",
+  };
+
   const allCategories = await getFreshCategories("en");
 
-  // Find main category by slug — also requires at least 1 active product
+  // Find main category by slug
   const category = allCategories.find(
     (c) => generateSlug(c.name_en || c.name) === categorySlug && !c.parent_id,
   );
 
-  if (!category || parseInt(category.product_count || 0) === 0) notFound();
+  if (!category) {
+    const redirectSlug = legacySlugMap[categorySlug];
+    if (redirectSlug) {
+      const searchString = new URLSearchParams(searchParamsResolved).toString();
+      redirect(
+        `/category/${redirectSlug}${searchString ? `?${searchString}` : ""}`,
+      );
+    }
+    notFound();
+  }
+
+  const rawSubcategories = allCategories.filter(
+    (c) => c.parent_id === category.id,
+  );
 
   // Only show subcategories that have at least 1 product in the sidebar
-  const subcategories = allCategories.filter(
-    (c) => c.parent_id === category.id && parseInt(c.product_count || 0) > 0,
+  const subcategories = rawSubcategories.filter(
+    (c) => parseInt(c.product_count || 0) > 0,
   );
+
+  const hasCategoryProducts = parseInt(category.product_count || 0) > 0;
+  const hasSubcategoryProducts = subcategories.length > 0;
+
+  if (!hasCategoryProducts && !hasSubcategoryProducts) notFound();
 
   // Fetch products
   const productsData = await fetchProducts(category.id, searchParamsResolved, lang);

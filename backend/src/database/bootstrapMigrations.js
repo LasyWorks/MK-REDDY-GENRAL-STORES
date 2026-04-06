@@ -4,6 +4,23 @@ const logger = require('../utils/logger');
 async function ensureBirthdayCampaignSchema() {
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name VARCHAR(100)`);
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth DATE`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_phone VARCHAR(15)`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_email VARCHAR(100)`);
+
+  // Free unique phone/email/google_id for already soft-deleted users so new signups can reuse them.
+  await query(`
+    UPDATE users
+    SET
+      deleted_phone = COALESCE(deleted_phone, phone),
+      deleted_email = COALESCE(deleted_email, email),
+      phone = ('D' || substring(replace(id::text, '-', '') from 1 for 14)),
+      email = CASE
+        WHEN email IS NULL THEN NULL
+        ELSE ('deleted+' || substring(replace(id::text, '-', '') from 1 for 20) || '@del.local')
+      END,
+      google_id = NULL
+    WHERE deleted_at IS NOT NULL
+  `);
 
   await query(`
     CREATE TABLE IF NOT EXISTS birthday_campaign_logs (
