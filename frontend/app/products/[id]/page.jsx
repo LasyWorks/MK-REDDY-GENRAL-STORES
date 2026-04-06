@@ -59,7 +59,7 @@ export async function generateMetadata({ params }) {
       canonical: productUrl,
     },
     openGraph: {
-      type: "product",
+      type: "website",
       url: productUrl,
       title: `${product.name} | ${SITE_NAME}`,
       description: description.substring(0, 160),

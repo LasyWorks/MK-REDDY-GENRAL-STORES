@@ -1,0 +1,59 @@
+{
+  "cookies": [
+    {
+      "name": "g_state",
+      "value": "{\"i_l\":0,\"i_ll\":1775489860099,\"i_b\":\"zgjJzF89h0Ct1P8+vgpGGIg1D1XHxXNjaEvdCuj3fUM\",\"i_e\":{\"enable_itp_optimization\":0}}",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1791041860,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "__Host-GAPS",
+      "value": "1:0waLZKDM5elTQ900mnCUBgTd8OgGVQ:7jeNyufN61jA-ABh",
+      "domain": "accounts.google.com",
+      "path": "/",
+      "expires": 1810049860.462335,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "OTZ",
+      "value": "8553098_34_34__34_",
+      "domain": "accounts.google.com",
+      "path": "/",
+      "expires": 1778081863,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "NID",
+      "value": "530=WQ4OEJ1gNiWfEVnm3ZDbVS-MtVRxvGZjrcGFkGe3PmbckpD5GOkM3Yg5LGcmX988Of_kRBt93o5zEq0weRFi5NpjNQ-Eh4UuMNAgQK9JO7fZqfhS7ahIfvvAlza7GFmludkqH9MocQSYJqtjaWt8g36lb6fJ1OxaMYuz6eC3pfLcGtyGwdjeY8bBhiSuEy9dw9E84IAvjQC4soqb",
+      "domain": ".google.com",
+      "path": "/",
+      "expires": 1791301063.363183,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "mk-reddy-cart",
+          "value": "[]"
+        },
+        {
+          "name": "__ss__",
+          "value": "bb5e6e5836a8a718056857145922c1d6"
+        }
+      ]
+    }
+  ]
+}
