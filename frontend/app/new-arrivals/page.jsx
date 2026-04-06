@@ -3,10 +3,15 @@ import ProductsListPage, {
   ProductsListPageSkeleton,
 } from "@/components/product/ProductsListPage";
 
-export default function ProductsPage() {
+export default function NewArrivalsPage() {
   return (
     <Suspense fallback={<ProductsListPageSkeleton />}>
-      <ProductsListPage title="All Products" />
+      <ProductsListPage
+        title="New Arrivals"
+        subtitle="Fresh additions to our store"
+        headerTheme="new"
+        defaultSort="newest"
+      />
     </Suspense>
   );
 }

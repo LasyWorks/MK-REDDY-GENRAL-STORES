@@ -58,14 +58,14 @@ export default function CategoryHeader({
 
   return (
     <div className="flex flex-col gap-3 pb-4 border-b border-gray-200">
-      {/* Row 1 — title + controls */}
+      {/* Row 1 - title + controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-[28px] font-bold text-gray-900 leading-tight">
             {category?.name || "Category"}
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {totalCount.toLocaleString()}{" "}
+            {totalCount.toLocaleString()} {" "}
             {totalCount === 1 ? "product" : "products"}
           </p>
         </div>
@@ -74,7 +74,7 @@ export default function CategoryHeader({
           {/* Mobile Filter Button */}
           <button
             onClick={onMobileFilterClick}
-            className="lg:hidden flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 active:scale-95 transition-all"
+            className="lg:hidden flex items-center gap-2 h-10 px-4 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 active:scale-95 transition-all"
           >
             <SlidersHorizontal className="w-4 h-4" />
             Filters
@@ -91,14 +91,14 @@ export default function CategoryHeader({
               value={currentSort}
               onChange={handleSortChange}
               options={SORT_OPTIONS}
-              buttonClassName="bg-white border border-gray-300 text-gray-700 py-2 pl-4 pr-9 rounded-xl text-sm font-medium shadow-sm"
+              buttonClassName="bg-white border border-gray-300 text-gray-700 h-10 pl-4 pr-9 rounded-xl text-sm font-medium shadow-sm"
               contentClassName="min-w-[220px]"
             />
           </div>
         </div>
       </div>
 
-      {/* Row 2 — active filter chips */}
+      {/* Row 2 - active filter chips */}
       {activeFilters.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-gray-500 font-medium">

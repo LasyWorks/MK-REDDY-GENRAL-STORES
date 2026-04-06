@@ -47,16 +47,16 @@ export default function FeaturedProducts() {
   };
   if (!loading && productGroups.length === 0) return null;
   return (
-    <section className="py-4 md:py-10">
+    <section className="py-0 md:py-0">
       <div className="max-w-7xl mx-auto px-3 md:px-4 sm:px-6 lg:px-8">
         {}
         <div className="flex items-center justify-between mb-3 md:mb-6">
           <div className="flex items-center gap-2 md:gap-3">
             <div>
-              <h2 className="text-base md:text-2xl md:text-3xl font-bold text-gray-900 leading-tight">
+              <h2 className="text-lg md:text-2xl font-bold text-gray-900 leading-snug">
                 Featured Products
               </h2>
-              <p className="text-[11px] md:text-sm text-gray-500 mt-0 md:mt-0.5">
+              <p className="text-sm md:text-base text-gray-500 leading-relaxed mt-0.5 md:mt-1 max-w-[28ch]">
                 Handpicked bestsellers just for you
               </p>
             </div>
@@ -64,23 +64,23 @@ export default function FeaturedProducts() {
           {}
           <div className="flex items-center gap-2">
             <Link
-              href="/products"
-              className="text-[#16A34A] text-xs md:text-sm font-semibold hover:underline"
+              href="/featured"
+              className="inline-flex items-center gap-1.5 text-xs md:text-sm font-semibold text-[#166534] transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22c55e]/60 rounded-md px-1 py-0.5"
             >
-              View All
+              Browse all
             </Link>
             {!loading && productGroups.length > 0 && (
               <div className="hidden sm:flex gap-2">
                 <button
                   onClick={() => scroll("left")}
-                  className="p-2 rounded-full border border-gray-200 hover:bg-gray-100 transition-colors"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm transition-[transform,background-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22c55e]/60"
                   aria-label="Scroll left"
                 >
                   <ChevronLeft className="w-5 h-5 text-gray-600" />
                 </button>
                 <button
                   onClick={() => scroll("right")}
-                  className="p-2 rounded-full border border-gray-200 hover:bg-gray-100 transition-colors"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm transition-[transform,background-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22c55e]/60"
                   aria-label="Scroll right"
                 >
                   <ChevronRight className="w-5 h-5 text-gray-600" />

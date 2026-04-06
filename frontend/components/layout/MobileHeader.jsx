@@ -37,11 +37,14 @@ export default function MobileHeader() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userPicture, setUserPicture] = useState(null);
   const [userInitials, setUserInitials] = useState("");
+  const [cartPulse, setCartPulse] = useState(false);
   const [langMode, setLangMode] = useState("en-IN");
   const [mounted, setMounted] = useState(false);    // hydration fix
   const timerRef = useRef(null);
   const silenceRef = useRef(null);
   const inputRef = useRef(null);
+  const cartPulseTimerRef = useRef(null);
+  const prevCountRef = useRef(totalCount);
 
   const {
     transcript,
@@ -54,6 +57,27 @@ export default function MobileHeader() {
 
   // Only show voice UI after client mounts — prevents hydration mismatch
   useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    if (totalCount > prevCountRef.current) {
+      setCartPulse(true);
+      if (cartPulseTimerRef.current) {
+        clearTimeout(cartPulseTimerRef.current);
+      }
+      cartPulseTimerRef.current = setTimeout(() => {
+        setCartPulse(false);
+      }, 350);
+    }
+    prevCountRef.current = totalCount;
+  }, [totalCount]);
+
+  useEffect(() => {
+    return () => {
+      if (cartPulseTimerRef.current) {
+        clearTimeout(cartPulseTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const check = () => {
@@ -327,7 +351,11 @@ export default function MobileHeader() {
           >
             <ShoppingCartIcon className="w-6 h-6 text-gray-700" />
             {totalCount > 0 && (
-              <span className="absolute top-0.5 right-0.5 min-w-[16px] h-[16px] flex items-center justify-center bg-[#FF6B00] text-white text-[9px] font-extrabold rounded-full px-0.5 leading-none animate-bounce-once">
+              <span
+                className={`absolute top-0.5 right-0.5 min-w-[16px] h-[16px] flex items-center justify-center bg-[#FF6B00] text-white text-[9px] font-extrabold rounded-full px-0.5 leading-none ${
+                  cartPulse ? "animate-bounce-once" : ""
+                }`}
+              >
                 {totalCount > 99 ? "99+" : totalCount}
               </span>
             )}

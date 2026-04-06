@@ -21,6 +21,9 @@ export default function Navbar() {
   const { totalCount, openCart } = useCart();
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const languageMenuRef = useRef(null);
+  const [cartPulse, setCartPulse] = useState(false);
+  const cartPulseTimerRef = useRef(null);
+  const prevCountRef = useRef(totalCount);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [userPicture, setUserPicture] = useState(null);
@@ -60,6 +63,27 @@ export default function Navbar() {
     return () => {
       window.removeEventListener("storage", check);
       window.removeEventListener("authChange", check);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (totalCount > prevCountRef.current) {
+      setCartPulse(true);
+      if (cartPulseTimerRef.current) {
+        clearTimeout(cartPulseTimerRef.current);
+      }
+      cartPulseTimerRef.current = setTimeout(() => {
+        setCartPulse(false);
+      }, 350);
+    }
+    prevCountRef.current = totalCount;
+  }, [totalCount]);
+
+  useEffect(() => {
+    return () => {
+      if (cartPulseTimerRef.current) {
+        clearTimeout(cartPulseTimerRef.current);
+      }
     };
   }, []);
   const languages = [
@@ -205,7 +229,11 @@ export default function Navbar() {
               <ShoppingCart className="w-5 h-5" />
               <span className="hidden sm:inline">Cart</span>
               {totalCount > 0 && (
-                <span className="absolute -top-2 -right-2 sm:-right-5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1 leading-none">
+                <span
+                  className={`absolute -top-2 -right-2 sm:-right-5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1 leading-none ${
+                    cartPulse ? "animate-bounce-once" : ""
+                  }`}
+                >
                   {totalCount > 99 ? "99+" : totalCount}
                 </span>
               )}
