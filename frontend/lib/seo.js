@@ -7,7 +7,7 @@ export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ||
   (isDevelopment
     ? "http://localhost:3000"
-    : "https://mkreddygeneralstore.com");
+    : "https://mkreddygeneralstore.com/");
 
 export function getMetadataBase() {
   return new URL(SITE_URL);
