@@ -4,11 +4,55 @@ import { getFreshCategories } from "@/app/data/categories";
 import CategoryLayout from "@/components/category/CategoryLayout";
 import Link from "next/link";
 import { ChevronRightIcon as ChevronRight } from "@heroicons/react/24/outline";
+import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
-export const dynamic = "force-dynamic"; // We use searchParams for filtering
+export const dynamic = "force-dynamic";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
+
+export async function generateMetadata({ params }) {
+  const { category: categorySlug } = await params;
+  const allCategories = await getFreshCategories();
+  const category = allCategories.find(
+    (c) => c.id && generateSlug(c.name) === categorySlug,
+  );
+
+  if (!category) {
+    return { title: "Category Not Found" };
+  }
+
+  const categoryUrl = `${SITE_URL}category/${categorySlug}`;
+  const description = `Shop ${category.name} at ${SITE_NAME}. Find fresh, quality ${category.name.toLowerCase()} with fast delivery across India.`;
+
+  return {
+    title: `${category.name} - Buy Online | ${SITE_NAME}`,
+    description: description.substring(0, 160),
+    keywords: [
+      category.name,
+      "buy online",
+      "best price",
+      "fresh products",
+      "delivery",
+      SITE_NAME,
+    ].join(", "),
+    alternates: {
+      canonical: categoryUrl,
+    },
+    openGraph: {
+      type: "website",
+      url: categoryUrl,
+      title: `${category.name} | ${SITE_NAME}`,
+      description: description.substring(0, 160),
+      siteName: SITE_NAME,
+    },
+    twitter: {
+      card: "summary",
+      title: `${category.name} | ${SITE_NAME}`,
+      description: description.substring(0, 160),
+    },
+  };
+}
 
 function generateSlug(name) {
   return name
@@ -129,7 +173,9 @@ export default async function CategoryPage({ params, searchParams }) {
   ];
 
   return (
-    <div className="bg-gray-50 min-h-screen pb-12">
+    <>
+      <CategorySchemaMarkup category={category} />
+      <div className="bg-gray-50 min-h-screen pb-12">
       {/* Breadcrumbs */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
@@ -153,6 +199,28 @@ export default async function CategoryPage({ params, searchParams }) {
         currentPage={productsData.page}
         pageSize={productsData.pageSize}
       />
-    </div>
+      </div>
+    </>
+  );
+}
+
+function CategorySchemaMarkup({ category }) {
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: category.name,
+    description: `Shop ${category.name} at ${SITE_NAME}`,
+    url: `${SITE_URL}category/${generateSlug(category.name)}`,
+    mainEntity: {
+      "@type": "ItemList",
+      name: `${category.name} - ${SITE_NAME}`,
+    },
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+    />
   );
 }
