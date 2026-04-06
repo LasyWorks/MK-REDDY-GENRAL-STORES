@@ -1,6 +1,10 @@
 const { query, queryOne, insert, modify } = require('../config/database');
 const config = require('../config');
 class Invoice {
+  static getInvoiceSequenceWidth() {
+    return 5;
+  }
+
   static getInvoiceNumberFromOrderNumber(orderNumber) {
     if (typeof orderNumber !== 'string') return null;
     const trimmed = orderNumber.trim();
@@ -11,28 +15,40 @@ class Invoice {
     return `INV-${datePart}-${suffix}`;
   }
 
+  static getISTDatePart() {
+    const now = new Date();
+    const dateParts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(now);
+
+    const year = dateParts.find((part) => part.type === 'year')?.value;
+    const month = dateParts.find((part) => part.type === 'month')?.value;
+    const day = dateParts.find((part) => part.type === 'day')?.value;
+
+    if (!year || !month || !day) {
+      throw new Error('Unable to derive IST date for invoice numbering');
+    }
+
+    return `${year}${month}${day}`;
+  }
+
   static async generateSequentialInvoiceNumber() {
-    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const dateStr = this.getISTDatePart();
     const prefix = `INV-${dateStr}-`;
 
-    const lastForToday = await queryOne(
-      `SELECT invoice_number
+    const countForToday = await queryOne(
+      `SELECT COUNT(*)::int AS total
        FROM invoices
-       WHERE invoice_number LIKE $1
-       ORDER BY invoice_number DESC
-       LIMIT 1`,
+       WHERE invoice_number LIKE $1`,
       [`${prefix}%`]
     );
 
-    let nextSequence = 1;
-    if (lastForToday?.invoice_number) {
-      const lastSequence = parseInt(lastForToday.invoice_number.split('-').pop(), 10);
-      if (Number.isFinite(lastSequence)) {
-        nextSequence = lastSequence + 1;
-      }
-    }
+    const nextSequence = (countForToday?.total || 0) + 1;
 
-    return `${prefix}${String(nextSequence).padStart(5, '0')}`;
+    return `${prefix}${String(nextSequence).padStart(this.getInvoiceSequenceWidth(), '0')}`;
   }
 
   static async findById(id) {
@@ -64,11 +80,12 @@ class Invoice {
       ]
     );
 
+    // Keep invoice and order numbers aligned when order number follows ORD-YYYYMMDD-00001.
     if (preferredInvoiceNumber) {
       return createWithNumber(preferredInvoiceNumber);
     }
 
-    // Legacy fallback: if order number format is unexpected, keep invoice creation functional.
+    // Always keep invoice numbers on a daily serial sequence: INV-YYYYMMDD-00001.
     for (let attempt = 0; attempt < 5; attempt++) {
       const fallbackInvoiceNumber = await this.generateSequentialInvoiceNumber();
       try {

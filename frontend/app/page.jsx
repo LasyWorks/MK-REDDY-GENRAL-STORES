@@ -2,6 +2,25 @@ import dynamic from "next/dynamic";
 import CategorySection from "@/components/Home/CategorySection";
 import MobileBannerCarousel from "@/components/Home/MobileBannerCarousel";
 import LazySection from "@/components/common/LazySection";
+import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/seo";
+
+export const metadata = {
+  title: SITE_NAME,
+  description: SITE_DESCRIPTION,
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    url: "/",
+  },
+  twitter: {
+    card: "summary",
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+  },
+};
 
 // Lazy load below-the-fold components for better initial page load
 const PromotionalProducts = dynamic(

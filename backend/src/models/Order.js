@@ -1,6 +1,47 @@
 const { query, queryOne, insert, modify, withTransaction } = require('../config/database');
-const { generateOrderNumber, parseVariantToKg } = require('../utils/helpers');
+const { parseVariantToKg } = require('../utils/helpers');
 class Order {
+  static getOrderSequenceWidth() {
+    return 5;
+  }
+
+  static getISTDatePart() {
+    const now = new Date();
+    const dateParts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(now);
+
+    const year = dateParts.find((part) => part.type === 'year')?.value;
+    const month = dateParts.find((part) => part.type === 'month')?.value;
+    const day = dateParts.find((part) => part.type === 'day')?.value;
+
+    if (!year || !month || !day) {
+      throw new Error('Unable to derive IST date for order numbering');
+    }
+
+    return `${year}${month}${day}`;
+  }
+
+  static async generateSequentialOrderNumber(client) {
+    const dateStr = this.getISTDatePart();
+    const prefix = `ORD-${dateStr}-`;
+    const db = client || { query: async (sql, params) => ({ rows: await query(sql, params) }) };
+
+    const result = await db.query(
+      `SELECT COUNT(*)::int AS total
+       FROM orders
+       WHERE order_number LIKE $1`,
+      [`${prefix}%`]
+    );
+
+    const totalForToday = parseInt(result.rows[0]?.total || 0, 10);
+    const nextSequence = (Number.isFinite(totalForToday) ? totalForToday : 0) + 1;
+    return `${prefix}${String(nextSequence).padStart(this.getOrderSequenceWidth(), '0')}`;
+  }
+
   static async findById(id, lang = 'en') {
     const order = await queryOne(
       `SELECT o.*, u.name AS customer_name, u.phone AS customer_phone, u.email AS customer_email, u.user_type,
@@ -128,7 +169,8 @@ class Order {
     } = promo;
 
     return withTransaction(async (client) => {
-      const orderNumber = generateOrderNumber();
+      let orderId = null;
+      let orderNumber = null;
       const totalDiscount = Number(promotionDiscount || 0) + Number(birthdayDiscount || 0);
       
       // FIX: Apply discounts to subtotal before calculating final amounts
@@ -138,26 +180,44 @@ class Order {
       const adjustedGst = parseFloat((discountedSubtotal * gstRatio).toFixed(2));
       const finalTotal = parseFloat((discountedSubtotal + adjustedGst).toFixed(2));
       
-      const oRes = await client.query(
-        `INSERT INTO orders (user_id, order_number, status, subtotal, total_gst, total_amount, notes, promotion_id, promotion_discount, promotion_title, birthday_offer_id, birthday_coupon_code, birthday_discount, birthday_offer_title)
-         VALUES ($1,$2,'pending',$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
-        [
-          userId,
-          orderNumber,
-          discountedSubtotal,
-          adjustedGst,
-          Math.max(finalTotal, 0),
-          notes,
-          promotionId,
-          promotionDiscount,
-          promotionTitle,
-          birthdayOfferId,
-          birthdayCouponCode,
-          Number(birthdayDiscount || 0),
-          birthdayOfferTitle,
-        ]
-      );
-      const orderId = oRes.rows[0].id;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        orderNumber = await this.generateSequentialOrderNumber(client);
+        try {
+          const oRes = await client.query(
+            `INSERT INTO orders (user_id, order_number, status, subtotal, total_gst, total_amount, notes, promotion_id, promotion_discount, promotion_title, birthday_offer_id, birthday_coupon_code, birthday_discount, birthday_offer_title)
+             VALUES ($1,$2,'pending',$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
+            [
+              userId,
+              orderNumber,
+              discountedSubtotal,
+              adjustedGst,
+              Math.max(finalTotal, 0),
+              notes,
+              promotionId,
+              promotionDiscount,
+              promotionTitle,
+              birthdayOfferId,
+              birthdayCouponCode,
+              Number(birthdayDiscount || 0),
+              birthdayOfferTitle,
+            ]
+          );
+          orderId = oRes.rows[0].id;
+          break;
+        } catch (error) {
+          const duplicateOrderNumber =
+            error?.code === '23505' &&
+            (error?.constraint?.includes('order') || error?.message?.includes('order_number'));
+
+          if (!duplicateOrderNumber) {
+            throw error;
+          }
+        }
+      }
+
+      if (!orderId || !orderNumber) {
+        throw new Error('Could not generate a unique order number after retries');
+      }
       for (const item of cart.items) {
         const nameEn = item.product_name_en || item.product_name;
         const variantLabel = item.variant || item.unit_pack_size || null;

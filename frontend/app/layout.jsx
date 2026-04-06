@@ -14,6 +14,7 @@ import { PromotionProvider } from "@/context/PromotionContext";
 import { CategoryProvider } from "@/context/CategoryContext";
 import GoogleOAuthWrapper from "@/components/common/GoogleOAuthWrapper";
 import { DialogProvider } from "@/context/DialogContext";
+import { getMetadataBase, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/seo";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,9 +22,60 @@ const geistSans = Geist({
   display: "swap",
 });
 export const metadata = {
-  title: "MK Reddy General Store - Grocery Shopping",
-  description:
-    "Shop for groceries, vegetables, fruits and more at MK Reddy General Store",
+  metadataBase: getMetadataBase(),
+  title: {
+    default: SITE_NAME,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  authors: [{ name: SITE_NAME }],
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
+  keywords: [
+    "grocery delivery",
+    "online grocery store",
+    "fresh vegetables",
+    "daily essentials",
+    "kirana store",
+    "MK Reddy General Stores",
+    "Telugu grocery shopping",
+  ],
+  alternates: {
+    canonical: "/",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_IN",
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary",
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+  },
+  verification: {
+    google: "_trkSgcfuUr9gyQaGjH5E1wIkz5Ta6aorA0AzHdOSq4",
+  },
+  formatDetection: {
+    telephone: false,
+    email: false,
+    address: false,
+  },
 };
 
 export const viewport = {
@@ -35,9 +87,7 @@ export default function RootLayout({ children }) {
 
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} antialiased`}>
         <OfflineGate />
         <GoogleOAuthWrapper clientId={googleClientId}>
           <LanguageProvider>
@@ -45,19 +95,21 @@ export default function RootLayout({ children }) {
               <PromotionProvider>
                 <CategoryProvider>
                   <DialogProvider>
-                  {/* Public navigation - hidden on admin pages */}
-                  <PublicShell>
-                    <Navbar />
-                    <CategoryNav />
-                    <MobileHeader />
-                    <CartSidebar />
-                  </PublicShell>
-                  {children}
-                  <PublicShell>
-                    <Footer />
-                    <MobileBottomNav />
-                  </PublicShell>
-                </DialogProvider>                </CategoryProvider>              </PromotionProvider>
+                    {/* Public navigation - hidden on admin pages */}
+                    <PublicShell>
+                      <Navbar />
+                      <CategoryNav />
+                      <MobileHeader />
+                      <CartSidebar />
+                    </PublicShell>
+                    {children}
+                    <PublicShell>
+                      <Footer />
+                      <MobileBottomNav />
+                    </PublicShell>
+                  </DialogProvider>
+                </CategoryProvider>
+              </PromotionProvider>
             </CartProvider>
           </LanguageProvider>
         </GoogleOAuthWrapper>
