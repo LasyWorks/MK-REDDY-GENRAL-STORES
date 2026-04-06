@@ -135,7 +135,7 @@ export default function BillingPage() {
         <style>
           @page { size: A4; margin: 10mm; }
           *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-          body { font-family: Arial, sans-serif; font-size: 11px; color: #111; line-height: 1.4; }
+          body { font-family: Arial, sans-serif; font-size: 10.5px; color: #111827; line-height: 1.35; }
           table { width: 100%; border-collapse: collapse; }
 
           .text-center { text-align: center; }
@@ -145,8 +145,10 @@ export default function BillingPage() {
           .font-semibold { font-weight: 600; }
           .font-medium { font-weight: 500; }
           .italic { font-style: italic; }
+          .uppercase { text-transform: uppercase; }
           .tracking-wide { letter-spacing: 0.025em; }
           .leading-tight { line-height: 1.25; }
+          .leading-snug { line-height: 1.375; }
           .border { border: 1px solid #d1d5db; }
           .border-b { border-bottom: 1px solid #d1d5db; }
           .border-t { border-top: 1px solid #d1d5db; }
@@ -162,21 +164,46 @@ export default function BillingPage() {
           .pb-2 { padding-bottom: 0.5rem; }
           .pt-1 { padding-top: 0.25rem; }
           .p-1\\.5, .p-1\\.5 { padding: 0.375rem; }
+          .p-2 { padding: 0.5rem; }
           .px-1 { padding-left: 0.25rem; padding-right: 0.25rem; }
+          .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
           .py-0 { padding-top: 0; padding-bottom: 0; }
           .py-0\\.5, .py-0\\.5 { padding-top: 0.125rem; padding-bottom: 0.125rem; }
           .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+          .py-1\\.5 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
           .text-xs { font-size: 0.75rem; line-height: 1rem; }
           .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
           .text-base { font-size: 1rem; line-height: 1.5rem; }
           .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+          .text-xl { font-size: 1.25rem; }
+          .font-mono { font-family: monospace; }
+          .tabular-nums { font-variant-numeric: tabular-nums; }
+          .break-words { word-break: break-word; }
+          .hover\\:bg-gray-50:hover { background-color: #f9fafb; }
+          .bg-gray-50 { background-color: #f9fafb; }
+          .bg-gray-100 { background-color: #f3f4f6; }
+          .bg-purple-50 { background-color: #faf5ff; }
+          .border-purple-700 { border-color: #7c3aed; }
 
+          .text-gray-500 { color: #6b7280; }
           .text-gray-600 { color: #4b5563; }
           .text-gray-700 { color: #374151; }
+          .text-gray-800 { color: #1f2937; }
           .text-gray-900 { color: #111827; }
           .text-purple-600 { color: #9333ea; }
+          .text-purple-700 { color: #7c3aed; }
+          .text-green-700 { color: #166534; }
+          .text-red-600 { color: #dc2626; }
           .text-white { color: #ffffff; }
           .bg-purple-600 { background-color: #9333ea !important; }
+          .bg-purple-700 { background-color: #7c3aed !important; }
+          
+          /* Print responsive - stack on narrow prints */
+          @media print and (max-width: 600px) {
+            .grid-cols-2 { grid-template-columns: 1fr; }
+            table { font-size: 0.7rem; }
+            .text-lg { font-size: 1rem; }
+          }
         </style>
       </head>
       <body>${content.innerHTML}</body>
@@ -526,137 +553,230 @@ export default function BillingPage() {
                   ) : !invoice ? (
                     <div className="text-center py-16 text-gray-500">No invoice available for this order</div>
                   ) : (
-                    <div className="max-w-4xl mx-auto text-sm" id="invoice-content">
+                    <div className="max-w-4xl mx-auto text-xs leading-snug text-gray-900" id="invoice-content">
                       {/* Store Header */}
-                      <div className="text-center mb-2 border-b pb-2">
-                        <h1 className="text-lg font-bold text-gray-900 tracking-wide mb-0.5">
-                          M K REDDY GENERAL STORES
-                        </h1>
+                      <div className="mb-1 text-left">
+                        <h1 className="text-sm font-bold tracking-wide text-gray-900">M K REDDY GENERAL STORES</h1>
                         <p className="text-xs text-gray-700">SALIPETA, NELLORE</p>
                         <p className="text-xs text-gray-600">GSTIN : 37D1C9A5877L1Z0</p>
                         <p className="text-xs text-gray-600">State: 37-Andhra Pradesh</p>
                       </div>
 
+                      <div className="mb-2" style={{ height: "1px", backgroundColor: "#8F8BDD" }} />
+
                       {/* SALE Title */}
                       <div className="text-center mb-2">
-                        <h2 className="text-base font-bold text-purple-600">SALE</h2>
+                        <span className="text-sm font-bold tracking-wide" style={{ color: "#8F8BDD" }}>SALE</span>
                       </div>
 
                       {/* Bill To and Invoice Details */}
                       <div className="grid grid-cols-2 gap-4 mb-2">
                         <div>
-                          <h3 className="font-bold text-xs mb-1">Bill To</h3>
-                          <p className="text-xs font-semibold leading-tight">
-                            {getBestCustomerName(invoice.customer?.name, selectedOrder?.customer_name, selectedOrder?.user?.name)}
+                          <div className="text-xs font-bold text-gray-700 mb-1">BILL TO</div>
+                          <p className="text-xs font-semibold text-gray-900 break-words mb-0.5">
+                            {getBestCustomerName(
+                              invoice.customer?.name,
+                              selectedOrder?.customer_name,
+                              selectedOrder?.user?.name,
+                            ) || "Customer"}
                           </p>
-                          <p className="text-xs text-gray-600 leading-tight">Contact No : {invoice.customer?.phone}</p>
+                          <p className="text-xs text-gray-700 break-words">
+                            Contact No : {invoice.customer?.phone || selectedOrder?.customer_phone || "N/A"}
+                          </p>
+                          {invoice.customer?.address && (
+                            <p className="text-xs text-gray-600 break-words mb-0.5">
+                              {invoice.customer.address}
+                            </p>
+                          )}
                         </div>
-                        <div className="text-right">
-                          <h3 className="font-bold text-xs mb-1">Invoice Details</h3>
-                          <p className="text-xs leading-tight">Invoice No : {invoice.invoice_number}</p>
-                          <p className="text-xs leading-tight">
-                            Date : {formatDate(invoice.order_date || invoice.created_at)}
-                          </p>
-                          <p className="text-xs leading-tight">
-                            Time : {new Date(invoice.order_date || invoice.created_at)
-                              .toLocaleTimeString("en-IN", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                hour12: true,
-                              })
-                              .toUpperCase()}
-                          </p>
+                        <div>
+                          <div className="text-xs font-bold text-gray-700 mb-1 text-right">INVOICE DETAILS</div>
+                          <div className="text-xs">
+                            <div className="flex justify-between mb-0.5">
+                              <span className="text-gray-600">Invoice No :</span>
+                              <span className="text-gray-900 font-mono tabular-nums font-semibold">
+                                {invoice.invoice_number || "N/A"}
+                              </span>
+                            </div>
+                            <div className="flex justify-between mb-0.5">
+                              <span className="text-gray-600">Date :</span>
+                              <span className="text-gray-900 font-mono tabular-nums">
+                                {formatDate(invoice.order_date || invoice.created_at)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between mb-0.5">
+                              <span className="text-gray-600">Time :</span>
+                              <span className="text-gray-900 font-mono tabular-nums">
+                                {new Date(invoice.order_date || invoice.created_at)
+                                  .toLocaleTimeString("en-IN", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    hour12: true,
+                                  })
+                                  .toUpperCase()}
+                              </span>
+                            </div>
+                            {selectedOrder?.order_number && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Order No :</span>
+                                <span className="text-gray-900 font-mono tabular-nums font-semibold">
+                                  {selectedOrder.order_number}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
 
                       {/* Items Table */}
                       <table className="w-full mb-2 text-xs border-collapse">
-                        <thead className="bg-purple-600 text-white">
+                        <thead style={{ backgroundColor: "#8F8BDD", color: "#ffffff" }}>
                           <tr>
-                            <th className="py-1 px-1 text-center border" style={{ width: "5%" }}>#</th>
-                            <th className="py-1 px-1 text-left border" style={{ width: "45%" }}>Item Name</th>
-                            <th className="py-1 px-1 text-center border" style={{ width: "15%" }}>Quantity</th>
-                            <th className="py-1 px-1 text-right border" style={{ width: "17.5%" }}>Price/Unit</th>
-                            <th className="py-1 px-1 text-right border" style={{ width: "17.5%" }}>Amount</th>
+                            <th className="py-1 px-2 text-center font-semibold" style={{ width: "5%" }}>
+                              #
+                            </th>
+                            <th className="py-1 px-2 text-left font-semibold" style={{ width: "45%" }}>
+                              Item name
+                            </th>
+                            <th className="py-1 px-2 text-center font-semibold" style={{ width: "15%" }}>
+                              Quantity
+                            </th>
+                            <th className="py-1 px-2 text-right font-semibold" style={{ width: "15%" }}>
+                              Price / Unit
+                            </th>
+                            <th className="py-1 px-2 text-right font-semibold" style={{ width: "20%" }}>
+                              Amount
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
                           {invoice.items?.map((item, idx) => (
-                            <tr key={idx} className="border-b">
-                              <td className="py-0.5 px-1 text-center border">{idx + 1}</td>
-                              <td className="py-0.5 px-1 border">
-                                <div className="font-medium leading-tight">{item.product_name}</div>
+                            <tr key={idx} className="hover:bg-gray-50">
+                              <td className="py-1 px-2 text-center border-b text-gray-600 tabular-nums">
+                                {idx + 1}
                               </td>
-                              <td className="py-0.5 px-1 text-center border">{item.quantity}</td>
-                              <td className="py-0.5 px-1 text-right border">{formatCurrency(item.unit_price)}</td>
-                              <td className="py-0.5 px-1 text-right border">{formatCurrency(item.total)}</td>
+                              <td className="py-1 px-2 border-b">
+                                <div className="font-semibold text-gray-900 uppercase break-words">
+                                  {item.product_name}
+                                </div>
+                                {item.variant && (
+                                  <div className="text-xs text-gray-600 break-words">{item.variant}</div>
+                                )}
+                              </td>
+                              <td className="py-1 px-2 text-center border-b text-gray-700 font-mono tabular-nums">
+                                {item.quantity}
+                              </td>
+                              <td className="py-1 px-2 text-right border-b text-gray-700 font-mono tabular-nums">
+                                {formatCurrency(item.unit_price)}
+                              </td>
+                              <td className="py-1 px-2 text-right border-b text-gray-900 font-mono tabular-nums">
+                                {formatCurrency(item.total)}
+                              </td>
                             </tr>
                           ))}
                           {invoice.items?.length < 8 &&
                             Array.from({ length: Math.max(0, 8 - invoice.items.length) }).map((_, idx) => (
-                              <tr key={`empty-${idx}`} className="border-b" style={{ height: "20px" }}>
-                                <td className="py-0.5 px-1 border">&nbsp;</td>
-                                <td className="py-0.5 px-1 border">&nbsp;</td>
-                                <td className="py-0.5 px-1 border">&nbsp;</td>
-                                <td className="py-0.5 px-1 border">&nbsp;</td>
-                                <td className="py-0.5 px-1 border">&nbsp;</td>
+                              <tr key={`empty-${idx}`} style={{ height: "22px" }}>
+                                <td className="py-1 px-2 border-b">&nbsp;</td>
+                                <td className="py-1 px-2 border-b">&nbsp;</td>
+                                <td className="py-1 px-2 border-b">&nbsp;</td>
+                                <td className="py-1 px-2 border-b">&nbsp;</td>
+                                <td className="py-1 px-2 border-b">&nbsp;</td>
                               </tr>
                             ))}
                           <tr className="font-bold">
-                            <td colSpan="2" className="py-0.5 px-1 text-left border">Total</td>
-                            <td className="py-0.5 px-1 text-center border">
+                            <td colSpan="2" className="py-1 px-2 text-left border-t text-gray-900">
+                              Total
+                            </td>
+                            <td className="py-1 px-2 text-center border-t text-gray-900 font-mono tabular-nums">
                               {invoice.items?.reduce((sum, item) => sum + parseFloat(item.quantity), 0)}
                             </td>
-                            <td className="py-0.5 px-1 border"></td>
-                            <td className="py-0.5 px-1 text-right border">{formatCurrency(invoice.subtotal)}</td>
+                            <td className="py-1 px-2 border-t"></td>
+                            <td className="py-1 px-2 text-right border-t text-gray-900 font-mono tabular-nums">
+                              {formatCurrency(invoice.total_amount)}
+                            </td>
                           </tr>
                         </tbody>
                       </table>
 
                       {/* Amount in Words and Totals */}
-                      <div className="grid grid-cols-2 gap-2 mb-2">
-                        <div className="border p-1.5">
-                          <p className="text-xs font-bold mb-0.5 leading-tight">Invoice Amount In Words</p>
-                          <p className="text-xs italic leading-tight">{numberToWords(Math.round(invoice.total_amount))}</p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <div className="text-xs font-bold text-gray-700 mb-1">INVOICE AMOUNT IN WORDS</div>
+                          <div className="text-xs text-gray-900 break-words mb-2">
+                            {numberToWords(Math.round(invoice.total_amount))}
+                          </div>
+                          <div className="text-xs font-bold text-gray-700 mb-1">TERMS AND CONDITIONS</div>
+                          <div className="text-xs text-gray-700 break-words">
+                            Return items are not accepted after two days of bill date.
+                          </div>
                         </div>
-                        <div className="border p-1.5">
-                          <table className="w-full text-xs">
-                            <tbody>
-                              <tr>
-                                <td className="py-0">Sub Total</td>
-                                <td className="py-0 text-right">{formatCurrency(invoice.subtotal)}</td>
-                              </tr>
-                              <tr className="font-bold bg-purple-600 text-white">
-                                <td className="py-0 px-1">Total</td>
-                                <td className="py-0 px-1 text-right">{formatCurrency(invoice.total_amount)}</td>
-                              </tr>
-                              <tr>
-                                <td className="py-0">Received</td>
-                                <td className="py-0 text-right">
-                                  {invoice.is_paid ? formatCurrency(invoice.total_amount) : "Rs 0.00"}
-                                </td>
-                              </tr>
-                              <tr>
-                                <td className="py-0">Balance</td>
-                                <td className="py-0 text-right">
-                                  {invoice.is_paid ? "Rs 0.00" : formatCurrency(invoice.total_amount)}
-                                </td>
-                              </tr>
-                              <tr>
-                                <td className="py-0">Previous Balance</td>
-                                <td className="py-0 text-right">Rs 0.00</td>
-                              </tr>
-                              <tr className="font-bold">
-                                <td className="py-0">Current Balance</td>
-                                <td className="py-0 text-right">
-                                  {invoice.is_paid ? "Rs 0.00" : formatCurrency(invoice.total_amount)}
-                                </td>
-                              </tr>
-                            </tbody>
-                          </table>
+                        <div>
+                          <div className="flex justify-between border-b pb-2 mb-1">
+                            <span className="text-xs text-gray-700">Sub Total</span>
+                            <span className="text-xs text-gray-900 font-mono tabular-nums">
+                              {formatCurrency(invoice.subtotal)}
+                            </span>
+                          </div>
+
+                          {(invoice.cgst || invoice.sgst) && (
+                            <div className="mb-1">
+                              {invoice.cgst > 0 && (
+                                <div className="flex justify-between mb-0.5">
+                                  <span className="text-xs text-gray-600">CGST</span>
+                                  <span className="text-xs text-gray-900 font-mono tabular-nums">
+                                    {formatCurrency(invoice.cgst)}
+                                  </span>
+                                </div>
+                              )}
+                              {invoice.sgst > 0 && (
+                                <div className="flex justify-between mb-0.5">
+                                  <span className="text-xs text-gray-600">SGST</span>
+                                  <span className="text-xs text-gray-900 font-mono tabular-nums">
+                                    {formatCurrency(invoice.sgst)}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          <div
+                            className="flex justify-between px-2 py-1 mb-1"
+                            style={{ backgroundColor: "#8F8BDD", color: "#ffffff" }}
+                          >
+                            <span className="text-xs font-bold">Total</span>
+                            <span className="text-xs font-mono tabular-nums font-bold">
+                              {formatCurrency(invoice.total_amount)}
+                            </span>
+                          </div>
+
+                          {(() => {
+                            const isPaid = invoice.is_paid || selectedOrder?.status === "picked_up";
+                            const receivedValue = isPaid ? formatCurrency(invoice.total_amount) : "Rs 0.00";
+                            const balanceValue = isPaid ? "Rs 0.00" : formatCurrency(invoice.total_amount);
+                            return (
+                              <>
+                                <div className="flex justify-between mb-0.5">
+                                  <span className="text-xs text-gray-700">Received</span>
+                                  <span className="text-xs font-mono tabular-nums text-gray-900">
+                                    {receivedValue}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-xs text-gray-700">Balance</span>
+                                  <span
+                                    className={`text-xs font-mono tabular-nums ${
+                                      isPaid ? "text-gray-900" : "text-red-600"
+                                    }`}
+                                  >
+                                    {balanceValue}
+                                  </span>
+                                </div>
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
-
                     </div>
                   )}
                 </div>

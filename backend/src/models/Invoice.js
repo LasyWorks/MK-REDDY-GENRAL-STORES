@@ -1,7 +1,40 @@
 const { query, queryOne, insert, modify } = require('../config/database');
-const { generateInvoiceNumber } = require('../utils/helpers');
 const config = require('../config');
 class Invoice {
+  static getInvoiceNumberFromOrderNumber(orderNumber) {
+    if (typeof orderNumber !== 'string') return null;
+    const trimmed = orderNumber.trim();
+    const match = trimmed.match(/^ORD-(\d{8})-(\d{5})$/);
+    if (!match) return null;
+
+    const [, datePart, suffix] = match;
+    return `INV-${datePart}-${suffix}`;
+  }
+
+  static async generateSequentialInvoiceNumber() {
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const prefix = `INV-${dateStr}-`;
+
+    const lastForToday = await queryOne(
+      `SELECT invoice_number
+       FROM invoices
+       WHERE invoice_number LIKE $1
+       ORDER BY invoice_number DESC
+       LIMIT 1`,
+      [`${prefix}%`]
+    );
+
+    let nextSequence = 1;
+    if (lastForToday?.invoice_number) {
+      const lastSequence = parseInt(lastForToday.invoice_number.split('-').pop(), 10);
+      if (Number.isFinite(lastSequence)) {
+        nextSequence = lastSequence + 1;
+      }
+    }
+
+    return `${prefix}${String(nextSequence).padStart(5, '0')}`;
+  }
+
   static async findById(id) {
     return queryOne('SELECT * FROM invoices WHERE id = $1', [id]);
   }
@@ -12,10 +45,11 @@ class Invoice {
     return queryOne('SELECT * FROM invoices WHERE invoice_number = $1', [invoiceNumber]);
   }
   static async create(order, customer) {
-    const invoiceNumber = generateInvoiceNumber();
     const cgst = parseFloat((order.total_gst / 2).toFixed(2));
     const sgst = parseFloat((order.total_gst / 2).toFixed(2));
-    return insert(
+    const preferredInvoiceNumber = this.getInvoiceNumberFromOrderNumber(order.order_number);
+
+    const createWithNumber = async (invoiceNumber) => insert(
       `INSERT INTO invoices (
          order_id, invoice_number,
          store_name, store_gst_number, store_address, store_phone,
@@ -29,6 +63,28 @@ class Invoice {
         order.subtotal, cgst, sgst, order.total_gst, order.total_amount,
       ]
     );
+
+    if (preferredInvoiceNumber) {
+      return createWithNumber(preferredInvoiceNumber);
+    }
+
+    // Legacy fallback: if order number format is unexpected, keep invoice creation functional.
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const fallbackInvoiceNumber = await this.generateSequentialInvoiceNumber();
+      try {
+        return await createWithNumber(fallbackInvoiceNumber);
+      } catch (error) {
+        const duplicateInvoiceNumber =
+          error?.code === '23505' &&
+          (error?.constraint?.includes('invoice') || error?.message?.includes('invoice_number'));
+
+        if (!duplicateInvoiceNumber) {
+          throw error;
+        }
+      }
+    }
+
+    throw new Error('Could not generate a unique fallback invoice number after retries');
   }
   static async findAll(options = {}) {
     const { page = 1, limit = 10, startDate = null, endDate = null, isPaid = null, customerId = null } = options;

@@ -141,7 +141,7 @@ async function createOrder(userId, products) {
     const orderItems = products.map(p => {
       const quantity = Math.floor(Math.random() * 3) + 1; // 1-3 items
       const unitPrice = parseFloat(p.price);
-      const gstPercentage = parseFloat(p.gst_percentage || 18);
+      const gstPercentage = parseFloat(p.gst_percentage || 0);
       const itemSubtotal = unitPrice * quantity;
       const itemGst = (itemSubtotal * gstPercentage) / 100;
       const itemTotal = itemSubtotal + itemGst;

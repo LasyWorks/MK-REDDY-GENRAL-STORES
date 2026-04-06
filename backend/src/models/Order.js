@@ -130,15 +130,22 @@ class Order {
     return withTransaction(async (client) => {
       const orderNumber = generateOrderNumber();
       const totalDiscount = Number(promotionDiscount || 0) + Number(birthdayDiscount || 0);
-      const finalTotal = parseFloat((cart.total - totalDiscount).toFixed(2));
+      
+      // FIX: Apply discounts to subtotal before calculating final amounts
+      // Discounts in Indian GST are applied to pre-tax amount, so recalculate GST on discounted subtotal
+      const discountedSubtotal = parseFloat(Math.max(cart.subtotal - totalDiscount, 0).toFixed(2));
+      const gstRatio = cart.subtotal > 0 ? cart.total_gst / cart.subtotal : 0;
+      const adjustedGst = parseFloat((discountedSubtotal * gstRatio).toFixed(2));
+      const finalTotal = parseFloat((discountedSubtotal + adjustedGst).toFixed(2));
+      
       const oRes = await client.query(
         `INSERT INTO orders (user_id, order_number, status, subtotal, total_gst, total_amount, notes, promotion_id, promotion_discount, promotion_title, birthday_offer_id, birthday_coupon_code, birthday_discount, birthday_offer_title)
          VALUES ($1,$2,'pending',$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
         [
           userId,
           orderNumber,
-          cart.subtotal,
-          cart.total_gst,
+          discountedSubtotal,
+          adjustedGst,
           Math.max(finalTotal, 0),
           notes,
           promotionId,

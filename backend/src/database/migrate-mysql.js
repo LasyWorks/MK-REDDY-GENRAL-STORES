@@ -214,7 +214,7 @@ async function migrate() {
       \`purchase_price\`     DECIMAL(10,2),
       \`price\`              DECIMAL(10,2) NOT NULL,
       \`wholesale_price\`    DECIMAL(10,2),
-      \`gst_percentage\`     DECIMAL(5,2)  NOT NULL DEFAULT 18.00,
+      \`gst_percentage\`     DECIMAL(5,2)  NOT NULL DEFAULT 0.00,
       \`discount\`           DECIMAL(5,2),
       \`margin\`             DECIMAL(5,2),
       \`stock_quantity\`     INT           NOT NULL DEFAULT 0,
@@ -659,7 +659,7 @@ async function migrate() {
   const configRows = [
     [uuidv4(), 'max_customers',          '500',  'Maximum active customers'],
     [uuidv4(), 'max_products',           '5000', 'Maximum product catalogue size'],
-    [uuidv4(), 'default_gst_percentage', '18',   'Default GST percentage'],
+    [uuidv4(), 'default_gst_percentage', '0',    'Default GST percentage'],
     [uuidv4(), 'cooking_oil_gst',        '5',    'GST % for cooking oils (lower slab)'],
   ];
   for (const [id, key, val, desc] of configRows) {
